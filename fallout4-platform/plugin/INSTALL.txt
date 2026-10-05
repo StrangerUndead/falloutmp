@@ -1,25 +1,26 @@
-FalloutMP client (early test build)
-===================================
+FalloutMP client (test build)
+=============================
 
-What this build does
-- Connects your game to a FalloutMP server and logs you in.
-- Moves you to your character's position on the server (new characters
-  start at Sanctuary Hills).
-- Shows other players as actors that follow their movement.
+This build connects every system of a FalloutMP server to the game:
+movement and animations, appearance and character creation, inventory
+and equipment, stats, levels and perks, chems and effects, combat
+(shots, hits, damage, death), power armor, workshops and settlements,
+crafting and modding, locks, terminals and hacking, the map and fast
+travel, and time and weather.
 
-What it doesn't do yet
-- Other players are clones of your own character and glide without
-  animations. Appearance and animation sync come later.
-- Inventory, combat, power armor, workshops and the rest of the server's
-  systems aren't connected to the game yet.
+It has not been tested in the game yet. Expect problems: every system
+can be switched off on its own (see "Settings") so one broken part
+doesn't stop the rest, and the probe (below) records what the developers
+need to fix things.
 
 Requirements
 - Fallout 4, current Steam or GOG version (1.11.x, the Anniversary
-  Edition update). The older "next-gen" 1.10.984 and 1.10.163 versions
-  are not supported by this build.
+  Edition update). The older 1.10.984 and 1.10.163 versions are not
+  supported by this build.
 - F4SE for your game version: https://f4se.silverlock.org
 - Address Library for F4SE Plugins (the version for 1.11.x):
   https://www.nexusmods.com/fallout4/mods/47327
+- Recommended: Buffout 4 (crash logs name the failing function).
 
 Install
 1. Copy the Data folder from this archive into your Fallout 4 folder
@@ -28,28 +29,54 @@ Install
      Data\F4SE\Plugins\FalloutMP.json
      Data\F4SE\Plugins\FalloutMP\falloutmp-client.js
 2. Open Data\F4SE\Plugins\FalloutMP.json and enter your server:
-     { "server-ip": "203.0.113.10", "server-port": 7777 }
+     "server-ip": "203.0.113.10", "server-port": 7777
 3. Start the game with f4se_loader.exe.
 4. Load a save you don't mind (or start a new game). The client connects
-   when the save has loaded. Use a separate save for multiplayer: your
-   local progress isn't synced with the server yet.
+   when the save has loaded. A new character on the server opens the
+   character editor first. Use a separate save for multiplayer.
 
 When updating, keep your FalloutMP.json: it holds your "profile-id",
-which is how the server recognises your character. The first start adds
-it automatically.
+which is how the server recognises your character.
+
+First run: the probe (please do this once)
+1. In FalloutMP.json set "probe": true. No server is needed.
+2. Load a save and wait about 5 seconds. A test character appears next
+   to you for a moment.
+3. When the message "recording 60 s" appears: walk, run, sprint, sneak,
+   jump, draw your weapon, aim, fire, reload, open the Pip-Boy.
+4. When it says "probe finished", send these files:
+     Data\F4SE\Plugins\FalloutMP-probe.json
+     Documents\My Games\Fallout4\F4SE\FalloutMP.log
+5. Set "probe" back to false.
 
 Settings in FalloutMP.json
 - server-ip, server-port: the server to join.
 - profile-id: your character on this server (generated once).
+- features: switch a system off with false, e.g. "combat": false.
+  Names: session, movement, puppets, animation, appearance, inventory,
+  equipment, actorValues, progression, effects, combat, powerArmor,
+  workshop, locks, map, world.
+- puppet-ai: how other players' characters are kept still: "package"
+  (default), "restrained", or "off".
 - puppet-move: "native" (default) or "papyrus". Try "papyrus" if other
   players don't move on your screen.
-- puppet-base: base NPC used for other players, default "0x7" (a clone
-  of your character).
+- puppet-warp: "controller" (default) or "reference".
+- puppet-base: base NPC used for other players, default "0x7" (a copy of
+  your character, replaced by their own face once it arrives).
 
 Troubleshooting
-- Log: Documents\My Games\Fallout4\F4SE\FalloutMP.log
-- Nothing happens on load: check the log exists. If it doesn't, F4SE or
-  the Address Library is missing or doesn't match your game version.
+- Logs: Documents\My Games\Fallout4\F4SE\FalloutMP.log (plugin) and,
+  with Papyrus logging on, Documents\My Games\Fallout4\Logs\Script\
+  Papyrus.0.log. To turn Papyrus logging on, add to
+  Documents\My Games\Fallout4\Fallout4Custom.ini:
+    [Papyrus]
+    bEnablePapyrusLogging=1
+    bEnableLogging=1
+    bEnableTrace=1
+    bLoadDebugInformation=1
+- The game crashes on load: remove FalloutMP.dll and check F4SE and the
+  Address Library match your game version. Send the Buffout 4 crash log.
+- A system misbehaves: switch it off in "features" and send the logs.
 - "Can't reach the server": check the address, and that the server's
   firewall allows UDP 7777.
 - "The server refused the connection: Invalid password": the server and

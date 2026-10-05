@@ -21,7 +21,9 @@
 | Client core `fallout4-platform/core`: SLikeNet connection (`fo4-1_` prefix), wire codec from the server's messages library, QuickJS host running the client bundle | Done | `Fo4ClientCoreTest` (4 cases) |
 | Client runtime `falloutmp-client/src/runtime`: `WorldSession` (connect, offline login, CreateActor/DestroyActor/Teleport/Host, puppets keyed by form id, reconnect, puppets recreated after saves), native `FalloutPlatform` adapter | Done | client `session.test.ts` (11 tests) |
 | Headless bot `fmp_bot` + `fmp_e2e.sh`: two clients join a fallout4 server on a synthetic Fallout4.esm, see each other, movement replicates | Done | `fallout4-platform/tools/fmp_e2e.sh` PASS |
-| F4SE plugin `fallout4-platform/plugin` (CommonLibF4 pinned `7c8c6f8`, AE 1.11.x): load on game data, tick from PlayerCharacter::Update (vfunc 0xCF), player movement capture, teleport via MoveTo onto a marker, puppets (CreateReferenceAtLocation of base 0x7, Papyrus EnableAI false, SetLocationOnReference per frame), HUD notifications, puppets removed before saves | Written; CI build `.github/workflows/falloutmp-client-windows.yml` | not run in game |
+| F4SE plugin `fallout4-platform/plugin` (CommonLibF4 pinned `7c8c6f8`, AE 1.11.x): Platform core (native registry, event queue, async natives, frame tick from an F4SE permanent task, save hooks), probe, and 16 feature modules with switches: session, movement, puppets, animation (F02), appearance (F03), inventory/equipment (F04–F06), actor values/death (F08/F12), progression (F19), effects (F20), combat (F09–F11), power armor (F17), workshop and crafting menus (F15/F16/F22), locks/terminals (F24), map/fast travel (F26), time/weather (F25). Rules: `plugin/MODULES.md` | Written; every source passes a clang syntax check against CommonLibF4; Windows CI build | not run in game |
+| Server: `UpdateAppearanceFo4` (66), `UpdateActions` (74), `UpdateGraphVariables` (75), stream-in of appearance/equipment/PA/effects, full state on spawn | Done | `Fo4ServerTest` [F02][F03], `Fo4MessagesTest`, e2e |
+| Client: AnimationService, AppearanceService, async natives | Done | client `animationAppearance.test.ts`, e2e (face and jump replicate between two bots) |
 | PEX FO4 reader (M2 PVM-001…006) | Not started | — |
 | Movement (F01): `UpdateMovementFo4` (65), server speed model (walk/sprint/encumbered/PA/jetpack/vertical), per-sample and windowed checks, scored corrections, cell-change rule, history for hit rewind, PA core drain from movement; client capture and interpolated replay | Done | `Fo4MovementTest`, `Fo4ServerTest` [F01], client `movement.test.ts` |
 | Effects (F20-T03): `EffectsUpdate` (92) owner full and neighbour visual subset, pushed on use, expiry and join; `getEffects`/`cureAddictions`/`addRads`; client `EffectsService` | Done | `Fo4ServerTest` [F20], `Fo4MessagesTest`, client effects test |
@@ -36,7 +38,7 @@ Test totals at the last commit: C++ 256 test cases and about 2150 assertions (`.
 Guides: [guides/server-admin.md](guides/server-admin.md), [guides/gamemode-api.md](guides/gamemode-api.md), [guides/implementation.md](guides/implementation.md).
 
 ## Next actions (for the next session)
-0. Client in game: get the Windows workflow green, then the user runs the build (F4SE + Address Library on 1.11.x) and reports `FalloutMP.log`. Verify first: the hook fires, MoveTo teleports, puppets appear and move (`puppet-move` "native" vs "papyrus"), EnableAI's Papyrus signature. Then movement flags, appearance (F03) and animation (F02).
+0. Client in game: the user runs the probe (`"probe": true`) and a two-player session, and sends `FalloutMP-probe.json`, `FalloutMP.log`, the Papyrus log and any Buffout 4 crash log. Work through the in-game checks below with them; switch failing modules off in `features` meanwhile.
 1. M2: PEX FO4 reader (PVM-001…006), so server Papyrus can run Fallout 4 scripts.
 2. F13 remainder: `NpcAiState` (111), legendary rolls (LTPT/LTPC), hostility from factions.
 3. Windows work for the user or CI: PLAT-001+ (the F4SE plugin implementing `falloutPlatform.ts`), then the G-self checks in the verification table below.
@@ -87,6 +89,22 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 - `unit` without data: 138/171 test cases pass. All 33 failures are untagged Skyrim-data tests (REF-001).
 - Docker daemon and `add_repo` were denied by the session permission classifier. Do not retry without user approval (Q-12).
 - Caprica builds on Linux (Styyx1 fork + 2-line patch). Skyrim mode works; FO4 mode does not yet. Use Windows CI for FO4 PEX fixtures (ENV-013).
+
+## Plugin: in-game checks (from the module reports; `// [verify]` in the code)
+- **Core:** the F4SE permanent task runs every frame, including pausing menus and loading screens (ticks skip while loading); Address Library IDs resolve on the player's runtime.
+- **Puppets/movement:** `Actor::IsSneaking` ID 2207655; gunState/wantBlocking readings; jetpack thresholds; controller warp vs physics; the DoNothing package keeps the graph animating (`puppet-ai`); `CheckValidTarget` (0xF4) and `KillImpl` (0x117) guards cover every path; the MoveTo marker cleanup.
+- **Animation:** guessed variable types; 1st-person graph reads; Speed/Direction overwritten after `Actor::Update` (move writes to the post-channel functor if so); puppet T-pose wake; event names not found in sources (stagger, idles, blockStop).
+- **Appearance:** tint vtable IDs; face region scale (x only); FMIN not written; runtime TESNPC id range and that it isn't saved; `SetObjectReference` base swap; `Reset3D` replaces the root; LooksMenu hide message; `ShowRaceMenu` uiMode 0 outside MQ101.
+- **Inventory/equipment:** ExtraOwnership layout (owner at 0x18); `AddMod` attach index/rank; `CreateInstanceData`; `ExtraHealth` fraction; `RemoveItem` without a target destroys; ammo index 0; `TESEquipEvent` for chems from all sources; drop `referenceFormID`.
+- **Actor values/death:** derived AV maxima; damage clamp vfunc 0x131 sees deltas on every path (lethal shot and fall stop at 1 HP); `StartDeferredKill`; player ragdoll while dead; `actorData.level` write updates the HUD; Experience AV is total XP.
+- **Combat:** `UseAmmo` (0xF0) once per shot; muzzle/aim at that time; `TESHitEvent` cause and limb; `AttackDamageMult` 0 on puppets; projectile neutralization in `UpdateImpl` (0xCF) for every class; `Weapon.Fire` from the puppet; hitscan hits before `UpdateImpl`.
+- **Power armor/workshop:** frames go through `TESFurniture` 0x40 (and "Transfer" isn't broken); `ActivateRef` plays the entry; proxy frames on puppets; `PowerArmorBattery` units; CookingMenu slot 0x17 (riskiest hook); workshop menu node = recipe; `CreateWire`; rating AVs; motion type 2.
+- **Locks/map/world:** activation through 0x40 on DOOR/CONT/TERM; the lockpick sweet spot moved out of reach still lets the pick bend; terminal hack-mode transitions and input events; `AddToMap` side effects; clearing `fastTravelLocation` cancels travel; Calendar fields; weather override.
+
+## Plugin: follow-ups requested by the modules
+- Contract: `hackCancelled {ref, sessionId}`; `workshopWireRemoveRequested`; `projectileHit` with a hit kind (melee) and the shooter (hosted NPCs); `hostedValuesChanged` needs a "hosted NPC" signal from the client.
+- Client: `PowerArmorService.exit` snaps back when the server refuses; the workshop service resends an object whose scrap was refused; frame pieces modded at a power armor station name the frame.
+- Engine: cancelling vanilla consumption (F20), `RewardExperience` / `SelectPerk` detours (F19), a declared `TESObjectWEAP::Fire` / `Projectile::Launch` for exact cosmetic shots (PLAT-083). Hosted NPCs (F13) are not driven by `setActorTransform` (puppets only).
 
 ## Facts to verify (collected from research/specs; verify via G-self or D-real, then update the reference doc)
 | Fact | Where used | How to verify |
@@ -149,6 +167,7 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 ## Evidence log
 | Date | Task | Evidence |
 |---|---|---|
+| 2026-10-05 | Full plugin | modules `1921f62`…`d8e31d9`; all plugin sources pass a clang `-fsyntax-only` check against CommonLibF4 headers; e2e with appearance and animation PASS; client 77 tests; C++ 259 cases |
 | 2026-10-05 | Client first slice | `6c92c73`, `2bd1acd`: `Fo4ClientCoreTest`, client 70 tests, `fmp_e2e.sh` PASS (two bots, 356 movement updates applied) |
 | 2026-10-05 | First real data load (user VPS) | Fallout4.esm: 1,244,528 refs, 31 workshops after the CONT fix (`d1d90c0`), 315 map markers |
 | 2026-10-05 | F13 NPC data | `Fo4NpcTest` (4 cases), `Fo4EspmTest` NPC_/OTFT; suite 248 cases |
