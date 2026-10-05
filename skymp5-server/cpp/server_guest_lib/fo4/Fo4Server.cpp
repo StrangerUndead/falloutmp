@@ -1,6 +1,7 @@
 #include "Fo4Server.h"
 #include "Fo4Messages.h"
 #include "MsgType.h"
+#include <algorithm>
 #include <cmath>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -58,6 +59,8 @@ struct Fo4Server::Impl
 {
   std::map<ActorId, int64_t> lastTickMs;
   int64_t lastTick = -1;
+  int64_t lastTimeWeatherMs = -1000000;
+  int64_t lastDiscoveryMs = -1000000;
 };
 
 Fo4Server::Fo4Server(std::shared_ptr<IFo4DataSource> data_, Fo4Host& host_,
@@ -76,10 +79,12 @@ Fo4Server::Fo4Server(std::shared_ptr<IFo4DataSource> data_, Fo4Host& host_,
   , combat(*data, s.fire)
   , parties(s.party)
   , containers(*data, s.containers)
+  , map(s.map)
   , damageModel(s.damage)
   , rng(std::random_device{}())
 {
   workshops.allocateFormId = [this] { return host.AllocateFormId(); };
+  clock.SetGameDays(8.0 / 24.0, host.NowMs());
 }
 
 Fo4Server::~Fo4Server() = default;
@@ -189,6 +194,8 @@ void Fo4Server::SendFullState(ActorId actor)
   SendInventory(actor);
   SendActorValues(actor);
   SendProgression(actor);
+  SendEquipment(actor);
+  SendMapMarkers(actor, true);
   if (powerArmor.GetWorn(actor)) {
     auto snap = powerArmor.Snapshot(actor);
     PowerArmorStateMessage m;
@@ -397,6 +404,50 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
       }
       return;
     }
+    case MsgType::UpdateEquipmentFo4: {
+      auto& m = As<UpdateEquipmentFo4Message>(msg);
+      if (m.op == UpdateEquipmentFo4Message::kState) {
+        SendEquipment(sender);
+        return;
+      }
+      auto err = Equip(sender, FromMsg(m.item),
+                       m.op == UpdateEquipmentFo4Message::kEquip);
+      if (!err.empty()) {
+        // Correction: the client re-applies the server equipment
+        spdlog::debug("Equip rejected for {:x}: {}", sender, err);
+        UpdateEquipmentFo4Message state;
+        state.actorIdx = sender;
+        if (st.equippedWeapon) {
+          state.weapon = ToMsg(*st.equippedWeapon);
+        }
+        for (auto& a : st.equippedArmor) {
+          state.armor.push_back(ToMsg(a));
+        }
+        host.SendTo(sender, state, true);
+      }
+      return;
+    }
+    case MsgType::FastTravelRequest: {
+      auto& m = As<FastTravelRequestMessage>(msg);
+      FastTravelFacts f;
+      f.alive = host.IsActorAlive(sender);
+      f.inBuildMode = workshops.GetBuildModeWorkshop(sender).has_value();
+      f.lastCombatMs = st.lastCombatMs;
+      f.carriedWeight = st.inventory.TotalWeight(*data);
+      f.carryWeight = st.avs.GetCurrent(Av::CarryWeight);
+      f.nowMs = host.NowMs();
+      auto e = map.CanFastTravel(m.markerRefId, st.discoveredMarkers, f);
+      bool ok = e == FastTravelError::None;
+      if (ok) {
+        auto marker = map.Find(m.markerRefId);
+        ok = host.TeleportActor(sender, marker->pos, marker->worldOrCell);
+        if (!ok) {
+          return Result(host, sender, m.nonce, type, false, "TeleportFailed");
+        }
+      }
+      return Result(host, sender, m.nonce, type, ok,
+                    FastTravelErrorToString(e));
+    }
     case MsgType::UseItem: {
       auto& m = As<UseItemMessage>(msg);
       auto r = st.effects->UseItem(m.baseId, st.inventory, st.avs, rng);
@@ -591,6 +642,8 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
         tr.byType[r.damageTypeId] += r.value;
       }
       auto out = damageModel.Resolve(hit, tr);
+      st.lastCombatMs = host.NowMs();
+      tst.lastCombatMs = host.NowMs();
       bool wasAlive = !tst.avs.IsDead();
       tst.avs.Damage(Av::Health, -out.total);
       bool killed = wasAlive && tst.avs.IsDead();
@@ -780,7 +833,7 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
         reply.capsDelta = vendors.QuoteCapsDelta(req, pm, e);
         reply.error = e == BarterError::None ? "" : BarterErrorToString(e);
       } else {
-        auto r = vendors.Trade(req, st.inventory, pm, host.GameHour());
+        auto r = vendors.Trade(req, st.inventory, pm, clock.GameHour(host.NowMs()));
         reply.capsDelta = r.capsDelta;
         reply.error = r.Ok() ? "" : BarterErrorToString(r.error);
         SendInventory(sender);
@@ -896,6 +949,104 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
   }
 }
 
+std::string Fo4Server::Equip(ActorId actor, const ItemKey& item, bool equip)
+{
+  auto& st = Actor(actor);
+  auto entry = st.inventory.Find(item);
+  if (equip && !entry) {
+    return "NotInInventory";
+  }
+  ItemKey key = entry ? entry->key : item;
+  if (data->FindWeapon(key.baseId)) {
+    if (equip) {
+      st.equippedWeapon = key;
+    } else if (st.equippedWeapon && st.equippedWeapon->SameStack(key)) {
+      st.equippedWeapon.reset();
+    }
+  } else if (auto armor = data->FindArmor(key.baseId)) {
+    if (equip) {
+      if (key.condition == kConditionZero) {
+        return "Broken";
+      }
+      if (powerArmor.GetWorn(actor) &&
+          armor->powerArmorSlot == PowerArmorSlot::None &&
+          (armor->bipedSlots & settings.powerArmorBlockedBipedSlots)) {
+        return "InPowerArmor"; // outer apparel can't go over the frame
+      }
+      if (armor->powerArmorSlot != PowerArmorSlot::None) {
+        return "PowerArmorPiece"; // pieces go onto a frame (F17)
+      }
+      // Replace whatever shares a biped slot
+      st.equippedArmor.erase(
+        std::remove_if(st.equippedArmor.begin(), st.equippedArmor.end(),
+                       [&](const ItemKey& other) {
+                         auto o = data->FindArmor(other.baseId);
+                         return o && (o->bipedSlots & armor->bipedSlots);
+                       }),
+        st.equippedArmor.end());
+      st.equippedArmor.push_back(key);
+    } else {
+      st.equippedArmor.erase(
+        std::remove_if(st.equippedArmor.begin(), st.equippedArmor.end(),
+                       [&](const ItemKey& other) {
+                         return other.SameStack(key);
+                       }),
+        st.equippedArmor.end());
+    }
+  } else {
+    return "NotEquippable";
+  }
+  SendEquipment(actor);
+  return "";
+}
+
+void Fo4Server::SendEquipment(ActorId actor)
+{
+  auto& st = Actor(actor);
+  UpdateEquipmentFo4Message m;
+  m.actorIdx = actor;
+  m.op = UpdateEquipmentFo4Message::kState;
+  if (st.equippedWeapon) {
+    m.weapon = ToMsg(*st.equippedWeapon);
+  }
+  for (auto& a : st.equippedArmor) {
+    m.armor.push_back(ToMsg(a));
+  }
+  host.SendTo(actor, m, true);
+  host.SendToNeighbours(actor, m, true);
+}
+
+void Fo4Server::BroadcastTimeWeather()
+{
+  int64_t now = host.NowMs();
+  WorldTimeWeatherMessage m;
+  m.gameDays = clock.GameDays(now);
+  m.gameHour = clock.GameHour(now);
+  m.timeScale = clock.TimeScale();
+  m.weatherId = weather.weatherId;
+  m.transitionSec = weather.transitionSec;
+  m.radstorm = weather.radstorm;
+  m.serverNowMs = now;
+  for (auto& [id, st] : actors) {
+    if (!host.IsNpc(id)) {
+      host.SendTo(id, m, true);
+    }
+  }
+}
+
+void Fo4Server::SendMapMarkers(ActorId actor, bool full)
+{
+  auto& st = Actor(actor);
+  MapDiscoveryMessage m;
+  m.full = full;
+  for (auto& [id, marker] : map.All()) {
+    if (st.discoveredMarkers.count(id) || marker.visibleByDefault) {
+      m.markers.push_back({ id, marker.name, marker.type, marker.pos });
+    }
+  }
+  host.SendTo(actor, m, true);
+}
+
 void Fo4Server::SendContainer(ActorId to, FormId refId, bool alsoNeighbours)
 {
   auto c = containers.Find(refId);
@@ -962,6 +1113,34 @@ void Fo4Server::Tick()
       st.avs.Tick(dt, false);
     }
   }
+  if (now - pImpl->lastTimeWeatherMs >= settings.timeWeatherIntervalMs) {
+    pImpl->lastTimeWeatherMs = now;
+    BroadcastTimeWeather();
+  }
+  if (now - pImpl->lastDiscoveryMs >= 1000) {
+    pImpl->lastDiscoveryMs = now;
+    for (auto& [id, st] : actors) {
+      if (host.IsNpc(id) || !host.IsActorAlive(id)) {
+        continue;
+      }
+      auto found = map.Discover(host.GetActorPos(id),
+                                host.GetActorWorldOrCell(id),
+                                st.discoveredMarkers);
+      if (!found.empty()) {
+        MapDiscoveryMessage m;
+        for (auto mid : found) {
+          auto mk = map.Find(mid);
+          m.markers.push_back({ mid, mk->name, mk->type, mk->pos });
+        }
+        host.SendTo(id, m, true);
+        // Discovering a location awards XP like vanilla
+        st.progression.AwardXp(static_cast<uint32_t>(found.size()) * 20u,
+                               false, st.avs);
+        SendProgression(id);
+      }
+    }
+  }
+
   std::map<ActorId, std::array<float, 3>> positions;
   for (auto& [id, st] : actors) {
     if (workshops.GetBuildModeWorkshop(id)) {
@@ -996,6 +1175,7 @@ nlohmann::json Fo4Server::ActorToJson(ActorId id) const
     armor.push_back(ItemKeyToJson(a));
   }
   j["equippedArmor"] = armor;
+  j["discoveredMarkers"] = st->discoveredMarkers;
   if (auto w = powerArmor.GetWorn(id)) {
     j["powerArmor"] = powerArmor.WornToJson(*w);
   }
@@ -1031,6 +1211,8 @@ void Fo4Server::LoadActor(ActorId id, const nlohmann::json& j)
   try {
     if (j.contains("effects"))
       st.effects->LoadJson(j["effects"], st.avs);
+    if (j.contains("discoveredMarkers"))
+      st.discoveredMarkers = j["discoveredMarkers"].get<std::set<FormId>>();
     if (j.contains("equippedWeapon"))
       st.equippedWeapon = ItemKeyFromJson(j["equippedWeapon"]);
     st.equippedArmor.clear();
@@ -1061,6 +1243,10 @@ nlohmann::json Fo4Server::WorldToJson() const
            { "powerArmorFrames", frames },
            { "locks", locks.ToJson() },
            { "containers", containers.ToJson() },
+           { "clock", clock.ToJson(host.NowMs()) },
+           { "weather",
+             { { "weatherId", weather.weatherId },
+               { "radstorm", weather.radstorm } } },
            { "parties", parties.ToJson() } };
 }
 
@@ -1091,6 +1277,13 @@ void Fo4Server::LoadWorld(const nlohmann::json& j)
   }
   if (j.contains("containers")) {
     containers.LoadJson(j["containers"]);
+  }
+  if (j.contains("clock")) {
+    clock.LoadJson(j["clock"], host.NowMs());
+  }
+  if (j.contains("weather")) {
+    weather.weatherId = j["weather"].value("weatherId", 0u);
+    weather.radstorm = j["weather"].value("radstorm", false);
   }
 }
 

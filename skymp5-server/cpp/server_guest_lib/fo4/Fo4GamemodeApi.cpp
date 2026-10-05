@@ -1,5 +1,6 @@
 #include "Fo4GamemodeApi.h"
 #include "Fo4Server.h"
+#include <cmath>
 #include <functional>
 #include <map>
 #include <nlohmann/json.hpp>
@@ -310,6 +311,72 @@ const std::map<std::string, Handler>& Commands()
                                 : PvpZoneMode::Safe;
         s.Parties().AddZone(z);
         return Ok();
+      } },
+    // ------------------------------------------------- time and weather
+    { "getTime",
+      [](Fo4Server& s, const json&) {
+        auto now = s.NowMs();
+        return Ok({ { "gameDays", s.Clock().GameDays(now) },
+                    { "gameHour", s.Clock().GameHour(now) },
+                    { "timeScale", s.Clock().TimeScale() },
+                    { "weatherId", s.Weather().weatherId },
+                    { "radstorm", s.Weather().radstorm } });
+      } },
+    { "setTime",
+      [](Fo4Server& s, const json& a) {
+        auto now = s.NowMs();
+        if (a.contains("gameDays")) {
+          s.Clock().SetGameDays(a["gameDays"].get<double>(), now);
+        } else if (a.contains("gameHour")) {
+          double day = std::floor(s.Clock().GameDays(now));
+          s.Clock().SetGameDays(day + a["gameHour"].get<double>() / 24.0,
+                                now);
+        }
+        if (a.contains("timeScale")) {
+          s.Clock().SetTimeScale(a["timeScale"].get<float>(), now);
+        }
+        s.BroadcastTimeWeather();
+        return Ok();
+      } },
+    { "setWeather",
+      [](Fo4Server& s, const json& a) {
+        s.Weather().weatherId = a.value("weatherId", 0u);
+        s.Weather().transitionSec = a.value("transitionSec", 10.f);
+        s.Weather().radstorm = a.value("radstorm", false);
+        s.BroadcastTimeWeather();
+        return Ok();
+      } },
+    // ------------------------------------------------- map and travel
+    { "addMapMarker",
+      [](Fo4Server& s, const json& a) {
+        MapMarker m;
+        m.refId = a.at("refId");
+        m.pos = Vec(a, "pos");
+        m.worldOrCell = a.value("worldOrCell", 0x3Cu);
+        m.name = a.value("name", std::string());
+        m.type = a.value("type", 0);
+        m.canTravel = a.value("canTravel", true);
+        m.visibleByDefault = a.value("visibleByDefault", false);
+        s.Map().AddMarker(std::move(m));
+        return Ok();
+      } },
+    { "discoverMarker",
+      [](Fo4Server& s, const json& a) {
+        auto id = a.at("actorId").get<ActorId>();
+        s.Actor(id).discoveredMarkers.insert(a.at("refId").get<FormId>());
+        s.SendMapMarkers(id, true);
+        return Ok();
+      } },
+    { "getDiscoveredMarkers",
+      [](Fo4Server& s, const json& a) {
+        return Ok({ { "markers",
+                      s.Actor(a.at("actorId")).discoveredMarkers } });
+      } },
+    { "equip",
+      [](Fo4Server& s, const json& a) {
+        auto err = s.Equip(a.at("actorId"), ItemKeyFromJson(a.at("item")),
+                           a.value("equip", true));
+        return err.empty() ? Ok() : json{ { "ok", false }, { "error", err } };
       } },
     // ----------------------------------------------------------- misc
     { "sendFullState",

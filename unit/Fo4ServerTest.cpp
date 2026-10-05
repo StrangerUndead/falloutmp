@@ -63,11 +63,17 @@ public:
     sent.push_back({ a, true, j.value("t", -1), j });
   }
   int64_t NowMs() override { return now; }
-  float GameHour() override { return 12.f; }
-  double GameDays() override { return 1.0; }
   void OnActorKilled(ActorId v, ActorId k) override
   {
     kills.push_back({ v, k });
+  }
+  std::vector<std::pair<ActorId, std::array<float, 3>>> teleports;
+  bool TeleportActor(ActorId a, const std::array<float, 3>& p,
+                     uint32_t) override
+  {
+    teleports.push_back({ a, p });
+    pos[a] = p;
+    return true;
   }
 
   // Last message of a type sent to an actor (not to neighbours)
@@ -431,4 +437,124 @@ TEST_CASE("Fo4Server: container and corpse looting over messages",
   REQUIRE(r["ok"] == true);
   REQUIRE(w.host.SentToNeighbours(kAlice, MsgType::SetInventoryFo4));
   REQUIRE(w.server->Containers().Find(r["refId"])->isGroundStack);
+}
+
+TEST_CASE("Fo4Server: equipment rules and broadcast", "[fo4][Fo4Server][F05]")
+{
+  ServerWorld w;
+  ArmorData leather;
+  leather.id = 0x5001;
+  leather.bipedSlots = 0x800; // torso
+  w.data->AddArmor(leather);
+  ArmorData coat = leather;
+  coat.id = 0x5002;
+  coat.bipedSlots = 0x800 | 0x1000;
+  w.data->AddArmor(coat);
+  auto& a = w.server->Actor(kAlice);
+  a.inventory.AddSimple(0x5001, 1);
+  a.inventory.AddSimple(0x5002, 1);
+  a.inventory.Add(ItemKey{ k10mm }, 1);
+
+  UpdateEquipmentFo4Message eq;
+  eq.op = UpdateEquipmentFo4Message::kEquip;
+  eq.item.baseId = 0x5001;
+  w.server->OnMessage(kAlice, MsgType::UpdateEquipmentFo4, eq);
+  REQUIRE(a.equippedArmor.size() == 1);
+  REQUIRE(w.host.SentToNeighbours(kAlice, MsgType::UpdateEquipmentFo4));
+  // The coat shares the torso slot: it replaces the leather
+  eq.item.baseId = 0x5002;
+  w.server->OnMessage(kAlice, MsgType::UpdateEquipmentFo4, eq);
+  REQUIRE(a.equippedArmor.size() == 1);
+  REQUIRE(a.equippedArmor[0].baseId == 0x5002);
+  // Weapon
+  eq.item.baseId = k10mm;
+  w.server->OnMessage(kAlice, MsgType::UpdateEquipmentFo4, eq);
+  REQUIRE(a.equippedWeapon);
+  // Not owned: rejected with a state correction
+  eq.item.baseId = 0x9999;
+  w.server->OnMessage(kAlice, MsgType::UpdateEquipmentFo4, eq);
+  auto state = w.host.Last(kAlice, MsgType::UpdateEquipmentFo4);
+  REQUIRE(state["armor"].size() == 1);
+  REQUIRE(state["weapon"]["baseId"] == k10mm);
+  // Power armor pieces can't be worn as apparel
+  REQUIRE(w.server->Equip(kAlice, ItemKey{ kT45Torso }, true) ==
+          "NotInInventory");
+  a.inventory.AddSimple(kT45Torso, 1);
+  REQUIRE(w.server->Equip(kAlice, ItemKey{ kT45Torso }, true) ==
+          "PowerArmorPiece");
+  // Unequip
+  eq.op = UpdateEquipmentFo4Message::kUnequip;
+  eq.item.baseId = 0x5002;
+  w.server->OnMessage(kAlice, MsgType::UpdateEquipmentFo4, eq);
+  REQUIRE(a.equippedArmor.empty());
+}
+
+TEST_CASE("Fo4Server: map discovery, fast travel and the clock",
+          "[fo4][Fo4Server][F25][F26]")
+{
+  ServerWorld w;
+  w.server->Map().AddMarker({ 0xAA01, { 5000, 0, 0 }, 0x3c, "Red Rocket",
+                              0, true, false });
+  w.server->Map().AddMarker({ 0xAA02, { 900, 0, 0 }, 0x3c, "Sanctuary", 12,
+                              true, false });
+  auto& a = w.server->Actor(kAlice);
+
+  FastTravelRequestMessage ft;
+  ft.nonce = 1;
+  ft.markerRefId = 0xAA02;
+  w.server->OnMessage(kAlice, MsgType::FastTravelRequest, ft);
+  REQUIRE(w.host.Last(kAlice, MsgType::RequestResult)["error"] ==
+          "NotDiscovered");
+
+  // Standing near Sanctuary discovers it on the next tick (+20 XP)
+  w.server->Tick();
+  REQUIRE(a.discoveredMarkers.count(0xAA02));
+  REQUIRE_FALSE(a.discoveredMarkers.count(0xAA01));
+  REQUIRE(w.host.Last(kAlice, MsgType::MapDiscovery)["markers"].size() == 1);
+  REQUIRE(a.progression.xp > 0);
+
+  // In combat: refused
+  a.lastCombatMs = w.host.now;
+  ft.nonce = 2;
+  w.server->OnMessage(kAlice, MsgType::FastTravelRequest, ft);
+  REQUIRE(w.host.Last(kAlice, MsgType::RequestResult)["error"] == "InCombat");
+  a.lastCombatMs = -1000000000;
+  // Over-encumbered: refused
+  ConsumableData rock;
+  rock.id = 0x7777;
+  rock.weight = 1000;
+  w.data->AddConsumable(rock);
+  a.inventory.AddSimple(0x7777, 1);
+  ft.nonce = 3;
+  w.server->OnMessage(kAlice, MsgType::FastTravelRequest, ft);
+  REQUIRE(w.host.Last(kAlice, MsgType::RequestResult)["error"] ==
+          "OverEncumbered");
+  a.inventory.RemoveAnyOf(0x7777, 1);
+  ft.nonce = 4;
+  w.server->OnMessage(kAlice, MsgType::FastTravelRequest, ft);
+  REQUIRE(w.host.Last(kAlice, MsgType::RequestResult)["ok"] == true);
+  REQUIRE(w.host.teleports.size() == 1);
+  REQUIRE(w.host.teleports[0].second[0] == 900.f);
+
+  // Clock: 20x, so one real minute is 20 game minutes
+  auto now = w.host.now;
+  w.server->Clock().SetGameDays(1.5, now); // day 1, 12:00
+  REQUIRE(w.server->Clock().GameHour(now) == Catch::Approx(12.f));
+  REQUIRE(w.server->Clock().GameHour(now + 60000) ==
+          Catch::Approx(12.f + 20.f / 60.f));
+  w.server->Clock().SetTimeScale(0.f, now + 60000);
+  REQUIRE(w.server->Clock().GameHour(now + 600000) ==
+          Catch::Approx(12.f + 20.f / 60.f));
+  w.host.now += 20000;
+  w.server->Tick();
+  auto tw = w.host.Last(kAlice, MsgType::WorldTimeWeather);
+  REQUIRE(tw["timeScale"] == 0.0);
+
+  // Persistence of discoveries and clock
+  auto actorJson = w.server->ActorToJson(kAlice);
+  REQUIRE(actorJson["discoveredMarkers"].size() == 1);
+  auto world = w.server->WorldToJson();
+  Fo4Server other(w.data, w.host);
+  other.LoadWorld(world);
+  REQUIRE(other.Clock().TimeScale() == 0.f);
 }

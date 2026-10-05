@@ -803,6 +803,107 @@ struct PartyActionMessage : public MessageBase<PartyActionMessage>
   }
 };
 
+// 67: equipment change request (C->S) and equipment state (S->C)
+struct UpdateEquipmentFo4Message
+  : public MessageBase<UpdateEquipmentFo4Message>
+{
+  FO4_MSG_TYPE(UpdateEquipmentFo4)
+  enum Op : uint8_t
+  {
+    kEquip = 0,
+    kUnequip = 1,
+    kState = 2,
+  };
+  uint32_t actorIdx = 0;
+  uint8_t op = kState;
+  fo4msg::ItemKey item;
+  std::optional<fo4msg::ItemKey> weapon;
+  std::vector<fo4msg::ItemKey> armor;
+
+  template <class A>
+  void Serialize(A& a)
+  {
+    a.Serialize("t", kMsgType)
+      .Serialize("actorIdx", actorIdx)
+      .Serialize("op", op)
+      .Serialize("item", item)
+      .Serialize("weapon", weapon)
+      .Serialize("armor", armor);
+  }
+};
+
+// 103: map markers known to the player (S->C)
+struct MapDiscoveryMessage : public MessageBase<MapDiscoveryMessage>
+{
+  FO4_MSG_TYPE(MapDiscovery)
+  struct Marker
+  {
+    uint32_t refId = 0;
+    std::string name;
+    uint8_t type = 0;
+    std::array<float, 3> pos = { 0, 0, 0 };
+    template <class A>
+    void Serialize(A& a)
+    {
+      a.Serialize("refId", refId)
+        .Serialize("name", name)
+        .Serialize("type", type)
+        .Serialize("pos", pos);
+    }
+  };
+  bool full = false; // full list (on join) or newly discovered
+  std::vector<Marker> markers;
+
+  template <class A>
+  void Serialize(A& a)
+  {
+    a.Serialize("t", kMsgType).Serialize("full", full).Serialize("markers",
+                                                                 markers);
+  }
+};
+
+// 104: fast travel request (reply: RequestResult, then a teleport)
+struct FastTravelRequestMessage
+  : public MessageBase<FastTravelRequestMessage>
+{
+  FO4_MSG_TYPE(FastTravelRequest)
+  uint32_t nonce = 0;
+  uint32_t markerRefId = 0;
+
+  template <class A>
+  void Serialize(A& a)
+  {
+    a.Serialize("t", kMsgType).Serialize("nonce", nonce).Serialize(
+      "markerRefId", markerRefId);
+  }
+};
+
+// 105: server clock and weather, sent every 10 s and on change
+struct WorldTimeWeatherMessage : public MessageBase<WorldTimeWeatherMessage>
+{
+  FO4_MSG_TYPE(WorldTimeWeather)
+  double gameDays = 0;
+  float gameHour = 0;
+  float timeScale = 20;
+  uint32_t weatherId = 0;
+  float transitionSec = 10;
+  bool radstorm = false;
+  int64_t serverNowMs = 0;
+
+  template <class A>
+  void Serialize(A& a)
+  {
+    a.Serialize("t", kMsgType)
+      .Serialize("gameDays", gameDays)
+      .Serialize("gameHour", gameHour)
+      .Serialize("timeScale", timeScale)
+      .Serialize("weatherId", weatherId)
+      .Serialize("transitionSec", transitionSec)
+      .Serialize("radstorm", radstorm)
+      .Serialize("serverNowMs", serverNowMs);
+  }
+};
+
 #undef FO4_MSG_TYPE
 
 #define REGISTER_FO4_MESSAGES                                                 \
@@ -834,4 +935,8 @@ struct PartyActionMessage : public MessageBase<PartyActionMessage>
   REGISTER_MESSAGE(RequestResultMessage)                                      \
   REGISTER_MESSAGE(WorkshopObjectsMessage)                                    \
   REGISTER_MESSAGE(WorkshopManageMessage)                                     \
-  REGISTER_MESSAGE(PartyActionMessage)
+  REGISTER_MESSAGE(PartyActionMessage)                                        \
+  REGISTER_MESSAGE(UpdateEquipmentFo4Message)                                 \
+  REGISTER_MESSAGE(MapDiscoveryMessage)                                       \
+  REGISTER_MESSAGE(FastTravelRequestMessage)                                  \
+  REGISTER_MESSAGE(WorldTimeWeatherMessage)

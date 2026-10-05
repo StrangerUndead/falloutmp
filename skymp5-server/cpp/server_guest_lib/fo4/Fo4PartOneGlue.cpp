@@ -27,7 +27,6 @@ class PartOneFo4Host : public Fo4Host
 public:
   explicit PartOneFo4Host(PartOne& p)
     : partOne(p)
-    , startMs(SteadyMs())
   {
   }
 
@@ -114,17 +113,20 @@ public:
     }
   }
   int64_t NowMs() override { return SteadyMs(); }
-  // Until the server clock service (SRV-070/F25) lands: timescale 20,
-  // the world starts at 08:00 on day 0.
-  double GameDays() override
+  bool TeleportActor(ActorId a, const std::array<float, 3>& pos,
+                     uint32_t worldOrCell) override
   {
-    double realSec = static_cast<double>(SteadyMs() - startMs) / 1000.0;
-    return (8.0 * 3600.0 + realSec * 20.0) / 86400.0;
-  }
-  float GameHour() override
-  {
-    double d = GameDays();
-    return static_cast<float>((d - std::floor(d)) * 24.0);
+    auto ac = ActorPtr(a);
+    if (!ac) {
+      return false;
+    }
+    LocationalData loc;
+    loc.pos = { pos[0], pos[1], pos[2] };
+    loc.rot = ac->GetAngle();
+    loc.cellOrWorldDesc =
+      FormDesc::FromFormId(worldOrCell, partOne.worldState.espmFiles);
+    ac->Teleport(loc);
+    return true;
   }
   void OnActorKilled(ActorId victim, ActorId killer) override
   {
@@ -137,7 +139,6 @@ public:
 
 private:
   PartOne& partOne;
-  int64_t startMs;
 };
 
 struct Fo4PartOneGlue::Impl

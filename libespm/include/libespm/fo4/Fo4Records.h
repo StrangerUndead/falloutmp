@@ -501,6 +501,12 @@ public:
     uint32_t persistLocationId = 0;    // XLCN
     bool initiallyDisabled = false;
     bool deleted = false;
+    // Map marker (XMRK + FNAM flags + FULL + TNAM type)
+    bool isMapMarker = false;
+    uint8_t mapFlags = 0; // 0x1 visible, 0x2 can travel to
+    uint8_t mapMarkerType = 0;
+    std::string mapMarkerName;
+    std::optional<uint32_t> mapMarkerNameId;
   };
 
   Data GetData(CompressedFieldsCache& cache) const noexcept;

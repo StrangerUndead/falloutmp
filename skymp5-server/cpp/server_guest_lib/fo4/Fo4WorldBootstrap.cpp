@@ -4,6 +4,7 @@
 #include "libespm/Convert.h"
 #include "libespm/LookupResult.h"
 #include "libespm/fo4/Fo4Records.h"
+#include "LocationalDataUtils.h"
 #include <map>
 #include <spdlog/spdlog.h>
 #include <unordered_map>
@@ -55,6 +56,21 @@ WorldBootstrapReport BootstrapWorld(const espm::CombineBrowser& br,
 
     if (d.primitiveType) {
       primitives[refId] = d;
+    }
+
+    if (cfg.registerMapMarkers && d.isMapMarker && !server.Map().Find(refId)) {
+      MapMarker m;
+      m.refId = refId;
+      m.pos = d.pos;
+      m.worldOrCell = LocationalDataUtils::GetWorldOrCell(br, lr);
+      if (m.worldOrCell == 0) {
+        m.worldOrCell = 0x3c;
+      }
+      m.name = d.mapMarkerName.empty() ? d.editorId : d.mapMarkerName;
+      m.type = d.mapMarkerType;
+      m.canTravel = (d.mapFlags & 0x2) != 0;
+      server.Map().AddMarker(std::move(m));
+      ++rep.mapMarkers;
     }
 
     auto baseLr = br.LookupById(baseId);
@@ -159,9 +175,10 @@ WorldBootstrapReport BootstrapWorld(const espm::CombineBrowser& br,
   }
 
   spdlog::info("Fallout 4 world bootstrap: {} refs, {} frames, {} workshops "
-               "({} build areas), {} locks, {} locked terminals",
+               "({} build areas), {} locks, {} locked terminals, {} map "
+               "markers",
                rep.referencesScanned, rep.frames, rep.workshops,
-               rep.buildAreas, rep.locks, rep.terminals);
+               rep.buildAreas, rep.locks, rep.terminals, rep.mapMarkers);
   return rep;
 }
 

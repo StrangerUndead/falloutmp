@@ -215,6 +215,48 @@ export const createFo4Api = (bridge: Fo4CallBridge) => {
       call("addPvpZone", zone);
     },
 
+    // Equipment (validated like a client request)
+    equip: (actorId: number, item: Fo4ItemKey, equip = true) => {
+      call("equip", { actorId, item, equip });
+    },
+
+    // Time and weather
+    getTime: () =>
+      call<{
+        gameDays: number;
+        gameHour: number;
+        timeScale: number;
+        weatherId: number;
+        radstorm: boolean;
+      }>("getTime"),
+    setTime: (time: { gameDays?: number; gameHour?: number;
+                      timeScale?: number }) => {
+      call("setTime", time);
+    },
+    setWeather: (weather: { weatherId: number; transitionSec?: number;
+                            radstorm?: boolean }) => {
+      call("setWeather", weather);
+    },
+
+    // Map markers and fast travel
+    addMapMarker: (marker: {
+      refId: number;
+      pos: Fo4Vec3;
+      worldOrCell?: number;
+      name?: string;
+      type?: number;
+      canTravel?: boolean;
+      visibleByDefault?: boolean;
+    }) => {
+      call("addMapMarker", marker);
+    },
+    discoverMarker: (actorId: number, refId: number) => {
+      call("discoverMarker", { actorId, refId });
+    },
+    getDiscoveredMarkers: (actorId: number): number[] =>
+      call<{ markers: number[] }>("getDiscoveredMarkers", { actorId })
+        .markers,
+
     // State
     sendFullState: (actorId: number) => {
       call("sendFullState", { actorId });

@@ -17,11 +17,13 @@
 #include "Progression.h"
 #include "RangedCombat.h"
 #include "Workshop.h"
+#include "WorldServices.h"
 #include <functional>
 #include <map>
 #include <memory>
 #include <nlohmann/json_fwd.hpp>
 #include <random>
+#include <set>
 
 class IMessageBase;
 enum class MsgType : uint8_t;
@@ -46,8 +48,15 @@ public:
   virtual void SendToNeighbours(ActorId actor, const IMessageBase& msg,
                                 bool reliable) = 0;
   virtual int64_t NowMs() = 0;
-  virtual float GameHour() = 0;   // 0..24
-  virtual double GameDays() = 0;  // days since start
+  // Fast travel and scripted moves. Returns false if not possible.
+  virtual bool TeleportActor(ActorId actor, const std::array<float, 3>& pos,
+                             uint32_t worldOrCell)
+  {
+    (void)actor;
+    (void)pos;
+    (void)worldOrCell;
+    return false;
+  }
   // Called when the server kills an actor (F12 takes it from here)
   virtual void OnActorKilled(ActorId victim, ActorId killer) = 0;
 };
@@ -66,6 +75,11 @@ struct Fo4ServerSettings
   PartySettings party;
   ProgressionSettings progression;
   ContainerSettings containers;
+  MapSettings map;
+  int64_t timeWeatherIntervalMs = 10000;
+  // Biped slots outer apparel may not use over a power armor frame
+  // (body armor slots 41-45 in FO4's first-person flags) [verify G-self]
+  uint32_t powerArmorBlockedBipedSlots = 0x3E00;
 };
 
 struct Fo4ActorState
@@ -79,6 +93,8 @@ struct Fo4ActorState
   std::vector<ItemKey> equippedArmor;
   int32_t level = 1; // NPCs; players use progression.level
   int32_t actorLevelForXp = 1;
+  std::set<FormId> discoveredMarkers;
+  int64_t lastCombatMs = -1000000000;
 };
 
 class Fo4Server
@@ -118,6 +134,15 @@ public:
   RangedCombat& Combat() { return combat; }
   PartyService& Parties() { return parties; }
   ContainerService& Containers() { return containers; }
+  WorldClock& Clock() { return clock; }
+  int64_t NowMs() { return host.NowMs(); }
+  WeatherState& Weather() { return weather; }
+  MapService& Map() { return map; }
+  void BroadcastTimeWeather();
+  void SendMapMarkers(ActorId actor, bool full);
+  // Equip/unequip validation and broadcast (F05)
+  std::string Equip(ActorId actor, const ItemKey& item, bool equip);
+  void SendEquipment(ActorId actor);
   DamageModel& Damage() { return damageModel; }
   std::map<std::string, PerkChartEntry>& PerkChart() { return perkChart; }
   // Effect definitions applied to every actor's effect system
@@ -147,6 +172,9 @@ private:
   RangedCombat combat;
   PartyService parties;
   ContainerService containers;
+  WorldClock clock;
+  WeatherState weather;
+  MapService map;
   DamageModel damageModel;
   std::map<std::string, PerkChartEntry> perkChart;
   std::vector<EffectDefinition> effectDefs;

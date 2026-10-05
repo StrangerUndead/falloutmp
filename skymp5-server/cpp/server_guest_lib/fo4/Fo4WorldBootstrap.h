@@ -29,6 +29,7 @@ struct WorldBootstrapConfig
   bool registerLocks = true;
   bool registerFrames = true;
   bool registerWorkshops = true;
+  bool registerMapMarkers = true;
 };
 
 struct WorldBootstrapReport
@@ -39,6 +40,7 @@ struct WorldBootstrapReport
   size_t buildAreas = 0;
   size_t locks = 0;
   size_t terminals = 0;
+  size_t mapMarkers = 0;
 };
 
 WorldBootstrapReport BootstrapWorld(const espm::CombineBrowser& browser,

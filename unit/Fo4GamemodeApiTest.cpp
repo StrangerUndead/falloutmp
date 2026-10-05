@@ -27,8 +27,6 @@ public:
   void SendTo(ActorId, const IMessageBase&, bool) override { ++sends; }
   void SendToNeighbours(ActorId, const IMessageBase&, bool) override {}
   int64_t NowMs() override { return 0; }
-  float GameHour() override { return 12; }
-  double GameDays() override { return 0; }
   void OnActorKilled(ActorId, ActorId) override {}
 };
 }

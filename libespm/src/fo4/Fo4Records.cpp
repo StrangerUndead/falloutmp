@@ -655,6 +655,14 @@ REFR::Data REFR::GetData(CompressedFieldsCache& cache) const noexcept
         d.ownerId = ReadU32(data, size);
       } else if (Is(type, "XLCN") && size >= 4) {
         d.persistLocationId = ReadU32(data, size);
+      } else if (Is(type, "XMRK")) {
+        d.isMapMarker = true;
+      } else if (d.isMapMarker && Is(type, "FNAM") && size >= 1) {
+        d.mapFlags = static_cast<uint8_t>(data[0]);
+      } else if (d.isMapMarker && Is(type, "FULL")) {
+        ReadFull(data, size, d.mapMarkerName, d.mapMarkerNameId);
+      } else if (d.isMapMarker && Is(type, "TNAM") && size >= 1) {
+        d.mapMarkerType = static_cast<uint8_t>(data[0]);
       }
     },
     cache);
