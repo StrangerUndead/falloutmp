@@ -7,7 +7,7 @@
 // reference (a puppet, or the world reference itself).
 import { FalloutMpClient, FalloutMpClientOptions } from "../falloutMpClient";
 import { longToNormal } from "../integration/skympClientBridge";
-import { ClientConfig, FalloutPlatform, FormId, RefResolver } from "../platform/falloutPlatform";
+import { ClientConfig, FalloutPlatform, FormId, PuppetSpawn, RefResolver } from "../platform/falloutPlatform";
 import { isFallout4MsgType } from "../services/messages/msgType";
 import {
   CreateActorMessage,
@@ -66,6 +66,7 @@ interface StreamedActor {
   serverId: number; // form id
   local: FormId;
   isPuppet: boolean;
+  spawn?: PuppetSpawn;
 }
 
 // Player references and actors the server creates have ids from 0xff000000
@@ -180,6 +181,30 @@ export class WorldSession {
     }
   }
 
+  // The plugin removes puppets before the game saves (they must not end
+  // up in the player's save); afterwards they are created again where the
+  // movement buffer last had them.
+  recreatePuppets(): void {
+    const client = this.client;
+    if (!client) {
+      return;
+    }
+    for (const a of this.byIdx.values()) {
+      if (!a.isPuppet || !a.spawn) {
+        continue;
+      }
+      const at = client.movement.lastPosition(a.serverId);
+      const spawn = at ? { ...a.spawn, pos: at.pos, yaw: at.yaw, worldOrCell: at.worldOrCell } : a.spawn;
+      this.refs.unmap(a.serverId);
+      a.local = this.platform.spawnPuppet(spawn);
+      if (a.local) {
+        this.refs.map(a.serverId, a.local);
+        client.movement.forgetApplied(a.serverId);
+        client.onActorStreamedIn(a.serverId);
+      }
+    }
+  }
+
   // Puppets and mappings of the actors currently streamed in (tests, UI).
   streamedActors(): StreamedActor[] {
     return Array.from(this.byIdx.values());
@@ -244,21 +269,23 @@ export class WorldSession {
     // players and server-created actors need a puppet.
     const isPuppet = serverId >= kFirstServerFormId;
     let local: FormId = serverId;
+    let spawn: PuppetSpawn | undefined;
     if (isPuppet) {
-      local = this.platform.spawnPuppet({
+      spawn = {
         pos,
         yaw: rot[2],
         worldOrCell,
         baseId: m.baseId ?? 0,
         name: m.appearance?.name ?? "",
         isFemale: m.appearance?.isFemale ?? false,
-      });
+      };
+      local = this.platform.spawnPuppet(spawn);
       if (!local) {
         this.platform.log("warn", `Unable to spawn actor ${serverId.toString(16)}`);
         return;
       }
     }
-    this.byIdx.set(m.idx, { serverId, local, isPuppet });
+    this.byIdx.set(m.idx, { serverId, local, isPuppet, spawn });
     this.refs.map(serverId, local);
     client.onActorStreamedIn(serverId);
   }

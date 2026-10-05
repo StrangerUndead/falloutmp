@@ -209,3 +209,23 @@ test("the native platform forwards calls and tolerates missing natives", () => {
   n.emit("tick", {});
   assert.equal(ticks, 1);
 });
+
+test("puppets removed for a save come back where the actor last was", () => {
+  const { platform, session } = joined();
+  session.onMessage(createActor(4, kOther, false, [500, 500, 0]));
+  session.onMessage(JSON.stringify({
+    t: Fo4MsgType.UpdateMovementFo4, idx: kOther, seq: 1, ts: 1000, worldOrCell: 0x3c,
+    pos: [900, 900, 10], yaw: 45, aimPitch: 0, aimHeading: 0, speed: 0, direction: 0, velZ: 0, flags: 0,
+    healthPercentage: 100,
+  }));
+  const [oldRef] = Array.from(platform.puppets.keys());
+  platform.puppets.clear(); // the plugin deleted them before saving
+  session.recreatePuppets();
+  const [[newRef, spawn]] = Array.from(platform.puppets.entries());
+  assert.notEqual(newRef, oldRef);
+  assert.deepEqual(spawn.pos, [900, 900, 10]);
+  assert.equal(platform.refs.toLocal(kOther), newRef);
+  platform.fire("tick", {});
+  const tp = platform.calls.filter((c) => c.fn === "teleportActor" && c.args[0] === newRef);
+  assert.equal(tp.length, 1); // snapped into place, not interpolated from nowhere
+});

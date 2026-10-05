@@ -131,6 +131,22 @@ export class MovementService {
     }
   }
 
+  // Newest known transform of a remote actor.
+  lastPosition(idx: number): { pos: Vec3; yaw: number; worldOrCell: number } | undefined {
+    const s = this.remotes.get(idx)?.samples;
+    const last = s && s[s.length - 1];
+    return last ? { pos: last.pos, yaw: last.yaw, worldOrCell: last.worldOrCell } : undefined;
+  }
+
+  // A new puppet for the same actor: the next frame teleports it into place.
+  forgetApplied(idx: number): void {
+    const r = this.remotes.get(idx);
+    if (r) {
+      r.applied = undefined;
+      r.appliedFlags = -1;
+    }
+  }
+
   // The world view calls this when a puppet is destroyed or respawned, so
   // the next sample snaps.
   forgetActor(idx: number): void {

@@ -1,0 +1,88 @@
+name: FalloutMP client (Windows)
+
+# Builds the game client: the F4SE plugin FalloutMP.dll plus the client
+# script, packaged as a mod folder (artifact "FalloutMP-client").
+
+on:
+  push:
+    paths:
+      - 'fallout4-platform/**'
+      - 'falloutmp-client/**'
+      - 'skymp5-server/cpp/messages/**'
+      - 'skymp5-server/cpp/server_guest_lib/Inventory.*'
+      - 'skymp5-server/cpp/server_guest_lib/Equipment.*'
+      - 'skymp5-server/cpp/server_guest_lib/Appearance.*'
+      - 'skymp5-server/cpp/server_guest_lib/AnimationData.*'
+      - 'serialization/**'
+      - '.github/workflows/falloutmp-client-windows.yml'
+  pull_request:
+    paths:
+      - 'fallout4-platform/**'
+      - 'falloutmp-client/**'
+      - '.github/workflows/falloutmp-client-windows.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-2022
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-archives
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Client script (test and bundle)
+        working-directory: falloutmp-client
+        run: |
+          npm ci
+          npm test
+          npm run bundle
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-archives
+          key: vcpkg-fo4plugin-${{ hashFiles('fallout4-platform/plugin/vcpkg.json', 'overlay_ports/**') }}-${{ hashFiles('.git/modules/vcpkg/HEAD') }}
+          restore-keys: vcpkg-fo4plugin-
+
+      - name: Configure
+        shell: cmd
+        run: |
+          mkdir "%VCPKG_DEFAULT_BINARY_CACHE%" 2>nul
+          call vcpkg\bootstrap-vcpkg.bat -disableMetrics || exit /b 1
+          cmake -S fallout4-platform/plugin -B build-plugin -G "Visual Studio 17 2022" -A x64 ^
+            -DCMAKE_TOOLCHAIN_FILE=%GITHUB_WORKSPACE%\vcpkg\scripts\buildsystems\vcpkg.cmake ^
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static ^
+            -DVCPKG_OVERLAY_PORTS=%GITHUB_WORKSPACE%\overlay_ports
+
+      - name: Build
+        run: cmake --build build-plugin --config Release --target FalloutMP -- /m
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $root = "package/FalloutMP"
+          $plugins = "$root/Data/F4SE/Plugins"
+          New-Item -ItemType Directory -Force "$plugins/FalloutMP" | Out-Null
+          Copy-Item build-plugin/Release/FalloutMP.dll $plugins/
+          Copy-Item build-plugin/Release/FalloutMP.pdb $plugins/ -ErrorAction SilentlyContinue
+          Copy-Item falloutmp-client/build/falloutmp-client.js "$plugins/FalloutMP/"
+          Copy-Item fallout4-platform/plugin/FalloutMP.json "$plugins/FalloutMP.json"
+          Copy-Item fallout4-platform/plugin/INSTALL.txt "$root/INSTALL.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FalloutMP-client
+          path: package/FalloutMP

@@ -1,0 +1,57 @@
+FalloutMP client (early test build)
+===================================
+
+What this build does
+- Connects your game to a FalloutMP server and logs you in.
+- Moves you to your character's position on the server (new characters
+  start at Sanctuary Hills).
+- Shows other players as actors that follow their movement.
+
+What it doesn't do yet
+- Other players are clones of your own character and glide without
+  animations. Appearance and animation sync come later.
+- Inventory, combat, power armor, workshops and the rest of the server's
+  systems aren't connected to the game yet.
+
+Requirements
+- Fallout 4, current Steam or GOG version (1.11.x, the Anniversary
+  Edition update). The older "next-gen" 1.10.984 and 1.10.163 versions
+  are not supported by this build.
+- F4SE for your game version: https://f4se.silverlock.org
+- Address Library for F4SE Plugins (the version for 1.11.x):
+  https://www.nexusmods.com/fallout4/mods/47327
+
+Install
+1. Copy the Data folder from this archive into your Fallout 4 folder
+   (the one with Fallout4.exe). You should end up with:
+     Data\F4SE\Plugins\FalloutMP.dll
+     Data\F4SE\Plugins\FalloutMP.json
+     Data\F4SE\Plugins\FalloutMP\falloutmp-client.js
+2. Open Data\F4SE\Plugins\FalloutMP.json and enter your server:
+     { "server-ip": "203.0.113.10", "server-port": 7777 }
+3. Start the game with f4se_loader.exe.
+4. Load a save you don't mind (or start a new game). The client connects
+   when the save has loaded. Use a separate save for multiplayer: your
+   local progress isn't synced with the server yet.
+
+When updating, keep your FalloutMP.json: it holds your "profile-id",
+which is how the server recognises your character. The first start adds
+it automatically.
+
+Settings in FalloutMP.json
+- server-ip, server-port: the server to join.
+- profile-id: your character on this server (generated once).
+- puppet-move: "native" (default) or "papyrus". Try "papyrus" if other
+  players don't move on your screen.
+- puppet-base: base NPC used for other players, default "0x7" (a clone
+  of your character).
+
+Troubleshooting
+- Log: Documents\My Games\Fallout4\F4SE\FalloutMP.log
+- Nothing happens on load: check the log exists. If it doesn't, F4SE or
+  the Address Library is missing or doesn't match your game version.
+- "Can't reach the server": check the address, and that the server's
+  firewall allows UDP 7777.
+- "The server refused the connection: Invalid password": the server and
+  the client are different versions, or the server isn't a Fallout 4
+  server.

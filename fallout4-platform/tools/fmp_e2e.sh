@@ -10,7 +10,7 @@ BUILD="$(cd "$1" && pwd)"
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 WORK="${2:-$(mktemp -d)}"
 PORT=$(( 20000 + RANDOM % 20000 ))
-BOT="$BUILD/fallout4-platform/fmp_bot"
+BOT="${FMP_BOT:-$BUILD/fallout4-platform/fmp_bot}"
 SCRIPT="$REPO/falloutmp-client/build/falloutmp-client.js"
 
 [ -f "$SCRIPT" ] || { echo "build the client bundle first: (cd falloutmp-client && npm run bundle)"; exit 2; }

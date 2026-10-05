@@ -2,6 +2,7 @@
 // fallout4-platform plugin's QuickJS host. The host calls
 // globalThis.__fmpOnEvent(kind, payloadJson):
 //   "gameReady"                       a save is loaded: connect
+//   "saveFinished"                    the game saved (puppets were removed)
 //   "tick" {nowMs}                    every frame
 //   "connected" / "disconnected"      transport state
 //   "connectionFailed" / "connectionDenied" {error}
@@ -49,6 +50,8 @@ g.__fmpOnEvent = (kind, payloadJson) => {
       return;
     case "connected":
       return session.onConnected();
+    case "saveFinished":
+      return session.recreatePuppets();
     case "disconnected":
       return session.onDisconnected();
     case "connectionFailed":
