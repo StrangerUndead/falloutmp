@@ -9,6 +9,7 @@
 #include "DeathStateContainerMessage.h"
 #include "DestroyActorMessage.h"
 #include "DropItemMessage.h"
+#include "Fo4Messages.h"
 #include "FinishSpSnippetMessage.h"
 #include "HitMessage.h"
 #include "HostMessage.h"
@@ -66,4 +67,5 @@
   REGISTER_MESSAGE(UpdateAnimVariablesMessage)                                \
   REGISTER_MESSAGE(UpdateAppearanceMessage)                                   \
   REGISTER_MESSAGE(UpdateGameModeDataMessage)                                 \
-  REGISTER_MESSAGE(CreateActorMessage)
+  REGISTER_MESSAGE(CreateActorMessage)                                        \
+  REGISTER_FO4_MESSAGES
