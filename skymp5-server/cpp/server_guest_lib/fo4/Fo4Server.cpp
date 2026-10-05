@@ -1,0 +1,983 @@
+#include "Fo4Server.h"
+#include "Fo4Messages.h"
+#include "MsgType.h"
+#include <cmath>
+#include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
+
+namespace fo4 {
+
+namespace {
+
+fo4msg::ItemKey ToMsg(const ItemKey& k)
+{
+  fo4msg::ItemKey m;
+  m.baseId = k.baseId;
+  m.mods = k.mods;
+  m.condition = k.condition;
+  m.stolenFrom = k.stolenFrom;
+  m.ammoLoaded = k.ammoLoaded;
+  return m;
+}
+
+ItemKey FromMsg(const fo4msg::ItemKey& m)
+{
+  ItemKey k;
+  k.baseId = m.baseId;
+  k = k.WithMods(m.mods);
+  k.condition = m.condition;
+  k.stolenFrom = m.stolenFrom;
+  k.ammoLoaded = m.ammoLoaded;
+  return k;
+}
+
+std::vector<fo4msg::ItemCount> ToMsg(const std::vector<InventoryEntry>& v)
+{
+  std::vector<fo4msg::ItemCount> res;
+  for (auto& e : v) {
+    res.push_back({ ToMsg(e.key), e.count });
+  }
+  return res;
+}
+
+float Dist(const std::array<float, 3>& a, const std::array<float, 3>& b)
+{
+  float dx = a[0] - b[0], dy = a[1] - b[1], dz = a[2] - b[2];
+  return std::sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+template <class M>
+const M& As(const IMessageBase& msg)
+{
+  return static_cast<const M&>(msg);
+}
+
+}
+
+struct Fo4Server::Impl
+{
+  std::map<ActorId, int64_t> lastTickMs;
+  int64_t lastTick = -1;
+};
+
+Fo4Server::Fo4Server(std::shared_ptr<IFo4DataSource> data_, Fo4Host& host_,
+                     Fo4ServerSettings s)
+  : settings(s)
+  , pImpl(std::make_unique<Impl>())
+  , data(std::move(data_))
+  , host(host_)
+  , crafting(*data)
+  , modding(*data)
+  , scrap(*data)
+  , powerArmor(*data, s.powerArmor)
+  , workshops(*data, s.workshop)
+  , vendors(*data, s.capsId)
+  , locks(s.locks)
+  , combat(*data, s.fire)
+  , parties(s.party)
+  , damageModel(s.damage)
+  , rng(std::random_device{}())
+{
+  workshops.allocateFormId = [this] { return host.AllocateFormId(); };
+}
+
+Fo4Server::~Fo4Server() = default;
+
+Fo4ActorState& Fo4Server::Actor(ActorId id)
+{
+  auto it = actors.find(id);
+  if (it != actors.end()) {
+    return it->second;
+  }
+  auto& st = actors[id];
+  st.effects = std::make_unique<EffectSystem>(*data);
+  for (auto& d : effectDefs) {
+    st.effects->DefineEffect(d);
+  }
+  st.progression.settings = settings.progression;
+  if (!st.avs.Find(Av::Strength)) {
+    for (auto av : kSpecial) {
+      st.avs.SetBase(av, 1.f);
+    }
+    st.avs.RecomputeDerived(1);
+    st.avs.SetCurrent(Av::Health, st.avs.GetMax(Av::Health));
+    st.avs.SetCurrent(Av::ActionPoints, st.avs.GetMax(Av::ActionPoints));
+  }
+  return st;
+}
+
+const Fo4ActorState* Fo4Server::FindActor(ActorId id) const
+{
+  auto it = actors.find(id);
+  return it == actors.end() ? nullptr : &it->second;
+}
+
+void Fo4Server::DefineEffect(EffectDefinition def)
+{
+  effectDefs.push_back(def);
+  for (auto& [id, st] : actors) {
+    st.effects->DefineEffect(def);
+  }
+}
+
+void Fo4Server::RemoveActor(ActorId id)
+{
+  auto pos = host.GetActorPos(id);
+  float p[3] = { pos[0], pos[1], pos[2] };
+  if (auto it = actors.find(id); it != actors.end()) {
+    powerArmor.ForceExit(id, p, it->second.inventory);
+  }
+  workshops.ExitBuildMode(id);
+  combat.Forget(id);
+}
+
+void Fo4Server::SendInventory(ActorId actor)
+{
+  auto& st = Actor(actor);
+  SetInventoryFo4Message m;
+  m.refId = 0;
+  m.version = ++st.inventoryVersion;
+  m.entries = ToMsg(st.inventory.Entries());
+  host.SendTo(actor, m, true);
+}
+
+void Fo4Server::SendActorValues(ActorId actor)
+{
+  auto& st = Actor(actor);
+  ChangeValuesAvMessage m;
+  m.idx = actor;
+  for (auto& [id, e] : st.avs.Entries()) {
+    m.values.push_back({ id, e.Current(), e.Max() });
+  }
+  host.SendTo(actor, m, true);
+  // Neighbours get the public subset: health % and limb conditions
+  ChangeValuesAvMessage pub;
+  pub.idx = actor;
+  float maxHp = st.avs.GetEffectiveMaxHealth();
+  pub.values.push_back({ Av::Health,
+                         maxHp > 0 ? st.avs.GetCurrent(Av::Health) / maxHp
+                                   : 0.f,
+                         1.f });
+  for (auto limb : kLimbConditions) {
+    if (st.avs.Find(limb)) {
+      pub.values.push_back({ limb, st.avs.GetCurrent(limb), 100.f });
+    }
+  }
+  host.SendToNeighbours(actor, pub, true);
+}
+
+void Fo4Server::SendProgression(ActorId actor)
+{
+  auto& st = Actor(actor);
+  ProgressionUpdateMessage m;
+  m.level = st.progression.level;
+  m.xp = st.progression.xp;
+  m.xpForNextLevel = XpForLevel(st.progression.level + 1);
+  m.perkPoints = st.progression.perkPoints;
+  for (size_t i = 0; i < 7; ++i) {
+    m.special[i] = st.avs.GetCurrent(kSpecial[i]);
+  }
+  m.perks.assign(st.progression.ownedPerks.begin(),
+                 st.progression.ownedPerks.end());
+  m.created = st.progression.created;
+  host.SendTo(actor, m, true);
+}
+
+void Fo4Server::SendFullState(ActorId actor)
+{
+  SendInventory(actor);
+  SendActorValues(actor);
+  SendProgression(actor);
+  if (powerArmor.GetWorn(actor)) {
+    auto snap = powerArmor.Snapshot(actor);
+    PowerArmorStateMessage m;
+    m.actorIdx = actor;
+    m.frameRefId = snap.frameRefId;
+    m.phase = static_cast<uint8_t>(snap.phase);
+    m.frameBaseId = snap.frameBaseId;
+    for (auto& p : snap.pieces) {
+      m.pieces.push_back(
+        { static_cast<uint8_t>(p.slot), ToMsg(p.key), p.healthPct });
+    }
+    m.coreBaseId = snap.coreBaseId;
+    m.coreCharge = snap.coreCharge;
+    m.unpowered = snap.unpowered;
+    m.jetpackCapable = snap.jetpackCapable;
+    host.SendTo(actor, m, true);
+  }
+}
+
+namespace {
+void Result(Fo4Host& host, ActorId actor, uint32_t nonce, MsgType type,
+            bool ok, const std::string& error, uint32_t refId = 0,
+            std::vector<fo4msg::ItemCount> items = {})
+{
+  RequestResultMessage r;
+  r.nonce = nonce;
+  r.requestType = static_cast<uint8_t>(type);
+  r.ok = ok;
+  r.error = error;
+  r.refId = refId;
+  r.items = std::move(items);
+  host.SendTo(actor, r, true);
+}
+}
+
+void Fo4Server::OnMessage(ActorId sender, MsgType type,
+                          const IMessageBase& msg)
+{
+  auto& st = Actor(sender);
+  auto perkRank = [&st](FormId p) { return st.progression.GetPerkRank(p); };
+
+  // Workbench context: the sender must be near a workbench reference
+  auto benchCtx = [&](uint32_t workbenchRefId, CrafterContext& ctx,
+                      std::string& error) {
+    auto refPos = host.GetRefPos(workbenchRefId);
+    auto base = host.GetRefBaseId(workbenchRefId);
+    auto furn = data->FindFurniture(base);
+    if (!refPos || !furn) {
+      error = "NoWorkbench";
+      return false;
+    }
+    if (Dist(*refPos, host.GetActorPos(sender)) >
+        settings.activationReach + settings.reachSlack) {
+      error = "OutOfReach";
+      return false;
+    }
+    ctx.workbenchKeywords = furn->keywords;
+    ctx.perkRank = perkRank;
+    return true;
+  };
+
+  switch (type) {
+    case MsgType::CraftItemFo4: {
+      auto& m = As<CraftItemFo4Message>(msg);
+      CrafterContext ctx;
+      std::string err;
+      if (!benchCtx(m.workbenchRefId, ctx, err)) {
+        return Result(host, sender, m.nonce, type, false, err);
+      }
+      auto r = crafting.Craft(st.inventory, m.recipeId, m.count, ctx);
+      Result(host, sender, m.nonce, type, r.Ok(), CraftErrorToString(r.error),
+             0, r.Ok() ? std::vector<fo4msg::ItemCount>{ { ToMsg(r.created),
+                                                           r.createdCount } }
+                       : std::vector<fo4msg::ItemCount>{});
+      if (r.Ok()) {
+        SendInventory(sender);
+      }
+      return;
+    }
+    case MsgType::ModItem: {
+      auto& m = As<ModItemMessage>(msg);
+      CrafterContext ctx;
+      std::string err;
+      if (!benchCtx(m.workbenchRefId, ctx, err)) {
+        return Result(host, sender, m.nonce, type, false, err);
+      }
+      auto item = FromMsg(m.item);
+      auto r = m.op == 0 ? modding.AttachMod(st.inventory, item, m.modId, ctx)
+                         : modding.DetachMod(st.inventory, item, m.modId, ctx);
+      if (r.Ok() && st.equippedWeapon && st.equippedWeapon->SameStack(item)) {
+        st.equippedWeapon = r.newKey;
+      }
+      Result(host, sender, m.nonce, type, r.Ok(), CraftErrorToString(r.error),
+             0, r.Ok() ? std::vector<fo4msg::ItemCount>{ { ToMsg(r.newKey), 1 } }
+                       : std::vector<fo4msg::ItemCount>{});
+      SendInventory(sender); // correction or new state either way
+      return;
+    }
+    case MsgType::ScrapItem: {
+      auto& m = As<ScrapItemMessage>(msg);
+      CrafterContext ctx;
+      std::string err;
+      if (!benchCtx(m.workbenchRefId, ctx, err)) {
+        return Result(host, sender, m.nonce, type, false, err);
+      }
+      ctx.scrapperRank = 0;
+      auto item = FromMsg(m.item);
+      auto r = data->FindMisc(item.baseId)
+        ? scrap.ScrapJunk(st.inventory, item, m.count)
+        : scrap.ScrapEquipment(st.inventory, item, ctx);
+      Result(host, sender, m.nonce, type, r.Ok(), CraftErrorToString(r.error),
+             0, ToMsg(r.produced));
+      SendInventory(sender);
+      return;
+    }
+    case MsgType::UseItem: {
+      auto& m = As<UseItemMessage>(msg);
+      auto r = st.effects->UseItem(m.baseId, st.inventory, st.avs, rng);
+      Result(host, sender, m.nonce, type, r.Ok(),
+             r.Ok() ? "" : (r.error == UseItemError::Dead ? "Dead"
+                            : r.error == UseItemError::NotConsumable
+                            ? "NotConsumable"
+                            : "NotInInventory"));
+      if (r.Ok()) {
+        SendInventory(sender);
+        SendActorValues(sender);
+      }
+      return;
+    }
+    case MsgType::ProgressionRequest: {
+      auto& m = As<ProgressionRequestMessage>(msg);
+      ProgressionError e = ProgressionError::None;
+      switch (m.op) {
+        case ProgressionRequestMessage::kCreateCharacter:
+          e = st.progression.CreateCharacter(m.special, st.avs);
+          break;
+        case ProgressionRequestMessage::kBuyPerk:
+          e = st.progression.BuyPerk(m.chartKey, perkChart, st.avs);
+          break;
+        case ProgressionRequestMessage::kBuySpecial:
+          e = st.progression.BuySpecial(m.specialAv, st.avs);
+          break;
+        default:
+          e = ProgressionError::UnknownPerk;
+      }
+      Result(host, sender, m.nonce, type, e == ProgressionError::None,
+             ProgressionErrorToString(e));
+      SendProgression(sender);
+      SendActorValues(sender);
+      return;
+    }
+    case MsgType::PowerArmorTransition: {
+      auto& m = As<PowerArmorTransitionMessage>(msg);
+      PaActorFacts f;
+      f.actorId = sender;
+      f.profileId = host.GetProfileId(sender);
+      f.alive = host.IsActorAlive(sender);
+      f.isNpc = false;
+      f.reach = settings.activationReach + settings.reachSlack;
+      auto pos = host.GetActorPos(sender);
+      if (auto frame = powerArmor.FindFrame(m.frameRefId)) {
+        f.distanceToFrame =
+          Dist(pos, { frame->pos[0], frame->pos[1], frame->pos[2] });
+      }
+      PaError e = PaError::None;
+      int64_t now = host.NowMs();
+      switch (m.kind) {
+        case PowerArmorTransitionMessage::kEnter:
+          e = powerArmor.RequestEnter(f, m.frameRefId, m.nonce, now);
+          break;
+        case PowerArmorTransitionMessage::kExit: {
+          float p[3] = { pos[0], pos[1], pos[2] };
+          e = powerArmor.RequestExit(f, p, m.nonce, now);
+          break;
+        }
+        case PowerArmorTransitionMessage::kAck:
+          e = powerArmor.Ack(sender, m.nonce, st.inventory, now);
+          break;
+        default:
+          e = PaError::InTransition;
+      }
+      PowerArmorTransitionMessage reply;
+      reply.nonce = m.nonce;
+      reply.actorIdx = sender;
+      reply.frameRefId = m.frameRefId;
+      reply.kind = m.kind;
+      reply.ok = e == PaError::None;
+      reply.error = reply.ok ? "" : PaErrorToString(e);
+      reply.phase = static_cast<uint8_t>(powerArmor.GetPhase(sender));
+      reply.exitPos = pos;
+      host.SendTo(sender, reply, true);
+      if (reply.ok) {
+        // Everyone nearby renders the new phase (F17 §4.5)
+        auto snap = powerArmor.GetWorn(sender) ? powerArmor.Snapshot(sender)
+                                               : PaStateSnapshot{};
+        PowerArmorStateMessage s;
+        s.actorIdx = sender;
+        s.frameRefId = m.frameRefId;
+        s.phase = static_cast<uint8_t>(snap.phase);
+        s.frameBaseId = snap.frameBaseId;
+        for (auto& p : snap.pieces) {
+          s.pieces.push_back(
+            { static_cast<uint8_t>(p.slot), ToMsg(p.key), p.healthPct });
+        }
+        s.coreBaseId = snap.coreBaseId;
+        s.unpowered = snap.unpowered;
+        s.jetpackCapable = snap.jetpackCapable;
+        host.SendToNeighbours(sender, s, true);
+        s.coreCharge = snap.coreCharge; // exact charge: owner only
+        host.SendTo(sender, s, true);
+      }
+      return;
+    }
+    case MsgType::WeaponReload: {
+      auto& m = As<WeaponReloadMessage>(msg);
+      WeaponReloadMessage reply;
+      reply.nonce = m.nonce;
+      if (st.equippedWeapon) {
+        auto r = combat.Reload(sender, *st.equippedWeapon, st.inventory);
+        reply.ok = r.Ok();
+        reply.loaded = r.loaded;
+        if (r.Ok()) {
+          st.equippedWeapon = r.weaponAfter;
+          SendInventory(sender);
+        }
+      }
+      host.SendTo(sender, reply, true);
+      return;
+    }
+    case MsgType::WeaponFire: {
+      auto& m = As<WeaponFireMessage>(msg);
+      if (!st.equippedWeapon) {
+        return;
+      }
+      auto r = combat.Fire(sender, *st.equippedWeapon, st.inventory,
+                           host.GetActorPos(sender), host.NowMs());
+      if (!r.Ok()) {
+        spdlog::debug("WeaponFire rejected for {:x}: {}", sender,
+                      FireErrorToString(r.error));
+        SendInventory(sender); // restores the client's ammo count
+        return;
+      }
+      st.equippedWeapon = r.weaponAfter;
+      WeaponFireMessage relay = m;
+      relay.shooterIdx = sender;
+      relay.seq = r.seq;
+      relay.weaponBaseId = st.equippedWeapon->baseId;
+      relay.origin = host.GetActorPos(sender);
+      host.SendToNeighbours(sender, relay, false);
+      host.SendTo(sender, relay, false); // seq for later hit claims
+      return;
+    }
+    case MsgType::HitReport: {
+      auto& m = As<HitReportMessage>(msg);
+      ActorId target = m.targetIdx;
+      HitClaim c;
+      c.shotSeq = m.shotSeq;
+      c.projectileIndex = m.projectileIndex;
+      c.targetActorId = target;
+      c.targetAlive = host.IsActorAlive(target);
+      c.targetPos = host.GetActorPos(target);
+      c.claimTimeMs = host.NowMs();
+      auto shot = combat.FindShot(sender, m.shotSeq);
+      auto e = combat.ValidateHit(sender, c);
+      if (e != FireError::None || !shot) {
+        return;
+      }
+      bool pvp = !host.IsNpc(sender) && !host.IsNpc(target);
+      if (pvp) {
+        auto verdict = parties.CanDamage(host.GetProfileId(sender),
+                                         host.GetProfileId(target),
+                                         c.targetPos,
+                                         host.GetActorWorldOrCell(target));
+        if (verdict != PvpVerdict::Allowed) {
+          return;
+        }
+        parties.NotePvpDamage(host.GetProfileId(sender), host.NowMs());
+        parties.NotePvpDamage(host.GetProfileId(target), host.NowMs());
+      }
+      OmodStatResolver res(*data);
+      auto stats = res.ResolveWeapon(shot->weapon);
+      HitInput hit;
+      hit.paperDamage.push_back({ 0, stats.damage });
+      for (auto& d : stats.damageTypes) {
+        hit.paperDamage.push_back(d);
+      }
+      hit.projectiles = static_cast<uint32_t>(stats.numProjectiles);
+      hit.attackerIsPlayer = !host.IsNpc(sender);
+      hit.targetIsPlayer = !host.IsNpc(target);
+      hit.isPvp = pvp;
+      hit.headshot = m.limb == 1;
+      auto& tst = Actor(target);
+      TargetResistances tr;
+      tr.damageResist = tst.avs.GetCurrent(Av::DamageResist);
+      for (auto& a : tst.equippedArmor) {
+        if (data->FindArmor(a.baseId)) {
+          auto as = res.ResolveArmor(a);
+          tr.damageResist += as.armorRating;
+          for (auto& r : as.resistances) {
+            tr.byType[r.damageTypeId] += r.value;
+          }
+        }
+      }
+      auto pa = powerArmor.GetWornProtection(target);
+      tr.damageResist += pa.armorRating;
+      for (auto& r : pa.resistances) {
+        tr.byType[r.damageTypeId] += r.value;
+      }
+      auto out = damageModel.Resolve(hit, tr);
+      bool wasAlive = !tst.avs.IsDead();
+      tst.avs.Damage(Av::Health, -out.total);
+      bool killed = wasAlive && tst.avs.IsDead();
+      DamageAppliedMessage d;
+      d.targetIdx = target;
+      d.aggressorIdx = sender;
+      d.total = out.total;
+      for (size_t i = 0; i < out.perType.size() && i < 3; ++i) {
+        d.amounts.push_back(out.perType[i].value);
+      }
+      d.limb = m.limb;
+      d.killed = killed;
+      host.SendToNeighbours(target, d, true);
+      host.SendTo(target, d, true);
+      SendActorValues(target);
+      if (killed) {
+        AwardKillXp(sender, target);
+        host.OnActorKilled(target, sender);
+      }
+      return;
+    }
+    case MsgType::WorkshopMode: {
+      auto& m = As<WorkshopModeMessage>(msg);
+      WorkshopModeMessage reply;
+      reply.workshopRefId = m.workshopRefId;
+      reply.enter = m.enter;
+      if (m.enter) {
+        WorkshopActor a{ sender, host.GetProfileId(sender), -1,
+                         host.GetActorPos(sender), perkRank, host.NowMs() };
+        auto r = workshops.EnterBuildMode(a, m.workshopRefId);
+        reply.allowed = r.Ok();
+        reply.reason = r.Ok() ? "" : WorkshopErrorToString(r.error);
+        if (auto w = workshops.Find(m.workshopRefId)) {
+          reply.perms = workshops.GetPerms(*w, a);
+        }
+      } else {
+        workshops.ExitBuildMode(sender);
+      }
+      host.SendTo(sender, reply, true);
+      return;
+    }
+    case MsgType::WorkshopPlace: {
+      auto& m = As<WorkshopPlaceMessage>(msg);
+      WorkshopActor a{ sender, host.GetProfileId(sender), -1,
+                       host.GetActorPos(sender), perkRank, host.NowMs() };
+      PlaceRequest req;
+      req.nonce = m.nonce;
+      req.workshopId = m.workshopRefId;
+      req.recipeId = m.recipeId;
+      req.baseId = m.baseId;
+      req.fromStored = m.fromStored;
+      req.pos = m.pos;
+      req.rot = m.rot;
+      req.scale = m.scale;
+      req.snapTargetRefId = m.snapTargetRefId;
+      auto r = workshops.Place(a, req, st.inventory);
+      Result(host, sender, m.nonce, type, r.Ok(),
+             WorkshopErrorToString(r.error), r.refId);
+      if (r.Ok()) {
+        WorkshopObjectsMessage delta;
+        delta.workshopRefId = m.workshopRefId;
+        delta.version = workshops.Find(m.workshopRefId)->version;
+        delta.kind = 1;
+        delta.added.push_back(
+          { r.refId, m.baseId, m.pos, m.rot, m.scale, 0 });
+        host.SendToNeighbours(sender, delta, true);
+        host.SendTo(sender, delta, true);
+        SendInventory(sender);
+      }
+      return;
+    }
+    case MsgType::WorkshopEdit: {
+      auto& m = As<WorkshopEditMessage>(msg);
+      WorkshopActor a{ sender, host.GetProfileId(sender), -1,
+                       host.GetActorPos(sender), perkRank, host.NowMs() };
+      std::vector<WorkshopEditItem> items;
+      for (auto& i : m.items) {
+        items.push_back({ i.refId, i.pos, i.rot });
+      }
+      auto op = static_cast<WorkshopEditOp>(m.op);
+      auto r =
+        workshops.Edit(a, m.workshopRefId, op, items, st.inventory, m.nonce);
+      Result(host, sender, m.nonce, type, r.Ok(),
+             WorkshopErrorToString(r.error), 0, ToMsg(r.refunds));
+      if (r.Ok()) {
+        WorkshopObjectsMessage delta;
+        delta.workshopRefId = m.workshopRefId;
+        delta.version = workshops.Find(m.workshopRefId)->version;
+        delta.kind = 1;
+        for (auto& i : m.items) {
+          if (op == WorkshopEditOp::Move) {
+            auto& obj = workshops.Find(m.workshopRefId)->objects.at(i.refId);
+            delta.added.push_back(
+              { obj.refId, obj.baseId, obj.pos, obj.rot, obj.scale, 0 });
+          } else if (op != WorkshopEditOp::Repair) {
+            delta.removed.push_back(i.refId);
+          }
+        }
+        host.SendToNeighbours(sender, delta, true);
+        host.SendTo(sender, delta, true);
+        SendInventory(sender);
+      }
+      return;
+    }
+    case MsgType::WorkshopWire: {
+      auto& m = As<WorkshopWireMessage>(msg);
+      WorkshopActor a{ sender, host.GetProfileId(sender), -1,
+                       host.GetActorPos(sender), perkRank, host.NowMs() };
+      auto r = m.op == 0
+        ? workshops.ConnectWire(a, m.workshopRefId, m.a, m.b, m.splineBaseId,
+                                m.nonce)
+        : workshops.DisconnectWire(a, m.workshopRefId, m.wireRefId, m.nonce);
+      Result(host, sender, m.nonce, type, r.Ok(),
+             WorkshopErrorToString(r.error), r.refId);
+      if (r.Ok()) {
+        WorkshopWireMessage relay = m;
+        relay.wireRefId = m.op == 0 ? r.refId : m.wireRefId;
+        host.SendToNeighbours(sender, relay, true);
+      }
+      return;
+    }
+    case MsgType::WorkshopManage: {
+      auto& m = As<WorkshopManageMessage>(msg);
+      WorkshopActor a{ sender, host.GetProfileId(sender), -1,
+                       host.GetActorPos(sender), perkRank, host.NowMs() };
+      WorkshopResult r;
+      switch (m.op) {
+        case WorkshopManageMessage::kClaim:
+          r = workshops.Claim(a, m.workshopRefId);
+          break;
+        case WorkshopManageMessage::kAbandon:
+          r = workshops.Abandon(a, m.workshopRefId);
+          break;
+        case WorkshopManageMessage::kSetAcl:
+          r = workshops.SetAcl(a, m.workshopRefId, m.profileId, m.perms);
+          break;
+        case WorkshopManageMessage::kAssign:
+          r = workshops.Assign(a, m.workshopRefId, m.actorId, m.objectRefId);
+          break;
+        default:
+          r.error = WorkshopError::NoPermission;
+      }
+      Result(host, sender, m.nonce, type, r.Ok(),
+             WorkshopErrorToString(r.error));
+      if (auto w = workshops.Find(m.workshopRefId)) {
+        WorkshopStateMessage s;
+        s.workshopRefId = w->workbenchRefId;
+        s.version = w->version;
+        s.ownerType = static_cast<uint8_t>(w->owner.type);
+        s.ownerId = w->owner.id;
+        s.yourPerms = workshops.GetPerms(*w, a);
+        s.budgetCurrent = w->budget.current;
+        s.budgetMax = w->budget.max;
+        s.objects = w->budget.objects;
+        s.maxObjects = w->budget.maxObjects;
+        s.food = w->ratings.food;
+        s.water = w->ratings.water;
+        s.safety = w->ratings.safety;
+        s.beds = w->ratings.beds;
+        s.power = w->ratings.power;
+        s.powerLoad = w->ratings.powerLoad;
+        s.population = w->ratings.population;
+        s.happiness = w->ratings.happiness;
+        host.SendTo(sender, s, true);
+      }
+      return;
+    }
+    case MsgType::Barter: {
+      auto& m = As<BarterMessage>(msg);
+      BarterRequest req;
+      req.vendorId = m.vendorId;
+      for (auto& l : m.buy) {
+        req.buy.push_back({ FromMsg(l.item), l.count });
+      }
+      for (auto& l : m.sell) {
+        req.sell.push_back({ FromMsg(l.item), l.count });
+      }
+      req.expectedCapsDelta = m.capsDelta;
+      PriceModifiers pm;
+      pm.charisma = st.avs.GetCurrent(Av::Charisma);
+      BarterMessage reply;
+      reply.nonce = m.nonce;
+      reply.op = m.op;
+      reply.vendorId = m.vendorId;
+      if (m.op == 0) {
+        BarterError e;
+        reply.capsDelta = vendors.QuoteCapsDelta(req, pm, e);
+        reply.error = e == BarterError::None ? "" : BarterErrorToString(e);
+      } else {
+        auto r = vendors.Trade(req, st.inventory, pm, host.GameHour());
+        reply.capsDelta = r.capsDelta;
+        reply.error = r.Ok() ? "" : BarterErrorToString(r.error);
+        SendInventory(sender);
+      }
+      host.SendTo(sender, reply, true);
+      return;
+    }
+    case MsgType::LockpickAttempt: {
+      auto& m = As<LockpickAttemptMessage>(msg);
+      LockpickerFacts f{ sender, 0, st.avs.GetCurrent(Av::Perception),
+                         host.NowMs() };
+      // Locksmith rank = owned rank forms of the "Locksmith" chart entry
+      f.locksmithRank = st.progression.GetChartRank("Locksmith");
+      LockpickAttemptMessage reply;
+      reply.op = m.op;
+      reply.refId = m.refId;
+      if (m.op == 0) {
+        auto refPos = host.GetRefPos(m.refId);
+        if (!refPos ||
+            Dist(*refPos, host.GetActorPos(sender)) >
+              settings.activationReach + settings.reachSlack) {
+          reply.outcome = static_cast<uint8_t>(LockResultCode::Inaccessible);
+        } else {
+          auto r = locks.Activate(m.refId, f, st.inventory);
+          reply.outcome = static_cast<uint8_t>(r.code);
+          reply.sessionId = r.sessionId;
+        }
+      } else if (m.op == 1) {
+        auto r = locks.Attempt(m.sessionId, f, st.inventory, rng);
+        reply.outcome = static_cast<uint8_t>(r.code);
+        reply.sessionId = m.sessionId;
+        reply.xp = r.xp;
+        if (r.xp) {
+          st.progression.AwardXp(r.xp, false, st.avs);
+          SendProgression(sender);
+        }
+        SendInventory(sender); // pin count
+      } else {
+        locks.CancelLockpick(m.sessionId);
+        return;
+      }
+      host.SendTo(sender, reply, true);
+      return;
+    }
+    case MsgType::TerminalAction: {
+      auto& m = As<TerminalActionMessage>(msg);
+      HackerFacts f{ sender, st.progression.GetChartRank("Hacker"),
+                     st.avs.GetCurrent(Av::Intelligence), host.NowMs() };
+      TerminalActionMessage reply;
+      reply.op = m.op;
+      reply.refId = m.refId;
+      auto r = m.op == 0 ? locks.BeginHack(m.refId, f)
+                         : locks.HackAttempt(m.sessionId, f, rng);
+      reply.outcome = static_cast<uint8_t>(r.code);
+      reply.sessionId = r.sessionId;
+      reply.attemptsLeft = r.attemptsLeft;
+      reply.xp = r.xp;
+      if (r.xp) {
+        st.progression.AwardXp(r.xp, false, st.avs);
+        SendProgression(sender);
+      }
+      host.SendTo(sender, reply, true);
+      return;
+    }
+    case MsgType::PartyAction: {
+      auto& m = As<PartyActionMessage>(msg);
+      ProfileId me = host.GetProfileId(sender);
+      int64_t now = host.NowMs();
+      PartyError e = PartyError::None;
+      switch (m.op) {
+        case PartyActionMessage::kInvite:
+          e = parties.Invite(me, m.targetProfileId, now);
+          break;
+        case PartyActionMessage::kAccept:
+          e = parties.Accept(me, m.partyId, now);
+          break;
+        case PartyActionMessage::kDecline:
+          e = parties.Decline(me, m.partyId);
+          break;
+        case PartyActionMessage::kLeave:
+          e = parties.Leave(me);
+          break;
+        case PartyActionMessage::kKick:
+          e = parties.Kick(me, m.targetProfileId);
+          break;
+        case PartyActionMessage::kPromote:
+          e = parties.Promote(me, m.targetProfileId);
+          break;
+        case PartyActionMessage::kSetPvpFlag:
+          e = parties.SetPvpFlag(me, m.value, now);
+          break;
+        default:
+          e = PartyError::UnknownParty;
+      }
+      PartyActionMessage reply;
+      reply.nonce = m.nonce;
+      reply.op = PartyActionMessage::kState;
+      reply.error = e == PartyError::None ? "" : PartyErrorToString(e);
+      if (auto pid = parties.GetPartyOf(me)) {
+        auto p = parties.Find(*pid);
+        reply.partyId = p->id;
+        reply.leader = p->leader;
+        reply.members = p->members;
+      }
+      reply.value = parties.IsFlagged(me);
+      host.SendTo(sender, reply, true);
+      return;
+    }
+    default:
+      spdlog::warn("Fo4Server: message type {} is not handled",
+                   static_cast<int>(type));
+      return;
+  }
+}
+
+void Fo4Server::AwardKillXp(ActorId killer, ActorId victim)
+{
+  if (host.IsNpc(killer)) {
+    return;
+  }
+  uint32_t xp = settings.killXpBase *
+    static_cast<uint32_t>(std::max(1, Actor(victim).actorLevelForXp));
+  std::map<ProfileId, std::array<float, 3>> positions;
+  std::map<ProfileId, ActorId> actorByProfile;
+  for (auto& [id, st] : actors) {
+    if (!host.IsNpc(id)) {
+      ProfileId p = host.GetProfileId(id);
+      positions[p] = host.GetActorPos(id);
+      actorByProfile[p] = id;
+    }
+  }
+  for (auto& [profile, share] :
+       parties.ShareXp(host.GetProfileId(killer), xp, positions)) {
+    auto it = actorByProfile.find(profile);
+    if (it == actorByProfile.end()) {
+      continue;
+    }
+    auto& st = Actor(it->second);
+    st.progression.AwardXp(share, false, st.avs);
+    SendProgression(it->second);
+  }
+}
+
+void Fo4Server::Tick()
+{
+  int64_t now = host.NowMs();
+  float dt = pImpl->lastTick < 0
+    ? 0.f
+    : static_cast<float>(now - pImpl->lastTick) / 1000.f;
+  pImpl->lastTick = now;
+
+  for (auto actor : powerArmor.Tick(now)) {
+    PowerArmorTransitionMessage m;
+    m.actorIdx = actor;
+    m.ok = false;
+    m.error = "Timeout";
+    m.phase = static_cast<uint8_t>(powerArmor.GetPhase(actor));
+    host.SendTo(actor, m, true);
+  }
+  if (dt > 0.f) {
+    for (auto& [id, st] : actors) {
+      st.effects->Tick(dt, st.avs);
+      st.avs.Tick(dt, false);
+    }
+  }
+  std::map<ActorId, std::array<float, 3>> positions;
+  for (auto& [id, st] : actors) {
+    if (workshops.GetBuildModeWorkshop(id)) {
+      positions[id] = host.GetActorPos(id);
+    }
+  }
+  for (auto actor : workshops.TickBuildMode(positions, now)) {
+    WorkshopModeMessage m;
+    m.enter = false;
+    m.allowed = false;
+    m.reason = "LeftBuildArea";
+    host.SendTo(actor, m, true);
+  }
+}
+
+nlohmann::json Fo4Server::ActorToJson(ActorId id) const
+{
+  auto st = FindActor(id);
+  if (!st) {
+    return nlohmann::json::object();
+  }
+  nlohmann::json j = { { "schemaVersion", 1 },
+                       { "inventory", st->inventory.ToJson() },
+                       { "avs", st->avs.ToJson() },
+                       { "progression", st->progression.ToJson() },
+                       { "effects", st->effects->ToJson() } };
+  if (st->equippedWeapon) {
+    j["equippedWeapon"] = ItemKeyToJson(*st->equippedWeapon);
+  }
+  auto armor = nlohmann::json::array();
+  for (auto& a : st->equippedArmor) {
+    armor.push_back(ItemKeyToJson(a));
+  }
+  j["equippedArmor"] = armor;
+  if (auto w = powerArmor.GetWorn(id)) {
+    j["powerArmor"] = powerArmor.WornToJson(*w);
+  }
+  return j;
+}
+
+void Fo4Server::LoadActor(ActorId id, const nlohmann::json& j)
+{
+  auto& st = Actor(id);
+  if (!j.is_object()) {
+    return;
+  }
+  // Each part loads independently: a broken part keeps its defaults
+  try {
+    if (j.contains("inventory"))
+      st.inventory = Fo4Inventory::FromJson(j["inventory"]);
+  } catch (const std::exception& e) {
+    spdlog::error("Fo4Server: bad inventory for {:x}: {}", id, e.what());
+  }
+  try {
+    if (j.contains("avs"))
+      st.avs = ActorValueStore::FromJson(j["avs"]);
+  } catch (const std::exception& e) {
+    spdlog::error("Fo4Server: bad avs for {:x}: {}", id, e.what());
+  }
+  try {
+    if (j.contains("progression"))
+      st.progression =
+        Progression::FromJson(j["progression"], settings.progression);
+  } catch (const std::exception& e) {
+    spdlog::error("Fo4Server: bad progression for {:x}: {}", id, e.what());
+  }
+  try {
+    if (j.contains("effects"))
+      st.effects->LoadJson(j["effects"], st.avs);
+    if (j.contains("equippedWeapon"))
+      st.equippedWeapon = ItemKeyFromJson(j["equippedWeapon"]);
+    st.equippedArmor.clear();
+    for (auto& a : j.value("equippedArmor", nlohmann::json::array())) {
+      st.equippedArmor.push_back(ItemKeyFromJson(a));
+    }
+    if (j.contains("powerArmor")) {
+      powerArmor.RestoreWorn(id, PowerArmorService::WornFromJson(j["powerArmor"]));
+    }
+  } catch (const std::exception& e) {
+    spdlog::error("Fo4Server: bad equipment/effects for {:x}: {}", id,
+                  e.what());
+  }
+}
+
+nlohmann::json Fo4Server::WorldToJson() const
+{
+  auto ws = nlohmann::json::array();
+  for (auto& [id, w] : workshops.All()) {
+    ws.push_back(workshops.ToJson(w));
+  }
+  auto frames = nlohmann::json::array();
+  for (auto& [id, f] : powerArmor.Frames()) {
+    frames.push_back(powerArmor.FrameToJson(f));
+  }
+  return { { "schemaVersion", 1 },
+           { "workshops", ws },
+           { "powerArmorFrames", frames },
+           { "locks", locks.ToJson() },
+           { "parties", parties.ToJson() } };
+}
+
+void Fo4Server::LoadWorld(const nlohmann::json& j)
+{
+  if (!j.is_object()) {
+    return;
+  }
+  for (auto& w : j.value("workshops", nlohmann::json::array())) {
+    try {
+      workshops.AddWorkshop(WorkshopService::FromJson(w));
+    } catch (const std::exception& e) {
+      spdlog::error("Fo4Server: skipping bad workshop record: {}", e.what());
+    }
+  }
+  for (auto& f : j.value("powerArmorFrames", nlohmann::json::array())) {
+    try {
+      powerArmor.AddFrame(PowerArmorService::FrameFromJson(f));
+    } catch (const std::exception& e) {
+      spdlog::error("Fo4Server: skipping bad frame record: {}", e.what());
+    }
+  }
+  if (j.contains("locks")) {
+    locks.LoadJson(j["locks"]);
+  }
+  if (j.contains("parties")) {
+    parties.LoadJson(j["parties"]);
+  }
+}
+
+}
