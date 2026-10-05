@@ -685,12 +685,20 @@ private:
       return;
     }
     auto& s = S();
-    std::scoped_lock lock(s.m);
-    // The player left the terminal during the word game. The contract has
-    // no cancel event; the server drops the session on its own.
-    if (s.hack.active && !s.hack.awaitingVerdict && !s.hack.reopen) {
+    uint32_t ref = 0, sessionId = 0;
+    {
+      std::scoped_lock lock(s.m);
+      // The player left the terminal during the word game; the server's
+      // session times out on its own.
+      if (!s.hack.active || s.hack.awaitingVerdict || s.hack.reopen) {
+        return;
+      }
+      ref = s.hack.ref;
+      sessionId = s.hack.sessionId;
       s.hack = {};
     }
+    Platform::Get().Emit("hackCancelled",
+                         Json{ { "ref", ref }, { "sessionId", sessionId } });
   }
 };
 

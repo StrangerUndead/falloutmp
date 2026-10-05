@@ -103,6 +103,18 @@ export class WorkshopService {
     return this.localToServer.get(local) ?? this.ctx.platform.refs.toServer(local);
   }
 
+  // Server id of a wire from the local id spawnWire returned.
+  wireServerIdOf(local: number): number {
+    for (const s of this.settlements.values()) {
+      for (const [serverId, w] of s.wires) {
+        if (w.local === local) {
+          return serverId;
+        }
+      }
+    }
+    return 0;
+  }
+
   localIdOf(serverId: number): number {
     for (const s of this.settlements.values()) {
       const v = s.objects.get(serverId);

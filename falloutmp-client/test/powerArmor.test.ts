@@ -151,3 +151,19 @@ test("remote actors are put in and out of frames and dressed", () => {
   assert.equal(h.platform.callsOf("setFusionCoreCharge").length, 0, "only the owner sees the charge");
   assert.equal(h.client.powerArmor.stateOf(remote)?.unpowered, true);
 });
+
+test("a refused exit puts the player back in the frame", async () => {
+  const h = makeClient();
+  h.platform.refs.map(kFrameRef, kFrameLocal);
+  const enter = h.client.powerArmor.enter(kFrameRef);
+  serverReply(h, true, PaPhase.Entering);
+  await h.flush();
+  serverReply(h, true, PaPhase.In);
+  await enter;
+  // The vanilla exit already happened; the server says no
+  const exit = h.client.powerArmor.exit();
+  serverReply(h, false, PaPhase.In);
+  assert.ok(!(await exit).ok);
+  assert.deepEqual(h.platform.callsOf("setInPowerArmor").at(-1), [kPlayer, kFrameLocal, true]);
+  assert.equal(h.client.powerArmor.getPhase(), PaPhase.In);
+});

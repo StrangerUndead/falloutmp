@@ -275,6 +275,8 @@ export interface PlatformEvents {
     items: { ref: FormId; pos: Vec3; rot: Vec3 }[];
   };
   workshopWireRequested: { workbench: FormId; a: FormId; b: FormId; splineBaseId: FormId };
+  // A wire (the local id spawnWire returned) was removed in the workshop menu
+  workshopWireRemoveRequested: { workbench: FormId; wire: FormId };
   // Crafting menus (the plugin cancels the vanilla craft and reports it).
   craftRequested: { workbench: FormId; recipeId: FormId; count: number };
   modRequested: { workbench: FormId; item: ItemKey; modId: FormId; attach: boolean };
@@ -290,6 +292,8 @@ export interface PlatformEvents {
   lockpickCancelled: { ref: FormId; sessionId: number };
   terminalActivated: { ref: FormId };
   hackGuess: { ref: FormId; sessionId: number };
+  // The player left the hacking word game without finishing it
+  hackCancelled: { ref: FormId; sessionId: number };
   // Combat capture.
   // shooter: the player (omitted) or a hosted NPC's local ref
   weaponFired: { weaponBaseId: FormId; origin: Vec3; direction: Vec3; shooter?: FormId };

@@ -192,6 +192,12 @@ export class FalloutMpClient {
       ),
     );
     p.on("workshopWireRequested", (e) => void this.workshop.connectWire(server(e.a), server(e.b), e.splineBaseId));
+    p.on("workshopWireRemoveRequested", (e) => {
+      const wire = this.workshop.wireServerIdOf(e.wire);
+      if (wire) {
+        void this.workshop.disconnectWire(wire);
+      }
+    });
     p.on("craftRequested", (e) => void this.crafting.craft(server(e.workbench), e.recipeId, e.count));
     p.on("modRequested", (e) =>
       void (e.attach
@@ -212,6 +218,7 @@ export class FalloutMpClient {
     p.on("lockpickCancelled", () => this.locks.cancelLockpick());
     p.on("terminalActivated", (e) => this.locks.activateTerminal(server(e.ref)));
     p.on("hackGuess", () => this.locks.guessPassword());
+    p.on("hackCancelled", () => this.locks.cancelHack());
     p.on("weaponFired", (e) => {
       const shooter = e.shooter && e.shooter !== p.getPlayer() ? p.refs.toServer(e.shooter) : 0;
       if (shooter && !this.ctx.isHosted(shooter)) {

@@ -93,6 +93,9 @@ export class PowerArmorService {
       const nonce = this.ctx.requests.nextNonce();
       const r1 = await this.step(nonce, PaTransitionKind.Exit, frameRefId);
       if (!r1.ok) {
+        // The vanilla exit can't be blocked in the plugin: the player may
+        // already be out, so put them back in
+        this.snapTo(PaPhase.In, frameRefId);
         return r1;
       }
       this.setLocalPhase(PaPhase.Exiting, frameRefId);

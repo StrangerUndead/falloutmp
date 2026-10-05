@@ -199,3 +199,18 @@ test("disconnect clears spawned settlement objects", async () => {
   assert.equal(h.client.workshop.activeWorkshopId(), 0);
   assert.equal(h.platform.callsOf("exitWorkshopMode").length, 1);
 });
+
+test("a wire removed in the workshop menu is disconnected on the server", async () => {
+  const h = await inBuildMode();
+  objects(h, {
+    kind: 0, version: 10, chunk: 0, chunkCount: 1,
+    added: [obj(0xff200001, 1), obj(0xff200002, 2)],
+    wires: [{ wireRefId: 0xff2000ff, a: 0xff200001, b: 0xff200002, splineBaseId: 0x1d971 }],
+  });
+  const [local] = Array.from(h.platform.wires.keys());
+  assert.equal(h.client.workshop.wireServerIdOf(local), 0xff2000ff);
+  h.platform.fire("workshopWireRemoveRequested", { workbench: kShop, wire: local });
+  const [m] = h.transport.ofType<{ op: number; wireRefId: number }>(Fo4MsgType.WorkshopWire);
+  assert.equal(m.wireRefId, 0xff2000ff);
+  assert.equal(m.op, 1); // disconnect
+});

@@ -102,8 +102,9 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 - **Locks/map/world:** activation through 0x40 on DOOR/CONT/TERM; the lockpick sweet spot moved out of reach still lets the pick bend; terminal hack-mode transitions and input events; `AddToMap` side effects; clearing `fastTravelLocation` cancels travel; Calendar fields; weather override.
 
 ## Plugin: follow-ups requested by the modules
-- Contract: `hackCancelled {ref, sessionId}`; `workshopWireRemoveRequested`; `projectileHit` with a hit kind (melee) and the shooter (hosted NPCs); `hostedValuesChanged` needs a "hosted NPC" signal from the client.
-- Client: `PowerArmorService.exit` snaps back when the server refuses; the workshop service resends an object whose scrap was refused; frame pieces modded at a power armor station name the frame.
+- Done: `hackCancelled`, `workshopWireRemoveRequested`, power armor exit snap-back on refusal.
+- Contract: `projectileHit` with a hit kind (melee) and the shooter (hosted NPCs); `hostedValuesChanged` needs a "hosted NPC" signal from the client.
+- Client: the workshop service resends an object whose scrap was refused; frame pieces modded at a power armor station name the frame.
 - Engine: cancelling vanilla consumption (F20), `RewardExperience` / `SelectPerk` detours (F19), a declared `TESObjectWEAP::Fire` / `Projectile::Launch` for exact cosmetic shots (PLAT-083). Hosted NPCs (F13) are not driven by `setActorTransform` (puppets only).
 
 ## Facts to verify (collected from research/specs; verify via G-self or D-real, then update the reference doc)

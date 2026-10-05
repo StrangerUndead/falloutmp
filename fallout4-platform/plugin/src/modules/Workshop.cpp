@@ -762,10 +762,17 @@ void OnDestroyed(const Captured& c,
                  EditBatch& b)
 {
   if (c.wire) {
-    // No wire-removal event in the contract (WorkshopWire disconnect needs
-    // the server's wire id); attached wires go with their object anyway
-    REX::DEBUG("Wire {:X} removed in the Workshop menu (not reported)",
-               c.ref);
+    // A server wire (spawned through spawnWire) removed in the menu: the
+    // client disconnects it by the token it knows. Vanilla wires that were
+    // never confirmed have no token and need nothing.
+    for (auto& [token, w] : g_wires) {
+      if (w.current == c.ref) {
+        Platform::Get().Emit(
+          "workshopWireRemoveRequested",
+          Json{ { "workbench", g_active }, { "wire", token } });
+        break;
+      }
+    }
     return;
   }
   if (auto it = g_currentToClient.find(c.ref); it != g_currentToClient.end()) {

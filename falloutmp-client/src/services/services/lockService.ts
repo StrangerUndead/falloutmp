@@ -78,6 +78,12 @@ export class LockService {
     });
   }
 
+  // The plugin's word game ended without a result; the server's session
+  // times out on its own.
+  cancelHack(): void {
+    this.hack = undefined;
+  }
+
   reset(): void {
     if (this.lockpick) {
       this.ctx.platform.closeLockpickMenu(false);
