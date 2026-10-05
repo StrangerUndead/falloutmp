@@ -29,6 +29,24 @@ export interface AvValue {
   max: number;
 }
 
+// F01: owner transform (C->S ~10 Hz) and relay (S->C, ts = server ms).
+export interface UpdateMovementFo4Message {
+  t: Fo4MsgType.UpdateMovementFo4;
+  idx: number;
+  seq: number; // u16
+  ts: number; // u32
+  worldOrCell: number;
+  pos: Vec3;
+  yaw: number; // degrees
+  aimPitch: number;
+  aimHeading: number;
+  speed: number;
+  direction: number;
+  velZ: number;
+  flags: number; // MoveFlag bits
+  healthPercentage: number;
+}
+
 export interface SetInventoryFo4Message {
   t: Fo4MsgType.SetInventoryFo4;
   refId: number; // 0 = the receiving player
@@ -380,6 +398,7 @@ export interface WorldTimeWeatherMessage {
 
 // Every Fallout 4 message implemented on both sides, keyed by type id.
 export interface Fo4MessageMap {
+  [Fo4MsgType.UpdateMovementFo4]: UpdateMovementFo4Message;
   [Fo4MsgType.SetInventoryFo4]: SetInventoryFo4Message;
   [Fo4MsgType.PutItemFo4]: PutItemFo4Message;
   [Fo4MsgType.TakeItemFo4]: TakeItemFo4Message;
@@ -440,6 +459,21 @@ const containerOp = (): ContainerOpFields => ({
 });
 
 export const kMessageDefaults: DefaultsTable = {
+  [Fo4MsgType.UpdateMovementFo4]: () => ({
+    idx: 0,
+    seq: 0,
+    ts: 0,
+    worldOrCell: 0,
+    pos: v0(),
+    yaw: 0,
+    aimPitch: 0,
+    aimHeading: 0,
+    speed: 0,
+    direction: 0,
+    velZ: 0,
+    flags: 0,
+    healthPercentage: 100,
+  }),
   [Fo4MsgType.SetInventoryFo4]: () => ({ refId: 0, version: 0, entries: [] }),
   [Fo4MsgType.PutItemFo4]: containerOp,
   [Fo4MsgType.TakeItemFo4]: containerOp,

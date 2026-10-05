@@ -81,6 +81,7 @@ Fo4Server::Fo4Server(std::shared_ptr<IFo4DataSource> data_, Fo4Host& host_,
   , parties(s.party)
   , containers(*data, s.containers)
   , map(s.map)
+  , movement(s.movement)
   , damageModel(s.damage)
   , rng(std::random_device{}())
 {
@@ -150,6 +151,7 @@ void Fo4Server::RemoveActor(ActorId id)
   }
   workshops.ExitBuildMode(id);
   combat.Forget(id);
+  movement.Forget(id);
 }
 
 void Fo4Server::SendInventory(ActorId actor)
@@ -287,6 +289,70 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
   };
 
   switch (type) {
+    case MsgType::UpdateMovementFo4: {
+      auto& m = As<UpdateMovementFo4Message>(msg);
+      if (m.idx != 0 && m.idx != sender) {
+        return; // hosted NPC movement arrives with F13
+      }
+      MovementContext ctx;
+      ctx.alive = host.IsActorAlive(sender);
+      ctx.inPowerArmor = powerArmor.GetPhase(sender) == PaPhase::In;
+      ctx.jetpackAllowed = ctx.inPowerArmor &&
+        powerArmor.IsJetpackAllowed(sender,
+                                    st.avs.GetCurrent(Av::ActionPoints));
+      float carry = st.avs.GetCurrent(Av::CarryWeight);
+      ctx.encumbered =
+        carry > 0.f && st.inventory.TotalWeight(*data) > carry;
+      if (settings.movement.speedMultAvId &&
+          st.avs.Find(settings.movement.speedMultAvId)) {
+        ctx.speedMult =
+          st.avs.GetCurrent(settings.movement.speedMultAvId) / 100.f;
+      }
+      MovementSample sample{ m.seq, m.worldOrCell, m.pos, m.yaw, m.flags };
+      int64_t now = host.NowMs();
+      auto r = movement.Validate(sender, sample, ctx, host.GetActorPos(sender),
+                                 host.GetActorWorldOrCell(sender), now);
+      if (r.verdict == MovementVerdict::Correct) {
+        bool correct = host.FireGamemodeEvent(
+          "onFo4MovementViolation",
+          nlohmann::json::array({ sender, r.reason, r.score }));
+        if (correct) {
+          spdlog::info("Movement correction for {:x}: {} (score {:.1f})",
+                       sender, r.reason, r.score);
+          host.TeleportActor(sender, r.correctionPos,
+                             r.correctionWorldOrCell);
+          return;
+        }
+        movement.ForceAccept(sender, sample, now); // the gamemode allowed it
+        r.verdict = MovementVerdict::Accepted;
+        r.dtSec = 0.f;
+      }
+      if (r.verdict != MovementVerdict::Accepted) {
+        return;
+      }
+      host.SetActorTransform(sender, m.pos, m.yaw);
+      if (ctx.inPowerArmor && r.dtSec > 0.f) {
+        auto ev = powerArmor.Drain(sender, r.dtSec,
+                                   static_cast<PaMovement>(r.movement), 1.f,
+                                   st.inventory);
+        if (ev.coreSwapped || ev.coreDepleted || ev.becameUnpowered ||
+            !ev.piecesBroken.empty()) {
+          SendPowerArmorStateOf(sender);
+          if (ev.coreSwapped) {
+            SendInventory(sender);
+          }
+        }
+      }
+      UpdateMovementFo4Message relay = m;
+      relay.idx = sender;
+      relay.ts = static_cast<uint32_t>(now);
+      float maxHp = st.avs.GetEffectiveMaxHealth();
+      relay.healthPercentage = static_cast<uint8_t>(std::clamp(
+        maxHp > 0 ? st.avs.GetCurrent(Av::Health) / maxHp * 100.f : 0.f, 0.f,
+        100.f));
+      host.SendToNeighbours(sender, relay, false);
+      return;
+    }
     case MsgType::CraftItemFo4: {
       auto& m = As<CraftItemFo4Message>(msg);
       CrafterContext ctx;
@@ -654,6 +720,12 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
       c.targetPos = host.GetActorPos(target);
       c.claimTimeMs = host.NowMs();
       auto shot = combat.FindShot(sender, m.shotSeq);
+      if (shot) {
+        // Lag compensation: where the target was when the shot arrived
+        if (auto rewound = movement.PositionAt(target, shot->timeMs)) {
+          c.targetPos = *rewound;
+        }
+      }
       auto e = combat.ValidateHit(sender, c);
       if (e != FireError::None || !shot) {
         return;
@@ -1247,6 +1319,26 @@ void Fo4Server::SendWorkshopSnapshot(ActorId to, FormId workshopRefId)
     }
     host.SendTo(to, m, true);
   }
+}
+
+void Fo4Server::SendPowerArmorStateOf(ActorId actor)
+{
+  auto snap = powerArmor.Snapshot(actor);
+  PowerArmorStateMessage m;
+  m.actorIdx = actor;
+  m.frameRefId = snap.frameRefId;
+  m.phase = static_cast<uint8_t>(snap.phase);
+  m.frameBaseId = snap.frameBaseId;
+  for (auto& p : snap.pieces) {
+    m.pieces.push_back(
+      { static_cast<uint8_t>(p.slot), ToMsg(p.key), p.healthPct });
+  }
+  m.coreBaseId = snap.coreBaseId;
+  m.unpowered = snap.unpowered;
+  m.jetpackCapable = snap.jetpackCapable;
+  host.SendToNeighbours(actor, m, true);
+  m.coreCharge = snap.coreCharge; // exact charge: owner only
+  host.SendTo(actor, m, true);
 }
 
 void Fo4Server::SendContainer(ActorId to, FormId refId, bool alsoNeighbours)

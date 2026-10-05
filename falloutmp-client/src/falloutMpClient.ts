@@ -10,6 +10,7 @@ import { EquipmentService } from "./services/services/equipmentService";
 import { InventoryService } from "./services/services/inventoryService";
 import { LockService } from "./services/services/lockService";
 import { MapService } from "./services/services/mapService";
+import { MovementOptions, MovementService } from "./services/services/movementService";
 import { PartyService } from "./services/services/partyService";
 import { PowerArmorService } from "./services/services/powerArmorService";
 import { ProgressionRules, ProgressionService } from "./services/services/progressionService";
@@ -21,6 +22,7 @@ export interface FalloutMpClientOptions {
   requestTimeoutMs?: number;
   inventoryReconcileIntervalMs?: number;
   progressionRules?: ProgressionRules;
+  movement?: MovementOptions;
   // Wire platform capture events to the services (off in tests that drive
   // the services directly).
   bindPlatformEvents?: boolean;
@@ -45,6 +47,7 @@ export class FalloutMpClient {
   readonly party: PartyService;
   readonly map: MapService;
   readonly timeWeather: WorldTimeWeatherService;
+  readonly movement: MovementService;
 
   constructor(readonly platform: FalloutPlatform, transport: Fo4Transport, opts: FalloutMpClientOptions = {}) {
     this.ctx = new ClientContext(platform, transport, opts.requestTimeoutMs);
@@ -62,6 +65,7 @@ export class FalloutMpClient {
     this.party = new PartyService(this.ctx);
     this.map = new MapService(this.ctx);
     this.timeWeather = new WorldTimeWeatherService(this.ctx);
+    this.movement = new MovementService(this.ctx, opts.movement);
     if (opts.bindPlatformEvents ?? true) {
       this.bindPlatformEvents();
     }
@@ -89,6 +93,8 @@ export class FalloutMpClient {
   }
 
   tick(): void {
+    this.movement.tickOwner();
+    this.movement.tickRemotes();
     this.ctx.requests.tick();
     this.inventory.tick();
     this.combat.tick();
@@ -109,6 +115,7 @@ export class FalloutMpClient {
     this.actorValues.forgetActor(serverActorId);
     this.equipment.forgetActor(serverActorId);
     this.powerArmor.forgetActor(serverActorId);
+    this.movement.forgetActor(serverActorId);
   }
 
   onDisconnect(): void {
@@ -124,6 +131,7 @@ export class FalloutMpClient {
     this.party.reset();
     this.map.reset();
     this.timeWeather.reset();
+    this.movement.reset();
   }
 
   private bindPlatformEvents(): void {

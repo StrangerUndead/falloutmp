@@ -385,10 +385,13 @@ PaEvents PowerArmorService::Drain(ActorId actor, float dtSec,
   }
   float rate = settings.drainPerSecond[static_cast<size_t>(movement)];
   float mult = durationMult > 0.f ? 1.f / durationMult : 1.f;
-  float charge = w.CoreCharge() - dtSec * rate * mult;
+  // Movement samples arrive at 10 Hz and drain far less than one condition
+  // step each, so the remainder is carried instead of rounded away.
+  float charge = w.CoreCharge() - w.pendingDrain - dtSec * rate * mult;
   if (charge <= 0.f) {
     ev.coreDepleted = true;
     w.core.reset(); // depleted core is consumed
+    w.pendingDrain = 0.f;
     if (TrySwapCore(w, actorInventory)) {
       ev.coreSwapped = true;
     } else {
@@ -397,6 +400,7 @@ PaEvents PowerArmorService::Drain(ActorId actor, float dtSec,
     return ev;
   }
   w.core->condition = FractionToCondition(charge);
+  w.pendingDrain = ConditionToFraction(w.core->condition) - charge;
   return ev;
 }
 

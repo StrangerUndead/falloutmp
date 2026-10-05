@@ -36,6 +36,7 @@ Unit tests use fakes of both.
 | Crafting, mods, scrap | `fo4/Crafting`, `fo4/ComponentPlanner`, `fo4/OmodStatResolver` | `craftingService` |
 | Power armor | `fo4/PowerArmor` | `powerArmorService` |
 | Settlements | `fo4/Workshop` | `workshopService` |
+| Movement | `fo4/Movement` (validator, history) | `movementService` |
 | Combat | `fo4/RangedCombat`, `fo4/ActorValues` (DamageModel) | `combatService` |
 | Character | `fo4/ActorValues`, `fo4/Progression`, `fo4/Effects` | `actorValueService`, `progressionService` |
 | Economy | `fo4/Barter` | `barterService` |
@@ -62,6 +63,7 @@ Timeouts on the client are driven by its tick: 10 s, then `"Timeout"`. A disconn
 - **Items** are keyed by base id, sorted mods, condition and stolen owner. Loaded ammo is not part of identity. The client mirrors the same identity (`core/itemKeys.ts`).
 - **Power armor** pieces and the core move between the frame and the wearer only on the client's Ack, after the animation. Without an Ack within `transitionTimeoutMs`, the server rolls back.
 - **Workshops** send a chunked snapshot on build-mode entry and on join, and versioned deltas afterwards. The client discards deltas older than its snapshot.
+- **Movement** is validated before relay against a server-known speed model, per sample and over a one-second window. Out-of-model samples are dropped and scored, and a sustained violation teleports the player back. The history (about 3 s) rewinds hit targets to where they were when the shot arrived. Accepted movement also drives fusion core drain.
 - **Shots** are relayed with a server sequence number. The shooter also gets its own `clientShotId` back, so hit claims name the server shot. Hits are validated against the shot log, range, rewind window and PvP rules.
 - **Locks and terminals** are rolled on the server. The client minigame is only a presentation.
 - **Hosted NPC actor values** reported by a host can never kill (review C1).

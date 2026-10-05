@@ -102,6 +102,7 @@ The Fallout 4 layer raises `mp.onFo4...` events like SkyMP's `mp.onActivate`. As
 | `onFo4UseItem` | `actorId, baseId` | yes |
 | `onFo4FastTravel` | `actorId, markerRefId` | yes |
 | `onFo4PvpFlagChange` | `actorId, flag` | yes |
+| `onFo4MovementViolation` | `actorId, reason, score` | yes: `false` skips the correction (for gamemode-scripted launches) |
 | `onFo4WorkshopPlace` | `actorId, workshopRefId, refId, baseId` | no |
 | `onFo4Craft` | `actorId, workbenchRefId, recipeId, createdBaseId, count` | no |
 | `onFo4ModItem` | `actorId, baseId, modId, attached` | no |

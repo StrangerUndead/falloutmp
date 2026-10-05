@@ -266,6 +266,25 @@ Fo4SettingsParseResult ParseFo4Settings(const nlohmann::json& block)
     cs.Get("markStolen", s.containers.markStolen);
   });
 
+  root.Child("movement", [&](Section& mv) {
+    auto& m = s.movement;
+    mv.GetPositive("walkSpeed", m.walkSpeed);
+    mv.GetPositive("sprintSpeed", m.sprintSpeed);
+    mv.GetPositive("encumberedSpeed", m.encumberedSpeed);
+    mv.GetPositive("powerArmorSprintSpeed", m.powerArmorSprintSpeed);
+    mv.GetPositive("jumpUpSpeed", m.jumpUpSpeed);
+    mv.GetPositive("jetpackUpSpeed", m.jetpackUpSpeed);
+    mv.GetPositive("terminalFallSpeed", m.terminalFallSpeed);
+    mv.GetPositive("speedTolerance", m.speedTolerance);
+    mv.Get("distanceSlack", m.distanceSlack);
+    mv.Get("jitterMs", m.jitterMs);
+    mv.GetPositive("maxDtMs", m.maxDtMs);
+    mv.GetPositive("violationThreshold", m.violationThreshold);
+    mv.Get("scoreDecayPerSec", m.scoreDecayPerSec);
+    mv.GetPositive("teleportGraceMs", m.teleportGraceMs);
+    mv.Get("speedMultAvId", m.speedMultAvId);
+  });
+
   root.Child("map", [&](Section& ms) {
     ms.GetPositive("discoveryRadius", s.map.discoveryRadius);
     ms.GetEnum("fastTravel", s.map.fastTravel,

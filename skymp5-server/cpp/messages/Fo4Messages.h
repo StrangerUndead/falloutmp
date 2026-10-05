@@ -63,6 +63,45 @@ struct AvValue
 
 }
 
+// 65: owner transform (C->S, ~10 Hz) and relay to neighbours (S->C).
+// On relay the server rewrites ts (server ms) and healthPercentage.
+struct UpdateMovementFo4Message : public MessageBase<UpdateMovementFo4Message>
+{
+  FO4_MSG_TYPE(UpdateMovementFo4)
+  uint32_t idx = 0;
+  uint16_t seq = 0;
+  uint32_t ts = 0;
+  uint32_t worldOrCell = 0;
+  std::array<float, 3> pos = { 0, 0, 0 };
+  float yaw = 0.f; // degrees
+  float aimPitch = 0.f;
+  float aimHeading = 0.f;
+  float speed = 0.f;
+  float direction = 0.f;
+  float velZ = 0.f;
+  uint16_t flags = 0; // fo4::MoveFlag
+  uint8_t healthPercentage = 100;
+
+  template <class A>
+  void Serialize(A& a)
+  {
+    a.Serialize("t", kMsgType)
+      .Serialize("idx", idx)
+      .Serialize("seq", seq)
+      .Serialize("ts", ts)
+      .Serialize("worldOrCell", worldOrCell)
+      .Serialize("pos", pos)
+      .Serialize("yaw", yaw)
+      .Serialize("aimPitch", aimPitch)
+      .Serialize("aimHeading", aimHeading)
+      .Serialize("speed", speed)
+      .Serialize("direction", direction)
+      .Serialize("velZ", velZ)
+      .Serialize("flags", flags)
+      .Serialize("healthPercentage", healthPercentage);
+  }
+};
+
 // 68: inventory snapshot of the player (refId 0) or a container/workshop
 struct SetInventoryFo4Message : public MessageBase<SetInventoryFo4Message>
 {
@@ -916,6 +955,7 @@ struct WorldTimeWeatherMessage : public MessageBase<WorldTimeWeatherMessage>
 #undef FO4_MSG_TYPE
 
 #define REGISTER_FO4_MESSAGES                                                 \
+  REGISTER_MESSAGE(UpdateMovementFo4Message)                                  \
   REGISTER_MESSAGE(SetInventoryFo4Message)                                    \
   REGISTER_MESSAGE(PutItemFo4Message)                                         \
   REGISTER_MESSAGE(TakeItemFo4Message)                                        \

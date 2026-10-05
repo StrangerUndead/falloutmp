@@ -106,6 +106,9 @@ struct WornPowerArmor
   uint32_t nonce = 0;
   int64_t transitionStartedMs = 0;
   bool isNpc = false;
+  // Drain not yet visible in the quantized core condition (signed). The
+  // exact charge is CoreCharge() - pendingDrain. Not persisted.
+  float pendingDrain = 0.f;
 
   bool Unpowered() const;
   float CoreCharge() const; // 0..1

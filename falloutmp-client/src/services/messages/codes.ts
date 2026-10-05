@@ -285,3 +285,20 @@ export function describeError(code: string): string {
   const spaced = code.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase();
   return spaced.charAt(0).toUpperCase() + spaced.slice(1) + ".";
 }
+
+// UpdateMovementFo4.flags bit order (F01 §4.3, fo4/Movement.h MoveFlag)
+export const MoveFlag = {
+  Sneaking: 1 << 0,
+  Sprinting: 1 << 1,
+  Sighted: 1 << 2,
+  WeaponDrawn: 1 << 3,
+  InJump: 1 << 4,
+  Swimming: 1 << 5,
+  InPowerArmor: 1 << 6,
+  InFurniture: 1 << 7,
+  IsDead: 1 << 8,
+  IsBlocking: 1 << 9,
+  Encumbered: 1 << 10,
+  LightOn: 1 << 11,
+  JetpackActive: 1 << 12,
+} as const;

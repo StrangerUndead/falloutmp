@@ -181,6 +181,8 @@ test("enum mirrors match the server", () => {
   }
   const perms = parseCppEnum(workshop.slice(workshop.indexOf("namespace WorkshopPerm")), /enum : uint16_t/);
   assert.deepEqual(new Map(Object.entries(codes.WorkshopPerm)), perms, "WorkshopPerm");
+  const moveFlags = parseCppEnum(read(fo4Dir + "Movement.h").slice(read(fo4Dir + "Movement.h").indexOf("namespace MoveFlag")), /enum : uint16_t/);
+  assert.deepEqual(new Map(Object.entries(codes.MoveFlag)), moveFlags, "MoveFlag");
   const owner = parseCppEnum(workshop, /enum class Type : uint8_t/);
   assert.deepEqual([...tsEnumEntries(codes.WorkshopOwnerType)].sort(), [...owner].sort(), "WorkshopOwnerType");
 });

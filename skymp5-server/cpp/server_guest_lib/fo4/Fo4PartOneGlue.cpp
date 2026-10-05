@@ -148,6 +148,18 @@ public:
     ac->Teleport(loc);
     return true;
   }
+  void SetActorTransform(ActorId a, const std::array<float, 3>& pos,
+                         float yawDeg) override
+  {
+    if (auto ac = ActorPtr(a)) {
+      ac->SetPos({ pos[0], pos[1], pos[2] },
+                 SetPosMode::CalledByUpdateMovement);
+      auto rot = ac->GetAngle();
+      ac->SetAngle({ rot.x, rot.y, yawDeg },
+                   SetAngleMode::CalledByUpdateMovement);
+    }
+  }
+
   bool FireGamemodeEvent(const std::string& name,
                          const nlohmann::json& args) override
   {

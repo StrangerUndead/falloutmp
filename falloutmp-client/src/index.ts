@@ -18,6 +18,7 @@ export * from "./services/services/equipmentService";
 export * from "./services/services/inventoryService";
 export * from "./services/services/lockService";
 export * from "./services/services/mapService";
+export * from "./services/services/movementService";
 export * from "./services/services/partyService";
 export * from "./services/services/powerArmorService";
 export * from "./services/services/progressionService";

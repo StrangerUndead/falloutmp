@@ -77,6 +77,12 @@ public:
     return true;
   }
 
+  void SetActorTransform(ActorId a, const std::array<float, 3>& p,
+                         float) override
+  {
+    pos[a] = p;
+  }
+
   std::vector<std::pair<std::string, nlohmann::json>> events;
   std::set<std::string> blocked;
   bool FireGamemodeEvent(const std::string& name,
@@ -788,4 +794,102 @@ TEST_CASE("Fo4Server: gamemode events observe and can block actions",
   claim.workshopRefId = kShopRef;
   gm.OnMessage(kAlice, MsgType::WorkshopManage, claim);
   REQUIRE(w.host.Last(kAlice, MsgType::RequestResult)["ok"] == false);
+}
+
+TEST_CASE("Fo4Server: movement is validated, relayed and corrected",
+          "[fo4][Fo4Server][F01]")
+{
+  ServerWorld w;
+  w.server->Actor(kAlice);
+  uint16_t seq = 0;
+  auto move = [&](std::array<float, 3> p, uint16_t flags = 0) {
+    w.host.now += 100;
+    UpdateMovementFo4Message m;
+    m.seq = ++seq;
+    m.worldOrCell = 0x3c;
+    m.pos = p;
+    m.yaw = 90.f;
+    m.flags = flags;
+    m.ts = 12345; // client time, rewritten on relay
+    w.server->OnMessage(kAlice, MsgType::UpdateMovementFo4, m);
+  };
+
+  move({ 0, 0, 0 });
+  move({ 50, 0, 0 });
+  REQUIRE(w.host.pos[kAlice][0] == 50.f);
+  auto relay = w.host.LastToNeighbours(kAlice, MsgType::UpdateMovementFo4);
+  REQUIRE(relay["idx"] == kAlice);
+  REQUIRE(relay["ts"] == static_cast<uint32_t>(w.host.now));
+  REQUIRE(relay["healthPercentage"] == 100);
+
+  // A speed hack never moves the server position and ends in a teleport
+  size_t relays = 0;
+  for (auto& s : w.host.sent) {
+    relays += s.neighbours && s.type == int(MsgType::UpdateMovementFo4);
+  }
+  for (int i = 1; i <= 5; ++i) {
+    move({ 50.f + 400.f * i, 0, 0 });
+  }
+  REQUIRE(w.host.pos[kAlice][0] == 50.f);
+  REQUIRE(w.host.teleports.size() == 1);
+  REQUIRE(w.host.teleports[0].second[0] == 50.f);
+  REQUIRE(w.host.CountEvents("onFo4MovementViolation") == 1);
+  size_t relaysAfter = 0;
+  for (auto& s : w.host.sent) {
+    relaysAfter += s.neighbours && s.type == int(MsgType::UpdateMovementFo4);
+  }
+  REQUIRE(relaysAfter == relays);
+
+  // A gamemode can waive the correction (e.g. its own scripted launch)
+  w.host.blocked.insert("onFo4MovementViolation");
+  w.host.now += 3000;
+  for (int i = 1; i <= 5; ++i) {
+    move({ 50.f + 400.f * i, 0, 0 });
+  }
+  REQUIRE(w.host.teleports.size() == 1);
+  REQUIRE(w.host.pos[kAlice][0] > 50.f);
+
+  // Movement for someone else's actor is ignored
+  UpdateMovementFo4Message other;
+  other.idx = kBob;
+  other.seq = 1;
+  other.pos = { 1, 2, 3 };
+  w.server->OnMessage(kAlice, MsgType::UpdateMovementFo4, other);
+  REQUIRE(w.host.pos[kBob][0] == 500.f);
+}
+
+TEST_CASE("Fo4Server: running in power armor drains the core",
+          "[fo4][Fo4Server][F01][F17]")
+{
+  ServerWorld w;
+  PowerArmorFrame f;
+  f.refId = kFrameRef;
+  f.pos[0] = 50;
+  f.contents.AddSimple(kT45Torso, 1);
+  f.contents.AddSimple(kFusionCore, 1);
+  w.server->PowerArmor().AddFrame(f);
+  PowerArmorTransitionMessage enter;
+  enter.nonce = 1;
+  enter.frameRefId = kFrameRef;
+  w.server->OnMessage(kAlice, MsgType::PowerArmorTransition, enter);
+  enter.kind = PowerArmorTransitionMessage::kAck;
+  w.server->OnMessage(kAlice, MsgType::PowerArmorTransition, enter);
+  REQUIRE(w.server->PowerArmor().GetPhase(kAlice) == PaPhase::In);
+
+  float before = w.server->PowerArmor().Snapshot(kAlice).coreCharge;
+  uint16_t seq = 0;
+  float x = 0;
+  for (int i = 0; i < 20; ++i) {
+    w.host.now += 100;
+    x += 45.f; // 450 u/s: running
+    UpdateMovementFo4Message m;
+    m.seq = ++seq;
+    m.worldOrCell = 0x3c;
+    m.pos = { x, 0, 0 };
+    w.server->OnMessage(kAlice, MsgType::UpdateMovementFo4, m);
+  }
+  float after = w.server->PowerArmor().Snapshot(kAlice).coreCharge;
+  REQUIRE(after < before);
+  // About 2 s of running at 1/1200 per second
+  REQUIRE(before - after == Catch::Approx(2.f / 1200.f).margin(0.0005));
 }

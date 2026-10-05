@@ -120,6 +120,30 @@ export interface WorkshopNatives {
   setWorkshopRatings(workbench: FormId, ratings: WorkshopRatings): void;
 }
 
+export interface LocalMovement {
+  worldOrCell: FormId;
+  pos: Vec3;
+  yaw: number; // degrees
+  aimPitch: number;
+  aimHeading: number;
+  speed: number;
+  direction: number;
+  velZ: number;
+  flags: number; // MoveFlag bits
+}
+
+export interface MovementNatives {
+  // The player's transform and movement state this frame; undefined while
+  // a loading screen is up or the player isn't in the world.
+  getMovementFo4(): LocalMovement | undefined;
+  // Character-controller warp of a remote actor (no physics fighting).
+  setActorTransform(actor: FormId, pos: Vec3, yaw: number): void;
+  // Hard move (stream-in, cell change, large error).
+  teleportActor(actor: FormId, pos: Vec3, yaw: number, worldOrCell: FormId): void;
+  setMovementFlags(actor: FormId, flags: number): void;
+  setAimAngles(actor: FormId, pitch: number, heading: number): void;
+}
+
 export interface CombatNatives {
   // Cosmetic replay of a remote actor's shot (muzzle flash, tracer, sound).
   playRemoteShot(shooter: FormId, weaponBaseId: FormId, origin: Vec3, direction: Vec3): void;
@@ -217,6 +241,7 @@ export interface FalloutPlatform
     EquipmentNatives,
     ProgressionNatives,
     PowerArmorNatives,
+    MovementNatives,
     WorkshopNatives,
     CombatNatives,
     MinigameNatives,

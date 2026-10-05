@@ -232,6 +232,24 @@ export class FakePlatform implements FalloutPlatform {
     this.record("setWorkshopRatings", workbench, ratings);
   }
 
+  // Movement
+  movement: import("../src/platform/falloutPlatform").LocalMovement | undefined = undefined;
+  getMovementFo4() {
+    return this.movement ? { ...this.movement, pos: [...this.movement.pos] as Vec3 } : undefined;
+  }
+  setActorTransform(actor: FormId, pos: Vec3, yaw: number): void {
+    this.record("setActorTransform", actor, pos, yaw);
+  }
+  teleportActor(actor: FormId, pos: Vec3, yaw: number, worldOrCell: FormId): void {
+    this.record("teleportActor", actor, pos, yaw, worldOrCell);
+  }
+  setMovementFlags(actor: FormId, flags: number): void {
+    this.record("setMovementFlags", actor, flags);
+  }
+  setAimAngles(actor: FormId, pitch: number, heading: number): void {
+    this.record("setAimAngles", actor, pitch, heading);
+  }
+
   // Combat
   playRemoteShot(shooter: FormId, weaponBaseId: FormId, origin: Vec3, direction: Vec3): void {
     this.record("playRemoteShot", shooter, weaponBaseId, origin, direction);

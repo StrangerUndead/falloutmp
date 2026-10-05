@@ -161,6 +161,27 @@ PvP zones (`safe`, `open`, `flagged`) are added by the gamemode with `mp.fo4.add
 | `reach` | 364 | Container reach |
 | `markStolen` | true | Items taken from owned containers are marked stolen |
 
+**`movement`** (anti-cheat speed model, F01)
+
+| Key | Default | Meaning |
+|---|---|---|
+| `walkSpeed` | 200 | Walking speed |
+| `sprintSpeed` | 700 | Fastest normal movement (sprint) |
+| `encumberedSpeed` | 200 | Limit while carrying too much |
+| `powerArmorSprintSpeed` | 600 | Fastest movement in power armor |
+| `jumpUpSpeed` | 450 | Rising speed of jumps and steep climbs |
+| `jetpackUpSpeed` | 900 | Extra rising speed with a working jetpack |
+| `terminalFallSpeed` | 6000 | Fastest fall |
+| `speedTolerance` | 1.25 | Multiplier on every limit |
+| `distanceSlack` | 96 | Units allowed on top of the limit |
+| `jitterMs` | 150 | Allowance for bunched packets |
+| `violationThreshold` | 3 | Score that triggers a correction |
+| `scoreDecayPerSec` | 0.5 | How fast the score falls |
+| `teleportGraceMs` | 2000 | Old packets ignored after a teleport or door |
+| `speedMultAvId` | 0 | Actor value scaling the limits (chems, perks); 0 = off |
+
+Speeds are in game units per second and are generous upper bounds until they are measured in game. A sample outside the model is dropped and scored, and sustained speed is also checked over the last second. Once the score passes the threshold, the player is teleported back to the last accepted position. Cell changes only happen through the server (doors, fast travel, respawn), so a client-side cell change is corrected at once.
+
 **`map`**
 
 | Key | Default | Meaning |
@@ -198,6 +219,7 @@ On the first start, settlements, power armor frames, locks, terminals and map ma
 | `Unknown server setting ...` | A typo in the `fo4` block |
 | `WeaponFire rejected ...` (debug) | A client fired faster than its weapon allows, or without ammo |
 | `Equip rejected ...` (debug) | A client tried to equip something it doesn't have |
+| `Movement correction for ...` | A client moved outside the speed model and was put back |
 
 ## 6. Not yet available
 

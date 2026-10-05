@@ -12,6 +12,7 @@
 #include "Crafting.h"
 #include "Effects.h"
 #include "Locks.h"
+#include "Movement.h"
 #include "Party.h"
 #include "PowerArmor.h"
 #include "Progression.h"
@@ -61,6 +62,14 @@ public:
   }
   // Called when the server kills an actor (F12 takes it from here)
   virtual void OnActorKilled(ActorId victim, ActorId killer) = 0;
+  // Applies an accepted movement sample to the actor (position, yaw).
+  virtual void SetActorTransform(ActorId actor,
+                                 const std::array<float, 3>& pos, float yawDeg)
+  {
+    (void)actor;
+    (void)pos;
+    (void)yawDeg;
+  }
   // Gamemode event mp.<name>(...args). Returns false when a gamemode
   // handler returned false (blocks the action for blockable events).
   virtual bool FireGamemodeEvent(const std::string& name,
@@ -87,6 +96,7 @@ struct Fo4ServerSettings
   ProgressionSettings progression;
   ContainerSettings containers;
   MapSettings map;
+  MovementSettings movement;
   int64_t timeWeatherIntervalMs = 10000;
   // Objects per WorkshopObjects snapshot chunk (about 40 bytes each).
   uint32_t workshopSnapshotChunk = 200;
@@ -152,6 +162,7 @@ public:
   int64_t NowMs() { return host.NowMs(); }
   WeatherState& Weather() { return weather; }
   MapService& Map() { return map; }
+  MovementValidator& Movement() { return movement; }
   void BroadcastTimeWeather();
   void SendMapMarkers(ActorId actor, bool full);
   // Equip/unequip validation and broadcast (F05)
@@ -178,6 +189,7 @@ public:
 
 private:
   void SendContainer(ActorId to, FormId refId, bool alsoNeighbours);
+  void SendPowerArmorStateOf(ActorId actor);
   struct Impl;
   std::unique_ptr<Impl> pImpl;
 
@@ -196,6 +208,7 @@ private:
   WorldClock clock;
   WeatherState weather;
   MapService map;
+  MovementValidator movement;
   DamageModel damageModel;
   std::map<std::string, PerkChartEntry> perkChart;
   std::vector<EffectDefinition> effectDefs;

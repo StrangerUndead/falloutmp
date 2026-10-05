@@ -27,6 +27,7 @@ The package is engine-free. Every game call goes through the `FalloutPlatform` i
 | `PowerArmorService` | Entering and exiting power armor, pieces, fusion cores, jetpack | Request, animation, then Ack; the server rolls back on timeout |
 | `WorkshopService` | Build mode, placing, moving, scrapping, storing, wiring, claims, permissions, ratings | Chunked snapshots and versioned deltas mirrored to spawned refs |
 | `CraftingService` | Crafting, weapon and armor mods, scrapping | Server checks the bench, perks and components |
+| `MovementService` | Player transform capture, remote replay | 10 Hz unreliable; validated by the server before relay; 120 ms interpolation buffer |
 | `CombatService` | Shots, hit claims, reloads, damage, kills | Shots carry `clientShotId` so hits name the server sequence |
 | `BarterService` | Vendor quotes and trades | A trade must match the quoted caps delta |
 | `LockService` | Lockpicking and terminal hacking | The server rolls every attempt (review finding C3) |

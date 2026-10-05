@@ -20,19 +20,19 @@
 | `falloutmp-client` services, `falloutPlatform` contract, skymp bridge | Done, against a fake platform | `npm test` (47 tests, including the C++/TS protocol parity test) |
 | fallout4-platform F4SE plugin | Not started (needs Windows) | — |
 | PEX FO4 reader (M2 PVM-001…006) | Not started | — |
-| Movement validation for PA and jetpack (F01), NPC hosting (F13), T2 systems (companions, VATS, stealth, quests, survival) | Not started | — |
+| Movement (F01): `UpdateMovementFo4` (65), server speed model (walk/sprint/encumbered/PA/jetpack/vertical), per-sample and windowed checks, scored corrections, cell-change rule, history for hit rewind, PA core drain from movement; client capture and interpolated replay | Done | `Fo4MovementTest`, `Fo4ServerTest` [F01], client `movement.test.ts` |
+| NPC hosting (F13), T2 systems (companions, VATS, stealth, quests, survival) | Not started | — |
 
-Test totals at the last commit: C++ 230 test cases and 1879 assertions (`./unit/unit "~[espm]"`); client 47 tests.
+Test totals at the last commit: C++ 241 test cases and 2003 assertions (`./unit/unit "~[espm]"`); client 54 tests.
 
 Guides: [guides/server-admin.md](guides/server-admin.md), [guides/gamemode-api.md](guides/gamemode-api.md), [guides/implementation.md](guides/implementation.md).
 
 ## Next actions (for the next session)
-1. F01: server movement validation with the power armor and jetpack speed model (`UpdateMovementFo4` 65).
-2. M2: PEX FO4 reader (PVM-001…006), so server Papyrus can run Fallout 4 scripts.
-3. F13: NPC hosting on Fallout 4 data, hosted-NPC actor values within the C1 bounds.
-4. `EffectsUpdate` (92) for owner and neighbour effect lists (F20-T03).
-5. Windows work for the user or CI: PLAT-001+ (the F4SE plugin implementing `falloutPlatform.ts`), then the G-self checks in the verification table below.
-6. Still open from planning: user answers to Q-01…Q-19 (05-risks-open-questions.md §2).
+1. M2: PEX FO4 reader (PVM-001…006), so server Papyrus can run Fallout 4 scripts.
+2. F13: NPC hosting on Fallout 4 data, hosted-NPC actor values within the C1 bounds.
+3. `EffectsUpdate` (92) for owner and neighbour effect lists (F20-T03).
+4. Windows work for the user or CI: PLAT-001+ (the F4SE plugin implementing `falloutPlatform.ts`), then the G-self checks in the verification table below.
+5. Still open from planning: user answers to Q-01…Q-19 (05-risks-open-questions.md §2).
 
 ## Milestones
 | Milestone | State | Evidence |
@@ -100,6 +100,8 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 | Power armor blocked biped slots `0x3E00` | F17 (`Fo4ServerSettings`) | G-self |
 | Fusion core drain rates per movement state | F17 (`PowerArmorSettings`) | G-manual |
 | Default weather ids used in guide examples | guides/gamemode-api.md | D-real |
+| Player walk/run/sprint/PA/jetpack speeds in units per second | F01 (`MovementSettings`) | G-manual |
+| AVIF form id of SpeedMult | F01 (`movement.speedMultAvId`) | D-real |
 
 ## Deliberate deviations recorded during planning
 - F22 coalesces workshop saves to ≤ 1/s per workshop (vs 01-sync-standard §8 rule 4 "next tick").
@@ -117,12 +119,15 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 - F09: `WeaponFire` gained `clientShotId`, echoed to the shooter only, so hit claims can name the server sequence. This is not in the 01-sync-standard registry text yet.
 - F32: party pushes reuse `PartyAction` (op `State` with nonce 0, op `Invite` to the invitee). There is no separate message.
 - F22: `WorkshopObjects` snapshots are chunked at `fo4.workshopSnapshotChunk` (200) objects. Wires and scrapped pre-placed refs ride in chunk 0.
+- F17: fusion core drain carries a signed sub-step remainder (`pendingDrain`) because 10 Hz movement drains less than one condition step per sample. The remainder isn't persisted (at most 0.1% of a core lost on restart).
+- F01: movement speeds are generous defaults (`fo4.movement.*`) until measured in game; `CreateActorFo4` doesn't carry the last flags yet.
 - Gamemode events are named `onFo4...` (for example `onFo4PvpFlagChange`) rather than the unprefixed names in some specs.
 - `claimRule: "gamemode"` blocks every player claim; owners are set only with `mp.fo4.setWorkshopOwner`.
 
 ## Evidence log
 | Date | Task | Evidence |
 |---|---|---|
+| 2026-10-05 | F01 movement | `Fo4MovementTest` (9 cases), `Fo4ServerTest` movement and PA drain cases, client `movement.test.ts` (7 tests); suite 241/2003 |
 | 2026-10-05 | Settings, gamemode events, guides | `Fo4SettingsTest` (3 cases), `Fo4ServerTest` "gamemode events observe and can block actions"; full suite 230/1879 |
 | 2026-10-05 | Client services + parity | `b67cecf`: 47 node tests; parity test parses Fo4Messages.h, MsgType.h and the fo4 enums |
 | 2026-10-05 | Equipment, clock, weather, map, fast travel | `77b355a`, 224/1799 |
