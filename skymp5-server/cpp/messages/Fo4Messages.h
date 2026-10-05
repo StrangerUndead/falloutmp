@@ -81,6 +81,42 @@ struct SetInventoryFo4Message : public MessageBase<SetInventoryFo4Message>
   }
 };
 
+// 69/70: put into / take from a container (refId); 71: drop to ground
+template <class Self, MsgType T>
+struct ContainerOpFo4 : public MessageBase<Self>
+{
+  static constexpr auto kMsgType =
+    std::integral_constant<char, static_cast<char>(T)>{};
+  uint32_t nonce = 0;
+  uint32_t refId = 0;
+  fo4msg::ItemKey item;
+  uint32_t count = 1;
+  std::array<float, 3> pos = { 0, 0, 0 }; // drop position
+
+  template <class A>
+  void Serialize(A& a)
+  {
+    a.Serialize("t", kMsgType)
+      .Serialize("nonce", nonce)
+      .Serialize("refId", refId)
+      .Serialize("item", item)
+      .Serialize("count", count)
+      .Serialize("pos", pos);
+  }
+};
+struct PutItemFo4Message
+  : public ContainerOpFo4<PutItemFo4Message, MsgType::PutItemFo4>
+{
+};
+struct TakeItemFo4Message
+  : public ContainerOpFo4<TakeItemFo4Message, MsgType::TakeItemFo4>
+{
+};
+struct DropItemFo4Message
+  : public ContainerOpFo4<DropItemFo4Message, MsgType::DropItemFo4>
+{
+};
+
 // 72: actor values (owner: full set; neighbours: public subset)
 struct ChangeValuesAvMessage : public MessageBase<ChangeValuesAvMessage>
 {
@@ -771,6 +807,9 @@ struct PartyActionMessage : public MessageBase<PartyActionMessage>
 
 #define REGISTER_FO4_MESSAGES                                                 \
   REGISTER_MESSAGE(SetInventoryFo4Message)                                    \
+  REGISTER_MESSAGE(PutItemFo4Message)                                         \
+  REGISTER_MESSAGE(TakeItemFo4Message)                                        \
+  REGISTER_MESSAGE(DropItemFo4Message)                                        \
   REGISTER_MESSAGE(ChangeValuesAvMessage)                                     \
   REGISTER_MESSAGE(CraftItemFo4Message)                                       \
   REGISTER_MESSAGE(WeaponFireMessage)                                         \

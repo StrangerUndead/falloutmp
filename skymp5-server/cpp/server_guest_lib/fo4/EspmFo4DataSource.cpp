@@ -6,6 +6,7 @@
 #include "libespm/RecordHeader.h"
 #include "libespm/fo4/Fo4Records.h"
 #include <cstring>
+#include <optional>
 
 namespace fo4 {
 
@@ -22,6 +23,8 @@ struct EspmFo4DataSource::Impl
   std::unordered_map<FormId, std::unique_ptr<ObjectModData>> mods;
   std::unordered_map<FormId, std::unique_ptr<FurnitureData>> furniture;
   std::unordered_map<FormId, std::unique_ptr<WorkshopObjectData>> workshop;
+  std::unordered_map<FormId, std::unique_ptr<LeveledListData>> leveled;
+  std::unordered_map<FormId, std::unique_ptr<ContainerData>> containers;
 
   bool recipesBuilt = false;
   std::map<FormId, RecipeData> recipes;
@@ -526,6 +529,77 @@ FormId EspmFo4DataSource::FindActorValueByEditorId(const std::string& e) const
   pImpl->BuildIndex();
   auto it = pImpl->avByEdid.find(e);
   return it == pImpl->avByEdid.end() ? 0 : it->second;
+}
+
+}
+
+namespace fo4 {
+
+const LeveledListData* EspmFo4DataSource::FindLeveledList(FormId id) const
+{
+  std::lock_guard l(pImpl->m);
+  auto& cache = pImpl->leveled;
+  if (auto it = cache.find(id); it != cache.end()) {
+    return it->second.get();
+  }
+  auto lr = pImpl->br.LookupById(id);
+  std::optional<espm::fo4::LeveledListData> d;
+  if (lr.rec) {
+    if (auto li = espm::Convert<espm::fo4::LVLI>(lr.rec)) {
+      d = li->GetData(pImpl->cache);
+    } else if (auto ln = espm::Convert<espm::fo4::LVLN>(lr.rec)) {
+      d = ln->GetData(pImpl->cache);
+    }
+  }
+  if (!d) {
+    cache[id] = nullptr;
+    return nullptr;
+  }
+  auto r = std::make_unique<LeveledListData>();
+  r->id = id;
+  r->chanceNone = d->chanceNone;
+  if (d->chanceNoneGlobalId) {
+    auto g = pImpl->br.LookupById(pImpl->Map(lr, d->chanceNoneGlobalId));
+    if (auto glob = g.rec ? espm::Convert<espm::fo4::GLOB>(g.rec) : nullptr) {
+      r->chanceNone = glob->GetData(pImpl->cache).value;
+    }
+  }
+  using L = espm::fo4::LeveledListData;
+  r->calcFromAllLevels = (d->flags & L::kCalcFromAllLevels) != 0;
+  r->calcForEachItem = (d->flags & L::kCalcForEachItem) != 0;
+  r->useAll = (d->flags & L::kUseAll) != 0;
+  for (auto& e : d->entries) {
+    r->entries.push_back(
+      { e.level, pImpl->Map(lr, e.refId), e.count, e.chanceNone });
+  }
+  auto* raw = r.get();
+  cache[id] = std::move(r);
+  return raw;
+}
+
+const ContainerData* EspmFo4DataSource::FindContainer(FormId id) const
+{
+  std::lock_guard l(pImpl->m);
+  auto& cache = pImpl->containers;
+  if (auto it = cache.find(id); it != cache.end()) {
+    return it->second.get();
+  }
+  auto lr = pImpl->br.LookupById(id);
+  auto c = lr.rec ? espm::Convert<espm::fo4::CONT>(lr.rec) : nullptr;
+  if (!c) {
+    cache[id] = nullptr;
+    return nullptr;
+  }
+  auto d = c->GetData(pImpl->cache);
+  auto r = std::make_unique<ContainerData>();
+  r->id = id;
+  r->respawns = d.respawns;
+  for (auto& i : d.items) {
+    r->items.push_back({ pImpl->Map(lr, i.formId), i.count });
+  }
+  auto* raw = r.get();
+  cache[id] = std::move(r);
+  return raw;
 }
 
 }

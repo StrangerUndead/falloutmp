@@ -8,6 +8,7 @@
 // the game or the network.
 #include "ActorValues.h"
 #include "Barter.h"
+#include "Containers.h"
 #include "Crafting.h"
 #include "Effects.h"
 #include "Locks.h"
@@ -64,6 +65,7 @@ struct Fo4ServerSettings
   FireSettings fire;
   PartySettings party;
   ProgressionSettings progression;
+  ContainerSettings containers;
 };
 
 struct Fo4ActorState
@@ -115,6 +117,7 @@ public:
   LockService& Locks() { return locks; }
   RangedCombat& Combat() { return combat; }
   PartyService& Parties() { return parties; }
+  ContainerService& Containers() { return containers; }
   DamageModel& Damage() { return damageModel; }
   std::map<std::string, PerkChartEntry>& PerkChart() { return perkChart; }
   // Effect definitions applied to every actor's effect system
@@ -128,6 +131,7 @@ public:
   Fo4ServerSettings settings;
 
 private:
+  void SendContainer(ActorId to, FormId refId, bool alsoNeighbours);
   struct Impl;
   std::unique_ptr<Impl> pImpl;
 
@@ -142,6 +146,7 @@ private:
   LockService locks;
   RangedCombat combat;
   PartyService parties;
+  ContainerService containers;
   DamageModel damageModel;
   std::map<std::string, PerkChartEntry> perkChart;
   std::vector<EffectDefinition> effectDefs;

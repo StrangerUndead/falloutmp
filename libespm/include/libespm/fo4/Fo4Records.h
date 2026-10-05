@@ -409,6 +409,56 @@ public:
   Data GetData(CompressedFieldsCache& cache) const noexcept;
 };
 
+// Leveled lists (LVLI items, LVLN actors) with Fallout 4's per-entry
+// chance-none byte inside LVLO.
+struct LeveledEntry
+{
+  uint16_t level = 1;
+  uint32_t refId = 0;
+  uint16_t count = 1;
+  uint8_t chanceNone = 0;
+};
+
+struct LeveledListData
+{
+  std::string editorId;
+  uint8_t chanceNone = 0;       // LVLD
+  uint8_t flags = 0;            // LVLF
+  uint32_t chanceNoneGlobalId = 0; // LVLG
+  std::vector<LeveledEntry> entries;
+
+  static constexpr uint8_t kCalcFromAllLevels = 0x1;
+  static constexpr uint8_t kCalcForEachItem = 0x2;
+  static constexpr uint8_t kUseAll = 0x4;
+};
+
+class LVLI final : public RecordHeader
+{
+public:
+  static constexpr auto kType = "LVLI";
+  LeveledListData GetData(CompressedFieldsCache& cache) const noexcept;
+};
+
+class LVLN final : public RecordHeader
+{
+public:
+  static constexpr auto kType = "LVLN";
+  LeveledListData GetData(CompressedFieldsCache& cache) const noexcept;
+};
+
+class CONT final : public RecordHeader
+{
+public:
+  static constexpr auto kType = "CONT";
+  struct Data
+  {
+    std::string editorId;
+    std::vector<ComponentCount> items; // CNTO (item or leveled list, count)
+    bool respawns = false;             // DATA flag 0x2
+  };
+  Data GetData(CompressedFieldsCache& cache) const noexcept;
+};
+
 // Placed reference (REFR/ACHR) fields used by the server world bootstrap.
 class REFR final : public RecordHeader
 {

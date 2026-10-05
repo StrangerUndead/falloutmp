@@ -264,6 +264,31 @@ struct WorkshopObjectData
   bool isGenerator() const { return powerGenerated > 0.f; }
 };
 
+struct LeveledEntryData
+{
+  int32_t level = 1;
+  FormId refId = 0; // item, or a nested leveled list
+  uint32_t count = 1;
+  uint8_t chanceNone = 0; // percent, per entry
+};
+
+struct LeveledListData
+{
+  FormId id = 0;
+  float chanceNone = 0.f; // percent (LVLD, or the LVLG global's value)
+  bool calcFromAllLevels = false;
+  bool calcForEachItem = false;
+  bool useAll = false;
+  std::vector<LeveledEntryData> entries;
+};
+
+struct ContainerData
+{
+  FormId id = 0;
+  std::vector<ComponentCount> items; // item or leveled list ids
+  bool respawns = false;
+};
+
 class IFo4DataSource
 {
 public:
@@ -290,6 +315,13 @@ public:
     FormId createdObjectId) const = 0;
   // Component -> scrap MISC lookup, and the reverse.
   virtual FormId GetComponentByScrapItem(FormId miscId) const = 0;
+
+  // Leveled item lists and container bases (F14, F06)
+  virtual const LeveledListData* FindLeveledList(FormId) const
+  {
+    return nullptr;
+  }
+  virtual const ContainerData* FindContainer(FormId) const { return nullptr; }
 };
 
 // Simple map-backed data source for tests and gamemode-defined content.
@@ -306,6 +338,10 @@ public:
   RecipeData& AddRecipe(RecipeData d);
   FurnitureData& AddFurniture(FurnitureData d);
   WorkshopObjectData& AddWorkshopObject(WorkshopObjectData d);
+  LeveledListData& AddLeveledList(LeveledListData d);
+  ContainerData& AddContainer(ContainerData d);
+  const LeveledListData* FindLeveledList(FormId id) const override;
+  const ContainerData* FindContainer(FormId id) const override;
 
   const ItemData* FindItem(FormId id) const override;
   const WeaponData* FindWeapon(FormId id) const override;
@@ -335,6 +371,8 @@ private:
   std::map<FormId, RecipeData> recipes;
   std::map<FormId, FurnitureData> furniture;
   std::map<FormId, WorkshopObjectData> workshopObjects;
+  std::map<FormId, LeveledListData> leveledLists;
+  std::map<FormId, ContainerData> containers;
 };
 
 }

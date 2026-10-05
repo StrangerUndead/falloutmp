@@ -154,4 +154,22 @@ FormId InMemoryFo4DataSource::GetComponentByScrapItem(FormId miscId) const
   return 0;
 }
 
+
+LeveledListData& InMemoryFo4DataSource::AddLeveledList(LeveledListData d)
+{
+  return leveledLists[d.id] = std::move(d);
+}
+ContainerData& InMemoryFo4DataSource::AddContainer(ContainerData d)
+{
+  return containers[d.id] = std::move(d);
+}
+const LeveledListData* InMemoryFo4DataSource::FindLeveledList(FormId id) const
+{
+  return FindIn(leveledLists, id);
+}
+const ContainerData* InMemoryFo4DataSource::FindContainer(FormId id) const
+{
+  return FindIn(containers, id);
+}
+
 }

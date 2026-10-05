@@ -548,6 +548,70 @@ FURN::Data FURN::GetData(CompressedFieldsCache& cache) const noexcept
   return d;
 }
 
+namespace {
+LeveledListData ReadLeveled(const RecordHeader* rec,
+                            CompressedFieldsCache& cache) noexcept
+{
+  LeveledListData d;
+  RecordHeaderAccess::IterateFields(
+    rec,
+    [&](const char* type, uint32_t size, const char* data) {
+      if (Is(type, "EDID")) {
+        d.editorId = ReadZString(data, size);
+      } else if (Is(type, "LVLD") && size >= 1) {
+        d.chanceNone = static_cast<uint8_t>(data[0]);
+      } else if (Is(type, "LVLF") && size >= 1) {
+        d.flags = static_cast<uint8_t>(data[0]);
+      } else if (Is(type, "LVLG")) {
+        d.chanceNoneGlobalId = ReadU32(data, size);
+      } else if (Is(type, "LVLO") && size >= 12) {
+        // u16 level; u8[2]; formid; u16 count; u8 chanceNone; u8
+        LeveledEntry e;
+        std::memcpy(&e.level, data, 2);
+        std::memcpy(&e.refId, data + 4, 4);
+        std::memcpy(&e.count, data + 8, 2);
+        e.chanceNone = static_cast<uint8_t>(data[10]);
+        d.entries.push_back(e);
+      }
+    },
+    cache);
+  return d;
+}
+}
+
+LeveledListData LVLI::GetData(CompressedFieldsCache& cache) const noexcept
+{
+  return ReadLeveled(this, cache);
+}
+
+LeveledListData LVLN::GetData(CompressedFieldsCache& cache) const noexcept
+{
+  return ReadLeveled(this, cache);
+}
+
+CONT::Data CONT::GetData(CompressedFieldsCache& cache) const noexcept
+{
+  Data d;
+  RecordHeaderAccess::IterateFields(
+    this,
+    [&](const char* type, uint32_t size, const char* data) {
+      if (Is(type, "EDID")) {
+        d.editorId = ReadZString(data, size);
+      } else if (Is(type, "CNTO") && size >= 8) {
+        ComponentCount c;
+        std::memcpy(&c.formId, data, 4);
+        int32_t count = 0;
+        std::memcpy(&count, data + 4, 4);
+        c.count = count > 0 ? static_cast<uint32_t>(count) : 0;
+        d.items.push_back(c);
+      } else if (Is(type, "DATA") && size >= 1) {
+        d.respawns = (static_cast<uint8_t>(data[0]) & 0x2) != 0;
+      }
+    },
+    cache);
+  return d;
+}
+
 REFR::Data REFR::GetData(CompressedFieldsCache& cache) const noexcept
 {
   Data d;

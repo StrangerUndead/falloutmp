@@ -75,6 +75,7 @@ Fo4Server::Fo4Server(std::shared_ptr<IFo4DataSource> data_, Fo4Host& host_,
   , locks(s.locks)
   , combat(*data, s.fire)
   , parties(s.party)
+  , containers(*data, s.containers)
   , damageModel(s.damage)
   , rng(std::random_device{}())
 {
@@ -301,6 +302,99 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
       Result(host, sender, m.nonce, type, r.Ok(), CraftErrorToString(r.error),
              0, ToMsg(r.produced));
       SendInventory(sender);
+      return;
+    }
+    case MsgType::TakeItemFo4:
+    case MsgType::PutItemFo4: {
+      bool take = type == MsgType::TakeItemFo4;
+      struct
+      {
+        uint32_t nonce, refId;
+        fo4msg::ItemKey item;
+        uint32_t count;
+      } m;
+      if (take) {
+        auto& t = As<TakeItemFo4Message>(msg);
+        m = { t.nonce, t.refId, t.item, t.count };
+      } else {
+        auto& p = As<PutItemFo4Message>(msg);
+        m = { p.nonce, p.refId, p.item, p.count };
+      }
+      auto actorPos = host.GetActorPos(sender);
+      // Corpse looting: the container is a dead actor's inventory
+      if (auto corpse = FindActor(m.refId);
+          corpse && m.refId != sender && !host.IsActorAlive(m.refId)) {
+        auto cpos = host.GetActorPos(m.refId);
+        if (Dist(cpos, actorPos) > containers.settings.reach) {
+          return Result(host, sender, m.nonce, type, false, "OutOfReach");
+        }
+        auto& from = take ? Actor(m.refId).inventory : st.inventory;
+        auto& to = take ? st.inventory : Actor(m.refId).inventory;
+        auto item = FromMsg(m.item);
+        auto e = from.Find(item);
+        if (m.count > 0 && (!e || e->count < m.count)) {
+          return Result(host, sender, m.nonce, type, false, "ItemNotFound");
+        }
+        if (m.count > 0) {
+          ItemKey key = e->key;
+          from.Remove(key, m.count);
+          to.Add(key, m.count);
+          SendInventory(sender);
+        }
+        SetInventoryFo4Message inv;
+        inv.refId = m.refId;
+        inv.entries = ToMsg(Actor(m.refId).inventory.Entries());
+        host.SendTo(sender, inv, true);
+        return Result(host, sender, m.nonce, type, true, "");
+      }
+      if (!containers.Find(m.refId)) {
+        auto base = host.GetRefBaseId(m.refId);
+        auto pos = host.GetRefPos(m.refId);
+        if (!pos || !data->FindContainer(base)) {
+          return Result(host, sender, m.nonce, type, false,
+                        "NoSuchContainer");
+        }
+        containers.Register(m.refId, base, *pos);
+      }
+      int32_t level = st.progression.level;
+      containers.Open(m.refId, level, rng);
+      bool locked = locks.GetLock(m.refId) && locks.GetLock(m.refId)->locked;
+      ContainerError e = ContainerError::None;
+      if (m.count > 0) {
+        e = take ? containers.Take(m.refId, FromMsg(m.item), m.count,
+                                   actorPos, st.inventory, false, locked)
+                 : containers.Put(m.refId, FromMsg(m.item), m.count,
+                                  actorPos, st.inventory, locked);
+      } else if (locked) {
+        e = ContainerError::Locked; // peek needs the lock open too
+      }
+      Result(host, sender, m.nonce, type, e == ContainerError::None,
+             ContainerErrorToString(e));
+      if (e == ContainerError::None) {
+        if (m.count > 0) {
+          SendInventory(sender);
+        }
+        auto c = containers.Find(m.refId);
+        SendContainer(sender, m.refId, c && c->isGroundStack);
+      }
+      return;
+    }
+    case MsgType::DropItemFo4: {
+      auto& m = As<DropItemFo4Message>(msg);
+      FormId newRef = host.AllocateFormId();
+      FormId out = 0;
+      auto e = containers.Drop(newRef, FromMsg(m.item), m.count,
+                               host.GetActorPos(sender), st.inventory, &out);
+      if (e == ContainerError::None && st.equippedWeapon &&
+          !st.inventory.Find(*st.equippedWeapon)) {
+        st.equippedWeapon.reset(); // dropped the weapon in hand
+      }
+      Result(host, sender, m.nonce, type, e == ContainerError::None,
+             ContainerErrorToString(e), out);
+      if (e == ContainerError::None) {
+        SendInventory(sender);
+        SendContainer(sender, out, true);
+      }
       return;
     }
     case MsgType::UseItem: {
@@ -802,6 +896,22 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
   }
 }
 
+void Fo4Server::SendContainer(ActorId to, FormId refId, bool alsoNeighbours)
+{
+  auto c = containers.Find(refId);
+  if (!c) {
+    return;
+  }
+  SetInventoryFo4Message m;
+  m.refId = refId;
+  m.version = c->version;
+  m.entries = ToMsg(c->inventory.Entries());
+  host.SendTo(to, m, true);
+  if (alsoNeighbours) {
+    host.SendToNeighbours(to, m, true);
+  }
+}
+
 void Fo4Server::AwardKillXp(ActorId killer, ActorId victim)
 {
   if (host.IsNpc(killer)) {
@@ -950,6 +1060,7 @@ nlohmann::json Fo4Server::WorldToJson() const
            { "workshops", ws },
            { "powerArmorFrames", frames },
            { "locks", locks.ToJson() },
+           { "containers", containers.ToJson() },
            { "parties", parties.ToJson() } };
 }
 
@@ -977,6 +1088,9 @@ void Fo4Server::LoadWorld(const nlohmann::json& j)
   }
   if (j.contains("parties")) {
     parties.LoadJson(j["parties"]);
+  }
+  if (j.contains("containers")) {
+    containers.LoadJson(j["containers"]);
   }
 }
 

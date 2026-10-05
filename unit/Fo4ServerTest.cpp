@@ -372,3 +372,63 @@ TEST_CASE("Fo4Server: progression, consumables, locks and persistence",
   third.LoadActor(kAlice, j);
   REQUIRE(third.Actor(kAlice).progression.created);
 }
+
+TEST_CASE("Fo4Server: container and corpse looting over messages",
+          "[fo4][Fo4Server]")
+{
+  ServerWorld w;
+  constexpr FormId kChestRef = 0xFF00C111, kChestBase = 0xC0;
+  w.data->AddContainer({ kChestBase, { { kStimpak, 3 } }, false });
+  w.host.refPos[kChestRef] = { 50, 0, 0 };
+  w.host.refBase[kChestRef] = kChestBase;
+
+  TakeItemFo4Message peek;
+  peek.nonce = 1;
+  peek.refId = kChestRef;
+  peek.count = 0;
+  w.server->OnMessage(kAlice, MsgType::TakeItemFo4, peek);
+  auto contents = w.host.Last(kAlice, MsgType::SetInventoryFo4);
+  REQUIRE(contents["refId"] == kChestRef);
+  REQUIRE(contents["entries"][0]["count"] == 3);
+
+  TakeItemFo4Message take = peek;
+  take.nonce = 2;
+  take.item.baseId = kStimpak;
+  take.count = 2;
+  w.server->OnMessage(kAlice, MsgType::TakeItemFo4, take);
+  REQUIRE(w.host.Last(kAlice, MsgType::RequestResult)["ok"] == true);
+  REQUIRE(w.server->Actor(kAlice).inventory.CountBase(kStimpak) == 2);
+
+  // A locked chest refuses
+  w.server->Locks().SetLock(kChestRef, { 50, 0, true, 0 });
+  take.nonce = 3;
+  take.count = 1;
+  w.server->OnMessage(kAlice, MsgType::TakeItemFo4, take);
+  REQUIRE(w.host.Last(kAlice, MsgType::RequestResult)["error"] == "Locked");
+
+  // Corpse looting: a dead raider's inventory
+  constexpr ActorId kRaider = 0xFF0000BB;
+  w.server->Actor(kRaider).inventory.AddSimple(kAmmo10mm, 20);
+  w.host.pos[kRaider] = { 100, 0, 0 };
+  w.host.dead[kRaider] = true;
+  TakeItemFo4Message loot;
+  loot.nonce = 4;
+  loot.refId = kRaider;
+  loot.item.baseId = kAmmo10mm;
+  loot.count = 20;
+  w.server->OnMessage(kAlice, MsgType::TakeItemFo4, loot);
+  REQUIRE(w.host.Last(kAlice, MsgType::RequestResult)["ok"] == true);
+  REQUIRE(w.server->Actor(kAlice).inventory.CountBase(kAmmo10mm) == 20);
+  REQUIRE(w.server->Actor(kRaider).inventory.IsEmpty());
+
+  // Drop: ground stack shown to neighbours
+  DropItemFo4Message drop;
+  drop.nonce = 5;
+  drop.item.baseId = kStimpak;
+  drop.count = 1;
+  w.server->OnMessage(kAlice, MsgType::DropItemFo4, drop);
+  auto r = w.host.Last(kAlice, MsgType::RequestResult);
+  REQUIRE(r["ok"] == true);
+  REQUIRE(w.host.SentToNeighbours(kAlice, MsgType::SetInventoryFo4));
+  REQUIRE(w.server->Containers().Find(r["refId"])->isGroundStack);
+}
