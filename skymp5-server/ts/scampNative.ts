@@ -49,6 +49,9 @@ export interface ScampServer {
   clear(): void;
   writeLogs(logLevel: string, message: string): void;
   getPrometheusMetrics(): string;
+
+  // Fallout 4 game layer: JSON command bridge (see ts/fo4.ts)
+  fo4Call(command: string, argsJson: string): string;
 }
 
 export const createScampServer = (serverSettings: Record<string, unknown>) => {

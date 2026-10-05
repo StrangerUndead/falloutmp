@@ -31,6 +31,7 @@ import * as os from "os";
 
 import * as manifestGen from "./manifestGen";
 import { createScampServer } from "./scampNative";
+import { createFo4Api } from "./fo4";
 import { MetricsSystem, tickDurationHistogram, tickDurationSummary } from "./systems/metricsSystem";
 
 const gamemodeCache = new Map<string, string>();
@@ -208,6 +209,10 @@ const main = async () => {
 
   try {
     server = createScampServer(settingsObject.allSettings);
+    // Fallout 4 gamemode API: mp.fo4.* (throws on non-Fallout 4 servers
+    // only when called)
+    // @ts-ignore
+    server.fo4 = createFo4Api(server);
     ui.setServer(server);
   } catch (e) {
     console.error(e);

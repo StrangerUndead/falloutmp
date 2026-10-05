@@ -54,6 +54,7 @@ public:
 
   Napi::Value GetLocalizedString(const Napi::CallbackInfo& info);
   Napi::Value GetServerSettings(const Napi::CallbackInfo& info);
+  Napi::Value Fo4Call(const Napi::CallbackInfo& info);
   Napi::Value Clear(const Napi::CallbackInfo& info);
   Napi::Value MakeProperty(const Napi::CallbackInfo& info);
   Napi::Value MakeEventSource(const Napi::CallbackInfo& info);

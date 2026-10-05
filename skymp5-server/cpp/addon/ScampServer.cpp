@@ -11,6 +11,7 @@
 #include "PacketHistoryWrapper.h"
 #include "PapyrusUtils.h"
 #include "ScampServerListener.h"
+#include "fo4/Fo4GamemodeApi.h"
 #include "fo4/Fo4PartOneGlue.h"
 #include "condition_functions/ConditionFunctionFactory.h"
 #include "formulas/DamageMultConditionalFormula.h"
@@ -106,6 +107,7 @@ Napi::Object ScampServer::Init(Napi::Env env, Napi::Object exports)
 
       InstanceMethod("getLocalizedString", &ScampServer::GetLocalizedString),
       InstanceMethod("getServerSettings", &ScampServer::GetServerSettings),
+      InstanceMethod("fo4Call", &ScampServer::Fo4Call),
       InstanceMethod("clear", &ScampServer::Clear),
       InstanceMethod("makeProperty", &ScampServer::MakeProperty),
       InstanceMethod("makeEventSource", &ScampServer::MakeEventSource),
@@ -620,6 +622,30 @@ Napi::Value ScampServer::GetActorName(const Napi::CallbackInfo& info)
     throw Napi::Error::New(info.Env(), (std::string)e.what());
   }
   return info.Env().Undefined();
+}
+
+Napi::Value ScampServer::Fo4Call(const Napi::CallbackInfo& info)
+{
+  // fo4Call(command: string, argsJson: string): string
+  try {
+    auto command = info[0].As<Napi::String>().Utf8Value();
+    auto argsJson = info.Length() > 1 && info[1].IsString()
+      ? info[1].As<Napi::String>().Utf8Value()
+      : std::string("{}");
+    auto fo4 = partOne->GetFo4();
+    nlohmann::json res;
+    if (!fo4) {
+      res = { { "ok", false },
+              { "error", "Not a Fallout 4 server (set \"game\": "
+                         "\"fallout4\")" } };
+    } else {
+      res = fo4::Fo4Call(fo4->Server(), command,
+                         nlohmann::json::parse(argsJson));
+    }
+    return Napi::String::New(info.Env(), res.dump());
+  } catch (std::exception& e) {
+    throw Napi::Error::New(info.Env(), (std::string)e.what());
+  }
 }
 
 Napi::Value ScampServer::GetActorPos(const Napi::CallbackInfo& info)
