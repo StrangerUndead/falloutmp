@@ -11,6 +11,7 @@
 #include "PacketHistoryWrapper.h"
 #include "PapyrusUtils.h"
 #include "ScampServerListener.h"
+#include "fo4/Fo4PartOneGlue.h"
 #include "condition_functions/ConditionFunctionFactory.h"
 #include "formulas/DamageMultConditionalFormula.h"
 #include "formulas/DamageMultFormula.h"
@@ -409,6 +410,18 @@ ScampServer::ScampServer(const Napi::CallbackInfo& info)
       ScriptStorageFactory::Create(serverSettings));
 
     partOne->AttachEspm(espm);
+
+    if (partOne->worldState.GetGameProfile().GetGameId() == GameId::Fallout4) {
+      std::string worldPath = "world/fo4-world.json";
+      if (serverSettings.contains("fo4") &&
+          serverSettings["fo4"].contains("worldStatePath")) {
+        worldPath = serverSettings["fo4"]["worldStatePath"].get<std::string>();
+      }
+      auto fo4 = partOne->GetFo4();
+      fo4->SetWorldStatePath(worldPath);
+      fo4->BootstrapFromLoadOrder();
+      logger->info("Fallout 4 world state file is '{}'", worldPath);
+    }
     partOne->animationSystem.Init(&partOne->worldState);
 
     if (conditionsEvaluatorSettings.is_object()) {

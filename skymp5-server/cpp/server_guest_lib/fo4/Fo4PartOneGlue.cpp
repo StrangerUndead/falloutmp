@@ -1,5 +1,6 @@
 #include "Fo4PartOneGlue.h"
 #include "EspmFo4DataSource.h"
+#include "Fo4WorldBootstrap.h"
 #include "MpActor.h"
 #include "PartOne.h"
 #include <chrono>
@@ -236,6 +237,11 @@ void Fo4PartOneGlue::SaveAll()
     return;
   }
   auto tmp = pImpl->worldPath + ".tmp";
+  std::error_code mkdirEc;
+  auto parent = std::filesystem::path(pImpl->worldPath).parent_path();
+  if (!parent.empty()) {
+    std::filesystem::create_directories(parent, mkdirEc);
+  }
   {
     std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
     out << pImpl->server->WorldToJson().dump();
@@ -252,6 +258,15 @@ void Fo4PartOneGlue::SetWorldStatePath(std::string path)
 {
   pImpl->worldPath = std::move(path);
   LoadWorldFile();
+}
+
+void Fo4PartOneGlue::BootstrapFromLoadOrder()
+{
+  if (!pImpl->partOne.HasEspm()) {
+    return;
+  }
+  BootstrapWorld(pImpl->partOne.GetEspm().GetBrowser(),
+                 pImpl->partOne.worldState.GetEspmCache(), *pImpl->server);
 }
 
 void Fo4PartOneGlue::LoadWorldFile()

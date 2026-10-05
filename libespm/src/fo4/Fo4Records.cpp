@@ -534,10 +534,66 @@ FURN::Data FURN::GetData(CompressedFieldsCache& cache) const noexcept
         ReadItemCommon(c, type, size, data, ksiz);
       } else if (Is(type, "WBDT") && size >= 1) {
         d.benchType = static_cast<BenchType>(static_cast<uint8_t>(data[0]));
+      } else if (Is(type, "CNTO") && size >= 8) {
+        ComponentCount c;
+        std::memcpy(&c.formId, data, 4);
+        int32_t count = 0;
+        std::memcpy(&count, data + 4, 4);
+        c.count = count > 0 ? static_cast<uint32_t>(count) : 0;
+        d.containerItems.push_back(c);
       }
     },
     cache);
   d.keywords = std::move(c.keywords);
+  return d;
+}
+
+REFR::Data REFR::GetData(CompressedFieldsCache& cache) const noexcept
+{
+  Data d;
+  d.initiallyDisabled = (GetFlags() & 0x800) != 0;
+  d.deleted = (GetFlags() & 0x20) != 0;
+  RecordHeaderAccess::IterateFields(
+    this,
+    [&](const char* type, uint32_t size, const char* data) {
+      if (Is(type, "EDID")) {
+        d.editorId = ReadZString(data, size);
+      } else if (Is(type, "NAME")) {
+        d.baseId = ReadU32(data, size);
+      } else if (Is(type, "DATA") && size >= 24) {
+        std::memcpy(d.pos.data(), data, 12);
+        std::memcpy(d.rotRadians.data(), data + 12, 12);
+        d.hasPlacement = true;
+      } else if (Is(type, "XSCL") && size >= 4) {
+        std::memcpy(&d.scale, data, 4);
+      } else if (Is(type, "XLOC") && size >= 1) {
+        FieldReader r(data, size);
+        uint8_t level = 0;
+        r.Read(level);
+        d.lockLevel = level;
+        r.Skip(3);
+        r.Read(d.lockKeyId);
+        uint8_t flags = 0;
+        if (r.Read(flags)) {
+          d.leveledLock = (flags & 0x4) != 0;
+        }
+      } else if (Is(type, "XPRM") && size >= 32) {
+        std::memcpy(d.primitiveBounds.data(), data, 12);
+        uint32_t t = 0;
+        std::memcpy(&t, data + 28, 4);
+        d.primitiveType = static_cast<PrimitiveType>(t);
+      } else if (Is(type, "XLKR") && size >= 8) {
+        LinkedRef l;
+        std::memcpy(&l.keywordId, data, 4);
+        std::memcpy(&l.refId, data + 4, 4);
+        d.linkedRefs.push_back(l);
+      } else if (Is(type, "XOWN") && size >= 4) {
+        d.ownerId = ReadU32(data, size);
+      } else if (Is(type, "XLCN") && size >= 4) {
+        d.persistLocationId = ReadU32(data, size);
+      }
+    },
+    cache);
   return d;
 }
 

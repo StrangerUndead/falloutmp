@@ -351,6 +351,7 @@ public:
     std::vector<uint32_t> keywords;
     std::optional<BenchType> benchType; // WBDT, only on workbenches
     bool isPowerArmorFurniture = false; // record flag 25: PA frames
+    std::vector<ComponentCount> containerItems; // CNTO (item id, count)
   };
 
   Data GetData(CompressedFieldsCache& cache) const noexcept;
@@ -403,6 +404,53 @@ public:
     uint32_t addictionId = 0;
     float addictionChance = 0.f;
     std::vector<Effect> effects;
+  };
+
+  Data GetData(CompressedFieldsCache& cache) const noexcept;
+};
+
+// Placed reference (REFR/ACHR) fields used by the server world bootstrap.
+class REFR final : public RecordHeader
+{
+public:
+  static constexpr auto kType = "REFR";
+
+  enum class PrimitiveType : uint32_t
+  {
+    None = 0,
+    Box = 1,
+    Sphere = 2,
+    Plane = 3,
+    Line = 4,
+    Ellipsoid = 5,
+  };
+
+  struct LinkedRef
+  {
+    uint32_t keywordId = 0;
+    uint32_t refId = 0;
+  };
+
+  struct Data
+  {
+    std::string editorId;
+    uint32_t baseId = 0;
+    bool hasPlacement = false;
+    std::array<float, 3> pos = { 0, 0, 0 };
+    std::array<float, 3> rotRadians = { 0, 0, 0 };
+    float scale = 1.f;
+    // XLOC
+    std::optional<uint8_t> lockLevel;
+    uint32_t lockKeyId = 0;
+    bool leveledLock = false;
+    // XPRM
+    std::optional<PrimitiveType> primitiveType;
+    std::array<float, 3> primitiveBounds = { 0, 0, 0 }; // half extents
+    std::vector<LinkedRef> linkedRefs; // XLKR
+    uint32_t ownerId = 0;              // XOWN
+    uint32_t persistLocationId = 0;    // XLCN
+    bool initiallyDisabled = false;
+    bool deleted = false;
   };
 
   Data GetData(CompressedFieldsCache& cache) const noexcept;

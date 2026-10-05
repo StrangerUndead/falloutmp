@@ -27,6 +27,9 @@ public:
 
   // World state file (workshops, frames, locks, parties). Empty = off.
   void SetWorldStatePath(std::string path);
+  // Registers frames, settlements and locks from the load order that the
+  // world save doesn't already have. Call after SetWorldStatePath.
+  void BootstrapFromLoadOrder();
   int64_t saveIntervalMs = 30000;
 
   static constexpr const char* kActorStateField = "fo4State";
