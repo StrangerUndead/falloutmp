@@ -250,6 +250,10 @@ export class FakePlatform implements FalloutPlatform {
     this.record("setAimAngles", actor, pitch, heading);
   }
 
+  applyEffectVisuals(actor: FormId, sourceItems: FormId[]): void {
+    this.record("applyEffectVisuals", actor, sourceItems);
+  }
+
   // Combat
   playRemoteShot(shooter: FormId, weaponBaseId: FormId, origin: Vec3, direction: Vec3): void {
     this.record("playRemoteShot", shooter, weaponBaseId, origin, direction);

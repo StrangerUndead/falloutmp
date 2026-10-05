@@ -161,6 +161,27 @@ const std::map<std::string, Handler>& Commands()
         s.DefineEffect({ a.at("effectId"), it->second, a.value("avId", 0u) });
         return Ok();
       } },
+    { "getEffects",
+      [](Fo4Server& s, const json& a) {
+        return Ok({ { "effects",
+                      s.Actor(a.at("actorId")).effects->ToJson() } });
+      } },
+    { "cureAddictions",
+      [](Fo4Server& s, const json& a) {
+        auto id = a.at("actorId").get<ActorId>();
+        s.Actor(id).effects->CureAddictions();
+        s.SendEffects(id);
+        return Ok();
+      } },
+    { "addRads",
+      [](Fo4Server& s, const json& a) {
+        auto id = a.at("actorId").get<ActorId>();
+        auto& st = s.Actor(id);
+        st.effects->ApplyRadiationExposure(a.at("amount").get<float>(), 1.f,
+                                           st.avs);
+        s.SendActorValues(id);
+        return Ok();
+      } },
     // ----------------------------------------------------- power armor
     { "addPowerArmorFrame",
       [](Fo4Server& s, const json& a) {

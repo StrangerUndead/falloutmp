@@ -472,6 +472,46 @@ struct UseItemMessage : public MessageBase<UseItemMessage>
   }
 };
 
+// 92: active effects. Owner: full list with magnitudes, remaining time
+// and addictions. Neighbours: effect/source ids only (visuals).
+struct EffectsUpdateMessage : public MessageBase<EffectsUpdateMessage>
+{
+  FO4_MSG_TYPE(EffectsUpdate)
+  struct Effect
+  {
+    uint32_t effectId = 0;
+    uint32_t sourceItem = 0;
+    uint8_t kind = 0; // fo4::EffectKind
+    uint32_t avId = 0;
+    float magnitude = 0.f;
+    uint32_t remainingMs = 0;
+    template <class A>
+    void Serialize(A& a)
+    {
+      a.Serialize("effectId", effectId)
+        .Serialize("sourceItem", sourceItem)
+        .Serialize("kind", kind)
+        .Serialize("avId", avId)
+        .Serialize("magnitude", magnitude)
+        .Serialize("remainingMs", remainingMs);
+    }
+  };
+  uint32_t idx = 0;
+  bool full = true;
+  std::vector<Effect> effects;
+  std::vector<uint32_t> addictions;
+
+  template <class A>
+  void Serialize(A& a)
+  {
+    a.Serialize("t", kMsgType)
+      .Serialize("idx", idx)
+      .Serialize("full", full)
+      .Serialize("effects", effects)
+      .Serialize("addictions", addictions);
+  }
+};
+
 // 93: workshop build mode enter/exit (C->S) and permission reply (S->C)
 struct WorkshopModeMessage : public MessageBase<WorkshopModeMessage>
 {
@@ -973,6 +1013,7 @@ struct WorldTimeWeatherMessage : public MessageBase<WorldTimeWeatherMessage>
   REGISTER_MESSAGE(ProgressionUpdateMessage)                                  \
   REGISTER_MESSAGE(ProgressionRequestMessage)                                 \
   REGISTER_MESSAGE(UseItemMessage)                                            \
+  REGISTER_MESSAGE(EffectsUpdateMessage)                                      \
   REGISTER_MESSAGE(WorkshopModeMessage)                                       \
   REGISTER_MESSAGE(WorkshopPlaceMessage)                                      \
   REGISTER_MESSAGE(WorkshopEditMessage)                                       \

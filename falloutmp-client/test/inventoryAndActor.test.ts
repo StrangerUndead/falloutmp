@@ -175,3 +175,28 @@ test("progression mirrors perks, announces level ups and prompts creation", asyn
   const noPoints = await h.client.progression.buyPerk("GunNut");
   assert.equal(noPoints.error, "NoPerkPoints");
 });
+
+test("effects: owner list with countdown, addiction notice, puppet visuals", () => {
+  const h = makeClient();
+  const update = (idx: number, effects: unknown[], addictions: number[] = []) =>
+    h.receive({ t: Fo4MsgType.EffectsUpdate, idx, full: true, effects, addictions } as never);
+  update(kPlayerServerId, [{ effectId: 0xe1, sourceItem: 0x23736, kind: 0, avId: Av.Health, magnitude: 10, remainingMs: 4000 }]);
+  h.platform.now += 1500;
+  assert.equal(h.client.effects.active()[0].remainingMs, 2500);
+  assert.ok(!("receivedAtMs" in h.client.effects.active()[0]));
+
+  update(kPlayerServerId, [], [0x1234]);
+  assert.ok(h.client.effects.isAddicted(0x1234));
+  assert.equal(h.platform.notifications.at(-1), "You have become addicted.");
+  update(kPlayerServerId, [], [0x1234]);
+  assert.equal(h.platform.notifications.filter((n) => n.includes("addicted")).length, 1);
+
+  const bob = 0xff000002;
+  h.platform.refs.map(bob, 0x5000);
+  const fx = { effectId: 0xe2, sourceItem: 0x33, kind: 0, avId: 0, magnitude: 0, remainingMs: 0 };
+  update(bob, [fx]);
+  update(bob, [fx]);
+  assert.deepEqual(h.platform.callsOf("applyEffectVisuals"), [[0x5000, [0x33]]]);
+  update(bob, []);
+  assert.deepEqual(h.platform.callsOf("applyEffectVisuals").at(-1), [0x5000, []]);
+});

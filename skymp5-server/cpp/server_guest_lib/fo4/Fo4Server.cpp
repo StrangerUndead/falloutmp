@@ -212,11 +212,40 @@ void Fo4Server::SendProgression(ActorId actor)
   st.lastAnnouncedLevel = st.progression.level;
 }
 
+void Fo4Server::SendEffects(ActorId actor)
+{
+  auto& st = Actor(actor);
+  EffectsUpdateMessage own;
+  own.idx = actor;
+  EffectsUpdateMessage pub;
+  pub.idx = actor;
+  for (auto& e : st.effects->Active()) {
+    EffectsUpdateMessage::Effect m;
+    m.effectId = e.effectId;
+    m.sourceItem = e.sourceItem;
+    m.kind = static_cast<uint8_t>(e.kind);
+    m.avId = e.actorValue;
+    m.magnitude = e.magnitude;
+    m.remainingMs =
+      static_cast<uint32_t>(std::max(0.f, e.remainingSec) * 1000.f);
+    own.effects.push_back(m);
+    pub.effects.push_back({ e.effectId, e.sourceItem, 0, 0, 0.f, 0 });
+  }
+  for (auto& [id, addicted] : st.effects->Addictions()) {
+    if (addicted) {
+      own.addictions.push_back(id);
+    }
+  }
+  host.SendTo(actor, own, true);
+  host.SendToNeighbours(actor, pub, true);
+}
+
 void Fo4Server::SendFullState(ActorId actor)
 {
   SendInventory(actor);
   SendActorValues(actor);
   SendProgression(actor);
+  SendEffects(actor);
   SendEquipment(actor);
   SendMapMarkers(actor, true);
   SendPartyState(actor, 0, "");
@@ -576,6 +605,7 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
       if (r.Ok()) {
         SendInventory(sender);
         SendActorValues(sender);
+        SendEffects(sender);
       }
       return;
     }
@@ -1402,9 +1432,19 @@ void Fo4Server::Tick()
     host.SendTo(actor, m, true);
   }
   if (dt > 0.f) {
+    std::vector<ActorId> effectsChanged;
     for (auto& [id, st] : actors) {
+      size_t before = st.effects->Active().size();
+      size_t addictionsBefore = st.effects->Addictions().size();
       st.effects->Tick(dt, st.avs);
       st.avs.Tick(dt, false);
+      if (st.effects->Active().size() != before ||
+          st.effects->Addictions().size() != addictionsBefore) {
+        effectsChanged.push_back(id);
+      }
+    }
+    for (auto id : effectsChanged) {
+      SendEffects(id); // expired effects, coalesced to one per tick
     }
   }
   if (now - pImpl->lastTimeWeatherMs >= settings.timeWeatherIntervalMs) {

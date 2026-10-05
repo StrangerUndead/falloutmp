@@ -6,6 +6,7 @@ import { ActorValueService } from "./services/services/actorValueService";
 import { BarterService } from "./services/services/barterService";
 import { CombatService } from "./services/services/combatService";
 import { CraftingService } from "./services/services/craftingService";
+import { EffectsService } from "./services/services/effectsService";
 import { EquipmentService } from "./services/services/equipmentService";
 import { InventoryService } from "./services/services/inventoryService";
 import { LockService } from "./services/services/lockService";
@@ -48,6 +49,7 @@ export class FalloutMpClient {
   readonly map: MapService;
   readonly timeWeather: WorldTimeWeatherService;
   readonly movement: MovementService;
+  readonly effects: EffectsService;
 
   constructor(readonly platform: FalloutPlatform, transport: Fo4Transport, opts: FalloutMpClientOptions = {}) {
     this.ctx = new ClientContext(platform, transport, opts.requestTimeoutMs);
@@ -66,6 +68,7 @@ export class FalloutMpClient {
     this.map = new MapService(this.ctx);
     this.timeWeather = new WorldTimeWeatherService(this.ctx);
     this.movement = new MovementService(this.ctx, opts.movement);
+    this.effects = new EffectsService(this.ctx);
     if (opts.bindPlatformEvents ?? true) {
       this.bindPlatformEvents();
     }
@@ -116,6 +119,7 @@ export class FalloutMpClient {
     this.equipment.forgetActor(serverActorId);
     this.powerArmor.forgetActor(serverActorId);
     this.movement.forgetActor(serverActorId);
+    this.effects.forgetActor(serverActorId);
   }
 
   onDisconnect(): void {
@@ -132,6 +136,7 @@ export class FalloutMpClient {
     this.map.reset();
     this.timeWeather.reset();
     this.movement.reset();
+    this.effects.reset();
   }
 
   private bindPlatformEvents(): void {

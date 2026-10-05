@@ -14,6 +14,7 @@ export * from "./services/services/actorValueService";
 export * from "./services/services/barterService";
 export * from "./services/services/combatService";
 export * from "./services/services/craftingService";
+export * from "./services/services/effectsService";
 export * from "./services/services/equipmentService";
 export * from "./services/services/inventoryService";
 export * from "./services/services/lockService";

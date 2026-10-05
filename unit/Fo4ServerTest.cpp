@@ -893,3 +893,46 @@ TEST_CASE("Fo4Server: running in power armor drains the core",
   // About 2 s of running at 1/1200 per second
   REQUIRE(before - after == Catch::Approx(2.f / 1200.f).margin(0.0005));
 }
+
+TEST_CASE("Fo4Server: effects are pushed on use and on expiry",
+          "[fo4][Fo4Server][F20]")
+{
+  ServerWorld w;
+  constexpr FormId kHeal = 0xE1;
+  w.server->DefineEffect({ kHeal, EffectKind::RestoreOverTime, Av::Health });
+  ConsumableData stim = *w.data->FindConsumable(kStimpak);
+  stim.effects = { { kHeal, 10.f, 2 } };
+  w.data->AddConsumable(stim);
+  auto& alice = w.server->Actor(kAlice);
+  alice.inventory.AddSimple(kStimpak, 1);
+  w.server->Tick();
+
+  UseItemMessage use;
+  use.nonce = 1;
+  use.baseId = kStimpak;
+  w.server->OnMessage(kAlice, MsgType::UseItem, use);
+  auto own = w.host.Last(kAlice, MsgType::EffectsUpdate);
+  REQUIRE(own["effects"].size() == 1);
+  REQUIRE(own["effects"][0]["sourceItem"] == kStimpak);
+  REQUIRE(own["effects"][0]["remainingMs"] == 2000);
+  REQUIRE(own["effects"][0]["magnitude"] == 10.0);
+  auto pub = w.host.LastToNeighbours(kAlice, MsgType::EffectsUpdate);
+  REQUIRE(pub["effects"][0]["effectId"] == kHeal);
+  REQUIRE(pub["effects"][0]["magnitude"] == 0.0); // visuals only
+  REQUIRE(pub["addictions"].empty());
+
+  // Expiry pushes an empty list once
+  size_t before = w.host.AllTo(kAlice, MsgType::EffectsUpdate).size();
+  w.host.now += 3000;
+  w.server->Tick();
+  auto all = w.host.AllTo(kAlice, MsgType::EffectsUpdate);
+  REQUIRE(all.size() == before + 1);
+  REQUIRE(all.back()["effects"].empty());
+  w.host.now += 1000;
+  w.server->Tick();
+  REQUIRE(w.host.AllTo(kAlice, MsgType::EffectsUpdate).size() == before + 1);
+
+  // Full state includes effects
+  w.server->SendFullState(kAlice);
+  REQUIRE(w.host.AllTo(kAlice, MsgType::EffectsUpdate).size() == before + 2);
+}

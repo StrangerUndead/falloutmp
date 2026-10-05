@@ -142,6 +142,8 @@ public:
   void SendInventory(ActorId actor);
   void SendActorValues(ActorId actor);
   void SendProgression(ActorId actor);
+  // Owner: full effect list; neighbours: ids for visuals (F20)
+  void SendEffects(ActorId actor);
 
   // Server-side kill credit and XP (also used by gamemode kills)
   void AwardKillXp(ActorId killer, ActorId victim);

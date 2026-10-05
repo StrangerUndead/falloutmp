@@ -197,6 +197,24 @@ export interface UseItemMessage {
   baseId: number;
 }
 
+export interface ActiveEffectEntry {
+  effectId: number;
+  sourceItem: number;
+  kind: number; // EffectKind
+  avId: number;
+  magnitude: number; // 0 for neighbours
+  remainingMs: number; // 0 for neighbours
+}
+
+// F20: owner full list + addictions; neighbours ids only (visuals)
+export interface EffectsUpdateMessage {
+  t: Fo4MsgType.EffectsUpdate;
+  idx: number;
+  full: boolean;
+  effects: ActiveEffectEntry[];
+  addictions: number[];
+}
+
 export interface WorkshopModeMessage {
   t: Fo4MsgType.WorkshopMode;
   workshopRefId: number;
@@ -416,6 +434,7 @@ export interface Fo4MessageMap {
   [Fo4MsgType.ProgressionUpdate]: ProgressionUpdateMessage;
   [Fo4MsgType.ProgressionRequest]: ProgressionRequestMessage;
   [Fo4MsgType.UseItem]: UseItemMessage;
+  [Fo4MsgType.EffectsUpdate]: EffectsUpdateMessage;
   [Fo4MsgType.WorkshopMode]: WorkshopModeMessage;
   [Fo4MsgType.WorkshopPlace]: WorkshopPlaceMessage;
   [Fo4MsgType.WorkshopEdit]: WorkshopEditMessage;
@@ -559,6 +578,7 @@ export const kMessageDefaults: DefaultsTable = {
     specialAv: 0,
   }),
   [Fo4MsgType.UseItem]: () => ({ nonce: 0, baseId: 0 }),
+  [Fo4MsgType.EffectsUpdate]: () => ({ idx: 0, full: true, effects: [], addictions: [] }),
   [Fo4MsgType.WorkshopMode]: () => ({
     workshopRefId: 0,
     enter: true,
@@ -724,6 +744,7 @@ export const kNestedDefaults = {
     splineBaseId: 0,
   }),
   Marker: (): MapMarkerEntry => ({ refId: 0, name: "", type: 0, pos: v0() }),
+  Effect: (): ActiveEffectEntry => ({ effectId: 0, sourceItem: 0, kind: 0, avId: 0, magnitude: 0, remainingMs: 0 }),
 };
 
 export type MessageFields<K extends ImplementedFo4MsgType> = Partial<

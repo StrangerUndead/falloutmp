@@ -129,6 +129,17 @@ export const createFo4Api = (bridge: Fo4CallBridge) => {
       call("defineEffect", effect);
     },
 
+    // Effects (chems, addictions, radiation)
+    getEffects: (actorId: number) =>
+      call<{ effects: Record<string, unknown> }>("getEffects", { actorId })
+        .effects,
+    cureAddictions: (actorId: number) => {
+      call("cureAddictions", { actorId });
+    },
+    addRads: (actorId: number, amount: number) => {
+      call("addRads", { actorId, amount });
+    },
+
     // Power armor
     addPowerArmorFrame: (frame: {
       refId: number;

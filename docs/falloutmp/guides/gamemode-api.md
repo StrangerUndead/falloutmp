@@ -43,6 +43,9 @@ mp.onActivate = (target, caster) => {
 | `getProgression(actorId)` | Level, XP, perk points, perks, collected bobbleheads and magazines |
 | `awardXp(actorId, amount, direct = false)` | `direct` skips multipliers; returns `{ level, perkPointsGained }` |
 | `definePerk({ key, special, specialRequired?, ranks })` | Adds a perk chart entry players can buy |
+| `getEffects(actorId)` | Active effects and addictions |
+| `cureAddictions(actorId)` | What a doctor does |
+| `addRads(actorId, amount)` | Exposure, reduced by Rad Resistance |
 | `defineEffect({ effectId, kind, avId? })` | Defines what a consumable effect does: `restoreOverTime`, `restoreInstant`, `damageOverTime`, `valueModifier`, `removeRads` or `addRads` |
 
 ## Power armor
@@ -86,7 +89,7 @@ mp.onActivate = (target, caster) => {
 
 | Function | Notes |
 |---|---|
-| `sendFullState(actorId)` | Resends inventory, values, progression, equipment, map, party, settlement snapshots and power armor to the player |
+| `sendFullState(actorId)` | Resends inventory, values, progression, effects, equipment, map, party, settlement snapshots and power armor to the player |
 | `getActorState(actorId)` | The persisted per-character JSON |
 | `getWorldState()` | The persisted world JSON |
 

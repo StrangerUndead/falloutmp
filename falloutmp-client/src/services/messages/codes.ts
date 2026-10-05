@@ -26,6 +26,15 @@ export enum PowerArmorSlot {
   RightLeg = 6,
 }
 
+export enum EffectKind {
+  RestoreOverTime = 0,
+  RestoreInstant = 1,
+  DamageOverTime = 2,
+  ValueModifier = 3,
+  RemoveRads = 4,
+  AddRads = 5,
+}
+
 export enum ProgressionOp {
   CreateCharacter = 0,
   BuyPerk = 1,

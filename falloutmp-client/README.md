@@ -23,6 +23,7 @@ The package is engine-free. Every game call goes through the `FalloutPlatform` i
 | `InventoryService` | Inventory, containers, corpse loot, drops, consumables | Snapshots diffed into the game silently, with a 5 s reconcile |
 | `ActorValueService` | Health, AP, SPECIAL, limb conditions | Owner gets every value; puppets get a health fraction |
 | `EquipmentService` | Weapons and apparel | The game changes only when the server's state arrives |
+| `EffectsService` | Active chems, stimpaks, radiation effects, addictions | Owner list with a local countdown; puppets get visuals only |
 | `ProgressionService` | Level, XP, perks, SPECIAL, character creation | Requests are pre-checked locally and re-validated by the server |
 | `PowerArmorService` | Entering and exiting power armor, pieces, fusion cores, jetpack | Request, animation, then Ack; the server rolls back on timeout |
 | `WorkshopService` | Build mode, placing, moving, scrapping, storing, wiring, claims, permissions, ratings | Chunked snapshots and versioned deltas mirrored to spawned refs |

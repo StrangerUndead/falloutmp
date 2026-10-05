@@ -1,6 +1,7 @@
 // Events the client raises for the UI (CEF front, HUD) and for gamemode
 // client scripts. All payloads are plain data.
 import {
+  ActiveEffectEntry,
   AvValue,
   ItemCount,
   ItemKey,
@@ -60,5 +61,7 @@ export interface ClientEvents {
   timeWeatherChanged: { gameDays: number; gameHour: number; timeScale: number; weatherId: number; radstorm: boolean };
   damageApplied: { targetIdx: number; aggressorIdx: number; total: number; limb: number; critical: boolean; killed: boolean };
   localPlayerKilled: { aggressorIdx: number };
+  effectsChanged: { actorIdx: number; effects: ActiveEffectEntry[]; addictions: number[] };
+  becameAddicted: { addictionId: number };
   requestFailed: { requestType: number; error: string; text: string };
 }

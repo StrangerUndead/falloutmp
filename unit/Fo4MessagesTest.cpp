@@ -228,6 +228,25 @@ TEST_CASE("Fallout 4 messages round trip in binary and JSON",
     h.targetIdx = 9;
     REQUIRE(RoundTripBinary(h).targetIdx == 9);
   }
+  {
+    EffectsUpdateMessage e;
+    e.idx = 7;
+    e.effects.push_back({ 0xE1, 0x23736, 0, 0x2D4, 10.f, 4000 });
+    e.addictions = { 0x1234 };
+    auto b = RoundTripBinary(e);
+    REQUIRE(b.effects.size() == 1);
+    REQUIRE(b.effects[0].remainingMs == 4000);
+    REQUIRE(RoundTripJson(e).addictions[0] == 0x1234);
+    UpdateMovementFo4Message mv;
+    mv.seq = 65535;
+    mv.flags = 0x1040;
+    mv.pos = { 1, 2, 3 };
+    size_t bytes = 0;
+    auto mb = RoundTripBinary(mv, &bytes);
+    REQUIRE(mb.seq == 65535);
+    REQUIRE(mb.flags == 0x1040);
+    REQUIRE(bytes <= 64); // F01 budget per sample
+  }
 }
 
 TEST_CASE("Skyrim messages are unchanged by the Fallout 4 registry",

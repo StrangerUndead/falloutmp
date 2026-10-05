@@ -144,6 +144,12 @@ export interface MovementNatives {
   setAimAngles(actor: FormId, pitch: number, heading: number): void;
 }
 
+export interface EffectNatives {
+  // Cosmetic visuals of active chems/effects on a puppet (shaders, sounds);
+  // the plugin maps source items to their vanilla visuals.
+  applyEffectVisuals(actor: FormId, sourceItems: FormId[]): void;
+}
+
 export interface CombatNatives {
   // Cosmetic replay of a remote actor's shot (muzzle flash, tracer, sound).
   playRemoteShot(shooter: FormId, weaponBaseId: FormId, origin: Vec3, direction: Vec3): void;
@@ -242,6 +248,7 @@ export interface FalloutPlatform
     ProgressionNatives,
     PowerArmorNatives,
     MovementNatives,
+    EffectNatives,
     WorkshopNatives,
     CombatNatives,
     MinigameNatives,

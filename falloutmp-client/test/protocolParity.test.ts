@@ -166,6 +166,7 @@ test("enum mirrors match the server", () => {
     ["LockResultCode", parseCppEnum(locks, /enum class LockResultCode\b/), codes.LockResultCode],
     ["HackResultCode", parseCppEnum(locks, /enum class HackResultCode\b/), codes.HackResultCode],
     ["WorkshopEditOp", parseCppEnum(workshop, /enum class WorkshopEditOp\b/), codes.WorkshopEditOp],
+    ["EffectKind", parseCppEnum(read(fo4Dir + "Effects.h"), /enum class EffectKind\b/), codes.EffectKind],
     ["PaTransitionKind", parseCppEnum(messagesH, /enum Kind : uint8_t/), codes.PaTransitionKind],
     ["ProgressionOp", parseCppEnum(messagesH.slice(messagesH.indexOf("struct ProgressionRequestMessage")), /enum Op : uint8_t/), codes.ProgressionOp],
     ["WorkshopManageOp", parseCppEnum(messagesH.slice(messagesH.indexOf("struct WorkshopManageMessage")), /enum Op : uint8_t/), codes.WorkshopManageOp],

@@ -41,6 +41,11 @@ TEST_CASE("Fo4 gamemode API commands", "[fo4][GamemodeApi]")
 
   REQUIRE(Fo4ListCommands().size() >= 25);
   REQUIRE(Fo4Call(s, "nope", {})["ok"] == false);
+  REQUIRE(Fo4Call(s, "cureAddictions", { { "actorId", kA } })["ok"] == true);
+  REQUIRE(Fo4Call(s, "getEffects", { { "actorId", kA } })["ok"] == true);
+  REQUIRE(Fo4Call(s, "addRads", { { "actorId", kA }, { "amount", 50 } })["ok"] ==
+          true);
+  REQUIRE(s.Actor(kA).avs.GetCurrent(Av::Rads) != 0.f);
   REQUIRE(Fo4Call(s, "addItem", { { "actorId", kA } })["ok"] == false);
 
   json item = { { "baseId", k10mm }, { "mods", { kModMagLarge } } };
