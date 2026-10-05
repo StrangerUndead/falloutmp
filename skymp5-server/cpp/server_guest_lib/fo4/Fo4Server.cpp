@@ -125,7 +125,71 @@ Fo4ActorState& Fo4Server::Actor(ActorId id)
     st.avs.SetCurrent(Av::Health, st.avs.GetMax(Av::Health));
     st.avs.SetCurrent(Av::ActionPoints, st.avs.GetMax(Av::ActionPoints));
   }
+  if (host.IsNpc(id)) {
+    InitNpc(id);
+  }
   return st;
+}
+
+void Fo4Server::InitNpc(ActorId npc)
+{
+  auto& st = actors[npc]; // no recursion through Actor()
+  if (st.npcInitialized) {
+    return;
+  }
+  st.npcInitialized = true;
+  FormId base = host.GetRefBaseId(npc);
+  if (!base) {
+    return;
+  }
+  // Level from the highest-level player nearby (vanilla uses the player)
+  int32_t playerLevel = 1;
+  auto npcPos = host.GetActorPos(npc);
+  for (auto& [id, other] : actors) {
+    if (id != npc && !host.IsNpc(id) &&
+        Dist(host.GetActorPos(id), npcPos) <= settings.npcLevelScanRadius) {
+      playerLevel = std::max(playerLevel, other.progression.level);
+    }
+  }
+  NpcResolver resolver(*data);
+  auto r = resolver.Resolve(base, playerLevel, rng);
+  if (!r) {
+    return;
+  }
+  st.npcBaseId = r->baseId;
+  st.npcFlags = r->flags;
+  st.factions = r->factions;
+  st.level = r->level;
+  st.actorLevelForXp = r->level;
+  float maxHp = r->calculatedHealth > 0
+    ? static_cast<float>(r->calculatedHealth)
+    : settings.npcHealthBase + settings.npcHealthPerLevel * r->level;
+  st.avs.SetBase(Av::Health, maxHp);
+  st.avs.SetCurrent(Av::Health, maxHp);
+
+  OmodStatResolver stats(*data);
+  float bestDamage = -1.f;
+  for (auto& c : r->inventory) {
+    auto w = data->FindWeapon(c.componentId);
+    if (w && w->isGun) {
+      ItemKey gun{ c.componentId };
+      gun.ammoLoaded =
+        static_cast<uint16_t>(stats.ResolveWeapon(gun).capacity);
+      st.inventory.Add(gun, c.count);
+      float dmg = stats.ResolveWeapon(gun).damage;
+      if (dmg > bestDamage) {
+        bestDamage = dmg;
+        st.equippedWeapon = st.inventory.Find(gun)->key;
+      }
+    } else {
+      st.inventory.AddSimple(c.componentId, c.count);
+    }
+  }
+  for (auto id : r->outfit) {
+    if (data->FindArmor(id)) {
+      st.equippedArmor.push_back(ItemKey{ id });
+    }
+  }
 }
 
 const Fo4ActorState* Fo4Server::FindActor(ActorId id) const
@@ -751,19 +815,36 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
         return;
       }
       auto& ss = Actor(shooter);
-      if (npc && settings.npcTrustHostWeapons &&
+      if (npc &&
           (!ss.equippedWeapon || ss.equippedWeapon->baseId != m.weaponBaseId)) {
-        // NPC loadouts don't load from NPC_ records yet: take the host's
-        // word for the gun, if it is one.
-        auto w = data->FindWeapon(m.weaponBaseId);
-        if (!w || !w->isGun) {
+        // The NPC switched guns: use one from its inventory. Only an NPC
+        // whose data has no gun at all takes the host's word for one.
+        const InventoryEntry* owned = nullptr;
+        bool hasAnyGun = false;
+        for (auto& e : ss.inventory.Entries()) {
+          auto w = data->FindWeapon(e.key.baseId);
+          if (w && w->isGun) {
+            hasAnyGun = true;
+            if (e.key.baseId == m.weaponBaseId) {
+              owned = &e;
+            }
+          }
+        }
+        if (owned) {
+          ss.equippedWeapon = owned->key;
+        } else if (!hasAnyGun && settings.npcTrustHostWeapons) {
+          auto w = data->FindWeapon(m.weaponBaseId);
+          if (!w || !w->isGun) {
+            return;
+          }
+          ItemKey gun{ m.weaponBaseId };
+          ss.inventory.Add(gun, 1);
+          ss.equippedWeapon = ss.inventory.Find(gun)->key;
+        } else {
+          spdlog::debug("WeaponFire: NPC {:x} doesn't carry {:x}", shooter,
+                        m.weaponBaseId);
           return;
         }
-        ItemKey gun{ m.weaponBaseId };
-        if (!ss.inventory.Find(gun)) {
-          ss.inventory.Add(gun, 1);
-        }
-        ss.equippedWeapon = ss.inventory.Find(gun)->key;
       }
       if (!ss.equippedWeapon) {
         return;
@@ -858,10 +939,29 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
         tr.byType[r.damageTypeId] += r.value;
       }
       auto out = damageModel.Resolve(hit, tr);
+      // NPC protection flags (F13): invulnerable takes no damage, essential
+      // can't die, protected can't be killed by other NPCs.
+      constexpr uint32_t kEssential = 1u << 1, kProtected = 1u << 11,
+                         kInvulnerable = 1u << 31;
+      float floorHp = 0.f;
+      if (host.IsNpc(target)) {
+        if (tst.npcFlags & kInvulnerable) {
+          out.total = 0.f;
+        } else if ((tst.npcFlags & kEssential) ||
+                   ((tst.npcFlags & kProtected) && host.IsNpc(shooter))) {
+          floorHp = 1.f;
+        }
+      }
       Actor(shooter).lastCombatMs = host.NowMs();
       tst.lastCombatMs = host.NowMs();
       bool wasAlive = !tst.avs.IsDead();
-      tst.avs.Damage(Av::Health, -out.total);
+      float hpBefore = tst.avs.GetCurrent(Av::Health);
+      float dealt = std::min(out.total, std::max(0.f, hpBefore - floorHp));
+      if (floorHp > 0.f && hpBefore <= floorHp) {
+        dealt = 0.f;
+      }
+      out.total = dealt;
+      tst.avs.Damage(Av::Health, -dealt);
       bool killed = wasAlive && tst.avs.IsDead();
       DamageAppliedMessage d;
       d.targetIdx = target;

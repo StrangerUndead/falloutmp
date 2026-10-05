@@ -25,6 +25,8 @@ struct EspmFo4DataSource::Impl
   std::unordered_map<FormId, std::unique_ptr<WorkshopObjectData>> workshop;
   std::unordered_map<FormId, std::unique_ptr<LeveledListData>> leveled;
   std::unordered_map<FormId, std::unique_ptr<ContainerData>> containers;
+  std::unordered_map<FormId, std::unique_ptr<NpcData>> npcs;
+  std::unordered_map<FormId, std::unique_ptr<OutfitData>> outfits;
 
   bool recipesBuilt = false;
   std::map<FormId, RecipeData> recipes;
@@ -596,6 +598,73 @@ const ContainerData* EspmFo4DataSource::FindContainer(FormId id) const
   r->respawns = d.respawns;
   for (auto& i : d.items) {
     r->items.push_back({ pImpl->Map(lr, i.formId), i.count });
+  }
+  auto* raw = r.get();
+  cache[id] = std::move(r);
+  return raw;
+}
+
+const NpcData* EspmFo4DataSource::FindNpc(FormId id) const
+{
+  std::lock_guard l(pImpl->m);
+  auto& cache = pImpl->npcs;
+  if (auto it = cache.find(id); it != cache.end()) {
+    return it->second.get();
+  }
+  auto lr = pImpl->br.LookupById(id);
+  auto n = lr.rec ? espm::Convert<espm::fo4::NPC_>(lr.rec) : nullptr;
+  if (!n) {
+    cache[id] = nullptr;
+    return nullptr;
+  }
+  auto d = n->GetData(pImpl->cache);
+  auto r = std::make_unique<NpcData>();
+  r->id = id;
+  r->editorId = d.editorId;
+  r->flags = d.flags;
+  r->level = d.level;
+  r->pcLevelMult = (d.flags & espm::fo4::NPC_::kFlagPcLevelMult) != 0;
+  r->levelMult = d.levelMult;
+  r->calcMinLevel = d.calcMinLevel;
+  r->calcMaxLevel = d.calcMaxLevel;
+  r->templateFlags = d.templateFlags;
+  for (size_t i = 0; i < r->templateActors.size(); ++i) {
+    r->templateActors[i] = pImpl->Map(lr, d.templateActors[i]);
+  }
+  r->defaultTemplate = pImpl->Map(lr, d.defaultTemplate);
+  for (auto& f : d.factions) {
+    r->factions.push_back({ pImpl->Map(lr, f.factionId), f.rank });
+  }
+  r->race = pImpl->Map(lr, d.race);
+  r->defaultOutfit = pImpl->Map(lr, d.defaultOutfit);
+  r->deathItem = pImpl->Map(lr, d.deathItem);
+  r->calculatedHealth = d.calculatedHealth;
+  for (auto& i : d.items) {
+    r->items.push_back({ pImpl->Map(lr, i.formId), i.count });
+  }
+  auto* raw = r.get();
+  cache[id] = std::move(r);
+  return raw;
+}
+
+const OutfitData* EspmFo4DataSource::FindOutfit(FormId id) const
+{
+  std::lock_guard l(pImpl->m);
+  auto& cache = pImpl->outfits;
+  if (auto it = cache.find(id); it != cache.end()) {
+    return it->second.get();
+  }
+  auto lr = pImpl->br.LookupById(id);
+  auto o = lr.rec ? espm::Convert<espm::fo4::OTFT>(lr.rec) : nullptr;
+  if (!o) {
+    cache[id] = nullptr;
+    return nullptr;
+  }
+  auto d = o->GetData(pImpl->cache);
+  auto r = std::make_unique<OutfitData>();
+  r->id = id;
+  for (auto i : d.items) {
+    r->items.push_back(pImpl->Map(lr, i));
   }
   auto* raw = r.get();
   cache[id] = std::move(r);

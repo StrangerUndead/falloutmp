@@ -13,6 +13,7 @@
 #include "Effects.h"
 #include "Locks.h"
 #include "Movement.h"
+#include "Npcs.h"
 #include "Party.h"
 #include "PowerArmor.h"
 #include "Progression.h"
@@ -116,6 +117,10 @@ struct Fo4ServerSettings
   // F13: until NPC loadouts load from NPC_ records, a hosted NPC may fire
   // any gun the host names (fire rate and range are still validated).
   bool npcTrustHostWeapons = true;
+  // Players this close to an NPC set its level (PC-level-mult NPCs)
+  float npcLevelScanRadius = 8192.f;
+  // Max health when the NPC_ has no calculated health
+  float npcHealthBase = 50.f, npcHealthPerLevel = 10.f; // [verify]
   // Biped slots outer apparel may not use over a power armor frame
   // (body armor slots 41-45 in FO4's first-person flags) [verify G-self]
   uint32_t powerArmorBlockedBipedSlots = 0x3E00;
@@ -136,6 +141,11 @@ struct Fo4ActorState
   int64_t lastCombatMs = -1000000000;
   int32_t lastAnnouncedLevel = 0; // for onFo4LevelUp
   int64_t lastHostAvReportMs = 0;  // F13 hosted NPC AV reports
+  // NPCs seeded from plugin data (F13)
+  bool npcInitialized = false;
+  FormId npcBaseId = 0;   // resolved NPC_
+  uint32_t npcFlags = 0;  // ACBS flags (essential, protected, ...)
+  std::vector<NpcData::Faction> factions;
 };
 
 class Fo4Server
@@ -194,6 +204,9 @@ public:
   // Party state of `to`'s profile (nonce 0 for pushes).
   void SendPartyState(ActorId to, uint32_t nonce, const std::string& error);
   std::optional<ActorId> FindPlayerByProfile(ProfileId profile) const;
+  // F13: seeds an NPC's level, health, inventory, gear and factions from its
+  // base record. Idempotent; runs on first access for NPCs.
+  void InitNpc(ActorId npc);
   // F13: is `npc` a hosted NPC whose host is `player`?
   bool IsHostedBy(ActorId npc, ActorId player);
   DamageModel& Damage() { return damageModel; }

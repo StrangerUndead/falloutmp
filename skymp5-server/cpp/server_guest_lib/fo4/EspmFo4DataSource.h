@@ -74,6 +74,8 @@ public:
   FormId GetComponentByScrapItem(FormId miscId) const override;
   const LeveledListData* FindLeveledList(FormId id) const override;
   const ContainerData* FindContainer(FormId id) const override;
+  const NpcData* FindNpc(FormId id) const override;
+  const OutfitData* FindOutfit(FormId id) const override;
 
   // Editor id lookups for keywords and actor values (ESPM-016)
   FormId FindKeywordByEditorId(const std::string& edid) const;

@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 // Static game data used by the Fallout 4 server systems.
 //
 // The systems in server_guest_lib/fo4 never touch libespm directly. They
@@ -289,6 +290,57 @@ struct ContainerData
   bool respawns = false;
 };
 
+// NPC_ base (F13); aspect indices match espm::fo4::NPC_::Aspect
+struct NpcData
+{
+  enum Aspect : uint8_t
+  {
+    kTraits = 0,
+    kStats = 1,
+    kFactions = 2,
+    kBaseData = 7,
+    kInventory = 8,
+    kAspectCount = 13,
+  };
+  FormId id = 0;
+  std::string editorId;
+  uint32_t flags = 0; // ACBS flags (espm::fo4::NPC_::kFlag*)
+  uint16_t level = 1;
+  bool pcLevelMult = false;
+  float levelMult = 1.f;
+  uint16_t calcMinLevel = 0;
+  uint16_t calcMaxLevel = 0;
+  uint16_t templateFlags = 0;
+  std::array<FormId, kAspectCount> templateActors{};
+  FormId defaultTemplate = 0;
+  struct Faction
+  {
+    FormId factionId = 0;
+    int8_t rank = 0;
+  };
+  std::vector<Faction> factions;
+  FormId race = 0;
+  FormId defaultOutfit = 0;
+  FormId deathItem = 0;
+  uint16_t calculatedHealth = 0;
+  std::vector<ComponentCount> items; // item or leveled list ids
+
+  bool UsesTemplate(uint8_t aspect) const
+  {
+    return (templateFlags & (1u << aspect)) != 0;
+  }
+  bool Essential() const { return flags & (1u << 1); }
+  bool Protected() const { return flags & (1u << 11); }
+  bool SpawnsDead() const { return flags & (1u << 26); }
+  bool Invulnerable() const { return flags & (1u << 31); }
+};
+
+struct OutfitData
+{
+  FormId id = 0;
+  std::vector<FormId> items; // ARMO or LVLI
+};
+
 class IFo4DataSource
 {
 public:
@@ -322,6 +374,8 @@ public:
     return nullptr;
   }
   virtual const ContainerData* FindContainer(FormId) const { return nullptr; }
+  virtual const NpcData* FindNpc(FormId) const { return nullptr; }
+  virtual const OutfitData* FindOutfit(FormId) const { return nullptr; }
 };
 
 // Simple map-backed data source for tests and gamemode-defined content.
@@ -340,6 +394,10 @@ public:
   WorkshopObjectData& AddWorkshopObject(WorkshopObjectData d);
   LeveledListData& AddLeveledList(LeveledListData d);
   ContainerData& AddContainer(ContainerData d);
+  NpcData& AddNpc(NpcData d);
+  OutfitData& AddOutfit(OutfitData d);
+  const NpcData* FindNpc(FormId id) const override;
+  const OutfitData* FindOutfit(FormId id) const override;
   const LeveledListData* FindLeveledList(FormId id) const override;
   const ContainerData* FindContainer(FormId id) const override;
 
@@ -373,6 +431,8 @@ private:
   std::map<FormId, WorkshopObjectData> workshopObjects;
   std::map<FormId, LeveledListData> leveledLists;
   std::map<FormId, ContainerData> containers;
+  std::map<FormId, NpcData> npcs;
+  std::map<FormId, OutfitData> outfits;
 };
 
 }

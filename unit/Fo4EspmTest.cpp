@@ -402,3 +402,66 @@ TEST_CASE("GetKeywords trusts KWDA size, not KSIZ", "[libespm][fo4]")
   auto kws = espm::fo4::GetKeywords(p.browser->LookupById(0xB0), p.cache);
   REQUIRE(kws == std::vector<uint32_t>{ 0x77 });
 }
+
+TEST_CASE("fo4::NPC_ reads ACBS, factions, templates, loadout; OTFT items",
+          "[libespm][fo4]")
+{
+  PluginBuilder b;
+  FieldWriter acbs;
+  acbs.Add<uint32_t>(espm::fo4::NPC_::kFlagPcLevelMult |
+                     espm::fo4::NPC_::kFlagEssential)
+    .Add<int16_t>(-5)
+    .Add<uint16_t>(1500) // level mult 1.5
+    .Add<uint16_t>(3)
+    .Add<uint16_t>(30)
+    .Add<int16_t>(35)
+    .Add<uint16_t>(0x0102) // stats + inventory from templates
+    .Add<uint16_t>(0)
+    .Zeros(2);
+  FieldWriter faction;
+  faction.Add<uint32_t>(0x1BC).Add<int8_t>(2); // 5-byte FO4 layout
+  FieldWriter tpta;
+  for (int i = 0; i < 13; ++i) {
+    tpta.Add<uint32_t>(i == 8 ? 0x5000 : 0);
+  }
+  FieldWriter cnto;
+  cnto.Add<uint32_t>(0x4822C).Add<int32_t>(1);
+  FieldWriter dnam;
+  dnam.Add<uint16_t>(120).Add<uint16_t>(80).Add<uint16_t>(0).Add<uint8_t>(0)
+    .Zeros(1);
+  b.AddRecord("NPC_", 0x100)
+    .EditorId("RaiderTemplate")
+    .Add("ACBS", acbs)
+    .Add("SNAM", faction)
+    .AddValue<uint32_t>("TPLT", 0x200)
+    .Add("TPTA", tpta)
+    .AddValue<uint32_t>("RNAM", 0x13746)
+    .AddValue<uint32_t>("DOFT", 0x300)
+    .Add("CNTO", cnto)
+    .Add("DNAM", dnam);
+  FieldWriter items;
+  items.Add<uint32_t>(0x1234).Add<uint32_t>(0x5678);
+  b.AddRecord("OTFT", 0x300).EditorId("RaiderOutfit").Add("INAM", items);
+
+  ParsedPlugin p(b);
+  auto n = p.Get<espm::fo4::NPC_>(0x100);
+  REQUIRE(n.editorId == "RaiderTemplate");
+  REQUIRE(n.xpValueOffset == -5);
+  REQUIRE(n.levelMult == Catch::Approx(1.5f));
+  REQUIRE(n.calcMinLevel == 3);
+  REQUIRE(n.calcMaxLevel == 30);
+  REQUIRE(n.templateFlags == 0x0102);
+  REQUIRE(n.factions.size() == 1);
+  REQUIRE(n.factions[0].factionId == 0x1BC);
+  REQUIRE(n.factions[0].rank == 2);
+  REQUIRE(n.defaultTemplate == 0x200);
+  REQUIRE(n.templateActors[espm::fo4::NPC_::kInventory] == 0x5000);
+  REQUIRE(n.templateActors[espm::fo4::NPC_::kStats] == 0);
+  REQUIRE(n.race == 0x13746);
+  REQUIRE(n.defaultOutfit == 0x300);
+  REQUIRE(n.items.size() == 1);
+  REQUIRE(n.items[0].formId == 0x4822C);
+  REQUIRE(n.calculatedHealth == 120);
+  auto o = p.Get<espm::fo4::OTFT>(0x300);
+  REQUIRE(o.items == std::vector<uint32_t>{ 0x1234, 0x5678 });
+}

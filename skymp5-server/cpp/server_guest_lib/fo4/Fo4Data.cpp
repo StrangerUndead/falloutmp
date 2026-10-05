@@ -159,6 +159,26 @@ LeveledListData& InMemoryFo4DataSource::AddLeveledList(LeveledListData d)
 {
   return leveledLists[d.id] = std::move(d);
 }
+NpcData& InMemoryFo4DataSource::AddNpc(NpcData d)
+{
+  return npcs[d.id] = std::move(d);
+}
+
+OutfitData& InMemoryFo4DataSource::AddOutfit(OutfitData d)
+{
+  return outfits[d.id] = std::move(d);
+}
+
+const NpcData* InMemoryFo4DataSource::FindNpc(FormId id) const
+{
+  return FindIn(npcs, id);
+}
+
+const OutfitData* InMemoryFo4DataSource::FindOutfit(FormId id) const
+{
+  return FindIn(outfits, id);
+}
+
 ContainerData& InMemoryFo4DataSource::AddContainer(ContainerData d)
 {
   return containers[d.id] = std::move(d);

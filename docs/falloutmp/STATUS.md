@@ -23,16 +23,17 @@
 | Movement (F01): `UpdateMovementFo4` (65), server speed model (walk/sprint/encumbered/PA/jetpack/vertical), per-sample and windowed checks, scored corrections, cell-change rule, history for hit rewind, PA core drain from movement; client capture and interpolated replay | Done | `Fo4MovementTest`, `Fo4ServerTest` [F01], client `movement.test.ts` |
 | Effects (F20-T03): `EffectsUpdate` (92) owner full and neighbour visual subset, pushed on use, expiry and join; `getEffects`/`cureAddictions`/`addRads`; client `EffectsService` | Done | `Fo4ServerTest` [F20], `Fo4MessagesTest`, client effects test |
 | NPC hosting (F13), first slice: upstream host election (`Host`/`HostStart`/`HostStop`) kept; hosted NPC movement, fire (fire rate enforced, ammo unlimited), hit claims (`HitReport.shooterIdx`) and bounded AV reports (C1) validated like players; owner copies routed to the host; neighbour sends skip the host; Fallout 4 movement refreshes the upstream host-timeout clock; client hosting in movement, combat and actor values | Done | `Fo4ServerTest` [F13], client `hosting.test.ts` |
-| F13 remainder: NPC loadouts and levels from NPC_ records, `NpcAiState` (111) threat/detection, host migration re-seed, hostility matrix | Not started | — |
+| F13 NPC data: libespm NPC_/OTFT readers; `NpcResolver` (per-aspect templates via TPTA/TPLT, leveled NPC picks once per spawn, PC level mult with calc min/max, leveled loadout and outfit); NPCs seeded on first touch (level, health, inventory, best gun, outfit, factions); essential/protected/invulnerable damage rules; hosted fire limited to carried guns | Done | `Fo4EspmTest` NPC_ case, `Fo4NpcTest` |
+| F13 remainder: `NpcAiState` (111) threat/detection, host migration re-seed, hostility matrix, legendary rolls, death items | Not started | — |
 | T2 systems (companions, VATS, stealth, quests, survival) | Not started | — |
 
-Test totals at the last commit: C++ 243 test cases and 2046 assertions (`./unit/unit "~[espm]"`); client 59 tests.
+Test totals at the last commit: C++ 248 test cases and about 2100 assertions (`./unit/unit "~[espm]"`); client 59 tests.
 
 Guides: [guides/server-admin.md](guides/server-admin.md), [guides/gamemode-api.md](guides/gamemode-api.md), [guides/implementation.md](guides/implementation.md).
 
 ## Next actions (for the next session)
 1. M2: PEX FO4 reader (PVM-001…006), so server Papyrus can run Fallout 4 scripts.
-2. F13 remainder: read NPC_ records (template chain, ACBS level, CNTO loadout, factions) so NPC weapons and levels come from data instead of the host; then `NpcAiState` (111).
+2. F13 remainder: `NpcAiState` (111), legendary rolls (LTPT/LTPC), death items, hostility from factions.
 3. Windows work for the user or CI: PLAT-001+ (the F4SE plugin implementing `falloutPlatform.ts`), then the G-self checks in the verification table below.
 4. Still open from planning: user answers to Q-01…Q-19 (05-risks-open-questions.md §2).
 
@@ -103,7 +104,9 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 | Fusion core drain rates per movement state | F17 (`PowerArmorSettings`) | G-manual |
 | Default weather ids used in guide examples | guides/gamemode-api.md | D-real |
 | Player walk/run/sprint/PA/jetpack speeds in units per second | F01 (`MovementSettings`) | G-manual |
-| AVIF form id of SpeedMult | F01 (`movement.speedMultAvId`) | D-real |
+| AVIF form id of SpeedMult (now resolved by editor id "SpeedMult" when the setting is 0) | F01 (`movement.speedMultAvId`) | D-real |
+| FO4 NPC_ SNAM is 5 bytes (faction + rank) | F13 (`Fo4Records.cpp`) | D-real |
+| NPC health formula without DNAM | F13 (`npcHealthBase/PerLevel`) | D-real |
 
 ## Deliberate deviations recorded during planning
 - F22 coalesces workshop saves to ≤ 1/s per workshop (vs 01-sync-standard §8 rule 4 "next tick").
@@ -123,13 +126,16 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 - F22: `WorkshopObjects` snapshots are chunked at `fo4.workshopSnapshotChunk` (200) objects. Wires and scrapped pre-placed refs ride in chunk 0.
 - F17: fusion core drain carries a signed sub-step remainder (`pendingDrain`) because 10 Hz movement drains less than one condition step per sample. The remainder isn't persisted (at most 0.1% of a core lost on restart).
 - F01: movement speeds are generous defaults (`fo4.movement.*`) until measured in game; `CreateActorFo4` doesn't carry the last flags yet.
-- F13: until NPC loadouts load from NPC_ records, a hosted NPC may fire any gun the host names (`npcTrustHostWeapons`, default on). Fire rate, range and the shot log still apply, and NPC ammo is unlimited.
+- F13: a hosted NPC may only fire guns it carries from its data. Only NPCs whose data has no gun at all take the host's word (`npcTrustHostWeapons`). NPC ammo is unlimited, but fire rate, range and the shot log still apply.
+- F13: an NPC's level uses the highest-level player within `npcLevelScanRadius` when it is first touched (vanilla uses the single player). NPC health without DNAM uses `npcHealthBase + npcHealthPerLevel × level` [verify].
+- F13: essential NPCs stop at 1 HP, protected NPCs can't be killed by other NPCs, and invulnerable NPCs take no damage.
 - Gamemode events are named `onFo4...` (for example `onFo4PvpFlagChange`) rather than the unprefixed names in some specs.
 - `claimRule: "gamemode"` blocks every player claim; owners are set only with `mp.fo4.setWorkshopOwner`.
 
 ## Evidence log
 | Date | Task | Evidence |
 |---|---|---|
+| 2026-10-05 | F13 NPC data | `Fo4NpcTest` (4 cases), `Fo4EspmTest` NPC_/OTFT; suite 248 cases |
 | 2026-10-05 | F13 hosting slice | `Fo4ServerTest` "a host drives its NPC within the same rules"; client `hosting.test.ts` (4 tests); suite 243/2046 |
 | 2026-10-05 | F20-T03 effects | `Fo4ServerTest` "effects are pushed on use and on expiry", message round trip; suite 242/2030 |
 | 2026-10-05 | F01 movement | `Fo4MovementTest` (9 cases), `Fo4ServerTest` movement and PA drain cases, client `movement.test.ts` (7 tests); suite 241/2003 |

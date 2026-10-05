@@ -1,6 +1,7 @@
 #include "libespm/fo4/Fo4Records.h"
 #include "libespm/RecordHeaderAccess.h"
 #include <cctype>
+#include <algorithm>
 #include <cstring>
 
 namespace espm::fo4 {
@@ -606,6 +607,92 @@ CONT::Data CONT::GetData(CompressedFieldsCache& cache) const noexcept
         d.items.push_back(c);
       } else if (Is(type, "DATA") && size >= 1) {
         d.respawns = (static_cast<uint8_t>(data[0]) & 0x2) != 0;
+      }
+    },
+    cache);
+  return d;
+}
+
+NPC_::Data NPC_::GetData(CompressedFieldsCache& cache) const noexcept
+{
+  Data d;
+  RecordHeaderAccess::IterateFields(
+    this,
+    [&](const char* type, uint32_t size, const char* data) {
+      if (Is(type, "EDID")) {
+        d.editorId = ReadZString(data, size);
+      } else if (Is(type, "ACBS") && size >= 16) {
+        FieldReader r(data, size);
+        r.Read(d.flags);
+        r.Read(d.xpValueOffset);
+        uint16_t level = 0;
+        r.Read(level);
+        r.Read(d.calcMinLevel);
+        r.Read(d.calcMaxLevel);
+        r.Skip(2); // disposition base
+        r.Read(d.templateFlags);
+        if (d.flags & kFlagPcLevelMult) {
+          d.levelMult = static_cast<float>(level) / 1000.f;
+          d.level = 1;
+        } else {
+          d.level = level;
+        }
+      } else if (Is(type, "SNAM") && size >= 5) {
+        // FO4: faction form id + rank (5 bytes; Skyrim pads to 8)
+        Faction f;
+        std::memcpy(&f.factionId, data, 4);
+        f.rank = static_cast<int8_t>(data[4]);
+        d.factions.push_back(f);
+      } else if (Is(type, "INAM")) {
+        d.deathItem = ReadU32(data, size);
+      } else if (Is(type, "TPLT")) {
+        d.defaultTemplate = ReadU32(data, size);
+      } else if (Is(type, "LTPT")) {
+        d.legendaryTemplate = ReadU32(data, size);
+      } else if (Is(type, "LTPC")) {
+        d.legendaryChance = ReadU32(data, size);
+      } else if (Is(type, "TPTA")) {
+        size_t n = std::min<size_t>(size / 4, kAspectCount);
+        for (size_t i = 0; i < n; ++i) {
+          std::memcpy(&d.templateActors[i], data + i * 4, 4);
+        }
+      } else if (Is(type, "RNAM")) {
+        d.race = ReadU32(data, size);
+      } else if (Is(type, "CNAM")) {
+        d.classId = ReadU32(data, size);
+      } else if (Is(type, "DOFT")) {
+        d.defaultOutfit = ReadU32(data, size);
+      } else if (Is(type, "ZNAM")) {
+        d.combatStyle = ReadU32(data, size);
+      } else if (Is(type, "DNAM") && size >= 2) {
+        std::memcpy(&d.calculatedHealth, data, 2);
+      } else if (Is(type, "CNTO") && size >= 8) {
+        ComponentCount c;
+        std::memcpy(&c.formId, data, 4);
+        int32_t count = 0;
+        std::memcpy(&count, data + 4, 4);
+        c.count = count > 0 ? static_cast<uint32_t>(count) : 0;
+        d.items.push_back(c);
+      }
+    },
+    cache);
+  return d;
+}
+
+OTFT::Data OTFT::GetData(CompressedFieldsCache& cache) const noexcept
+{
+  Data d;
+  RecordHeaderAccess::IterateFields(
+    this,
+    [&](const char* type, uint32_t size, const char* data) {
+      if (Is(type, "EDID")) {
+        d.editorId = ReadZString(data, size);
+      } else if (Is(type, "INAM")) {
+        for (uint32_t i = 0; i + 4 <= size; i += 4) {
+          uint32_t id = 0;
+          std::memcpy(&id, data + i, 4);
+          d.items.push_back(id);
+        }
       }
     },
     cache);

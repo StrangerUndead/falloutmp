@@ -39,6 +39,7 @@ public:
 
 private:
   void EnsureActorLoaded(uint32_t actorId);
+  void ResolveDataIds();
   void SaveActor(uint32_t actorId);
   void LoadWorldFile();
 

@@ -246,7 +246,18 @@ Fo4PartOneGlue::Fo4PartOneGlue(PartOne& partOne)
     pImpl->data = std::make_shared<InMemoryFo4DataSource>();
   }
   pImpl->server = std::make_unique<Fo4Server>(pImpl->data, *pImpl->host);
+  ResolveDataIds();
   pImpl->lastSaveMs = SteadyMs();
+}
+
+void Fo4PartOneGlue::ResolveDataIds()
+{
+  // Ids the server can look up by editor id in the load order
+  auto espmData = dynamic_cast<EspmFo4DataSource*>(pImpl->data.get());
+  auto& mv = pImpl->server->settings.movement;
+  if (espmData && mv.speedMultAvId == 0) {
+    mv.speedMultAvId = espmData->FindActorValueByEditorId("SpeedMult");
+  }
 }
 
 Fo4PartOneGlue::~Fo4PartOneGlue()
@@ -271,6 +282,7 @@ void Fo4PartOneGlue::ApplySettings(const Fo4ServerSettings& settings)
   }
   pImpl->server =
     std::make_unique<Fo4Server>(pImpl->data, *pImpl->host, settings);
+  ResolveDataIds();
 }
 
 void Fo4PartOneGlue::OnMessage(uint32_t actorId, MsgType type,

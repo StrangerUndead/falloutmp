@@ -459,6 +459,85 @@ public:
   Data GetData(CompressedFieldsCache& cache) const noexcept;
 };
 
+// Non-player character base (F13). Template flags pick which aspects come
+// from a template actor (TPTA per aspect, else TPLT); see NpcResolver.
+class NPC_ final : public RecordHeader
+{
+public:
+  static constexpr auto kType = "NPC_";
+
+  // ACBS flags
+  static constexpr uint32_t kFlagEssential = 1u << 1;
+  static constexpr uint32_t kFlagRespawn = 1u << 3;
+  static constexpr uint32_t kFlagPcLevelMult = 1u << 7;
+  static constexpr uint32_t kFlagProtected = 1u << 11;
+  static constexpr uint32_t kFlagNoLoot = 1u << 12;
+  static constexpr uint32_t kFlagSpawnsDead = 1u << 26;
+  static constexpr uint32_t kFlagInvulnerable = 1u << 31;
+
+  // Template flag / TPTA index per aspect
+  enum Aspect : uint8_t
+  {
+    kTraits = 0,
+    kStats = 1,
+    kFactions = 2,
+    kSpellList = 3,
+    kAiData = 4,
+    kAiPackages = 5,
+    kModelAnimation = 6,
+    kBaseData = 7,
+    kInventory = 8,
+    kScript = 9,
+    kDefPackList = 10,
+    kAttackData = 11,
+    kKeywords = 12,
+    kAspectCount = 13,
+  };
+
+  struct Faction
+  {
+    uint32_t factionId = 0;
+    int8_t rank = 0;
+  };
+
+  struct Data
+  {
+    std::string editorId;
+    uint32_t flags = 0;
+    int16_t xpValueOffset = 0;
+    uint16_t level = 1;      // when not kFlagPcLevelMult
+    float levelMult = 1.f;   // when kFlagPcLevelMult
+    uint16_t calcMinLevel = 0;
+    uint16_t calcMaxLevel = 0; // 0 = no cap
+    uint16_t templateFlags = 0;
+    std::vector<Faction> factions;
+    uint32_t deathItem = 0;
+    uint32_t defaultTemplate = 0;   // TPLT (LVLN or NPC_)
+    uint32_t legendaryTemplate = 0; // LTPT
+    uint32_t legendaryChance = 0;   // LTPC (GLOB)
+    std::array<uint32_t, kAspectCount> templateActors{}; // TPTA
+    uint32_t race = 0;
+    uint32_t classId = 0;
+    uint32_t defaultOutfit = 0; // DOFT
+    uint32_t combatStyle = 0;
+    uint16_t calculatedHealth = 0; // DNAM
+    std::vector<ComponentCount> items; // CNTO
+  };
+  Data GetData(CompressedFieldsCache& cache) const noexcept;
+};
+
+class OTFT final : public RecordHeader
+{
+public:
+  static constexpr auto kType = "OTFT";
+  struct Data
+  {
+    std::string editorId;
+    std::vector<uint32_t> items; // ARMO or LVLI
+  };
+  Data GetData(CompressedFieldsCache& cache) const noexcept;
+};
+
 // Placed reference (REFR/ACHR) fields used by the server world bootstrap.
 class REFR final : public RecordHeader
 {
