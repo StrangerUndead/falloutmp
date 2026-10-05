@@ -33,7 +33,7 @@ The plan is written for **future Claude Code sessions**, which start in a fresh,
 | [backlog/](backlog/) | Infrastructure workstreams (ENV, BUILD, REF, ESPM, PVM, DATA, PLAT, NET, SRV, CLI, FRONT, GM, QA, OPS, DOCS) with task IDs | When picking infrastructure work |
 | [features/](features/) | One spec per gameplay system (SkyMP parity and FO4-specific), each with its own task list `Fxx-Tnn` | When implementing or reviewing a feature |
 | [reference/](reference/) | Deep research: SkyMP internals and sync inventory, CommonLibF4 port map, Papyrus API map, FO4 data formats, PEX/VM, animation, FO4 systems, prior art, coupling index, dev environment | As linked from tasks |
-| [research/initial-survey.md](research/initial-survey.md) | First broad survey (Oct 2026) | Background only |
+| [../FALLOUT4_PORT_RESEARCH.md](../FALLOUT4_PORT_RESEARCH.md) | First broad survey (Oct 2026) | Background only |
 
 ---
 

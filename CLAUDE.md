@@ -27,3 +27,9 @@ If you see more than 1 unit test failed, please select one to work on and iterat
 cd build
 ./unit/unit [Respawn]
 ```
+
+# FalloutMP plan
+
+This fork is being turned into FalloutMP (a Fallout 4 multiplayer framework built from SkyMP).
+The full project plan lives in `docs/falloutmp/` — **start every session with `docs/falloutmp/README.md` and `docs/falloutmp/STATUS.md`**.
+Without game data, run unit tests with `./unit/unit "~[espm]"` (data-dependent tests are tagged `[espm]` / `[fo4data]`).
