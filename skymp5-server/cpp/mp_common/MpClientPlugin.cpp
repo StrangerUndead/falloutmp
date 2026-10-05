@@ -12,7 +12,14 @@
 void MpClientPlugin::CreateClient(State& state, const char* targetHostname,
                                   uint16_t targetPort)
 {
-  std::string password = kNetworkingPasswordPrefix;
+  CreateClientEx(state, targetHostname, targetPort, GameId::Skyrim);
+}
+
+void MpClientPlugin::CreateClientEx(State& state, const char* targetHostname,
+                                    uint16_t targetPort, GameId game)
+{
+  const std::string prefix(GetProtocolPrefix(game));
+  std::string password = prefix;
   // Keep in sync with installer code
   static const std::string kPasswordPath =
     "Data/Platform/Distribution/password";
@@ -31,7 +38,7 @@ void MpClientPlugin::CreateClient(State& state, const char* targetHostname,
       password.pop_back();
     }
 
-    password = kNetworkingPasswordPrefix + password;
+    password = prefix + password;
   } catch (std::exception& e) {
     spdlog::warn("Unable to read password from '{}', will use standard '{}'",
                  kPasswordPath, password.data());

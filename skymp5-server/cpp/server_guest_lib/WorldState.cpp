@@ -1200,3 +1200,23 @@ bool WorldState::HasEspmFile(std::string_view filename) const noexcept
   return std::find(espmFiles.begin(), espmFiles.end(), filename) !=
     espmFiles.end();
 }
+
+const GameProfile& WorldState::GetGameProfile() const noexcept
+{
+  return *gameProfile;
+}
+
+std::shared_ptr<const GameProfile> WorldState::GetGameProfilePtr()
+  const noexcept
+{
+  return gameProfile;
+}
+
+void WorldState::SetGameProfile(std::shared_ptr<GameProfile> profile)
+{
+  if (!profile) {
+    throw std::runtime_error("SetGameProfile: profile must not be null");
+  }
+  gameProfile = std::move(profile);
+  bannedEspmCharacterRaceIds = gameProfile->GetBannedCharacterRaceIds();
+}

@@ -305,6 +305,23 @@ ScampServer::ScampServer(const Napi::CallbackInfo& info)
                  partOne->worldState.isPapyrusHotReloadEnabled ? "enabled"
                                                                : "disabled");
 
+    if (serverSettings.contains("game")) {
+      if (!serverSettings["game"].is_string()) {
+        throw std::runtime_error("'game' setting must be a string");
+      }
+      const std::string gameStr = serverSettings["game"].get<std::string>();
+      auto game = ParseGameId(gameStr);
+      if (!game) {
+        throw std::runtime_error(
+          "Unknown 'game' setting '" + gameStr +
+          "', expected \"skyrim\" or \"fallout4\"");
+      }
+      partOne->worldState.SetGameProfile(CreateGameProfile(*game));
+    }
+    logger->info("Game profile is '{}', protocol prefix '{}'",
+                 partOne->worldState.GetGameProfile().GetName(),
+                 partOne->worldState.GetGameProfile().GetProtocolPrefix());
+
     if (serverSettings["dataDir"] != nullptr) {
       dataDir = serverSettings["dataDir"];
     } else {
@@ -312,13 +329,11 @@ ScampServer::ScampServer(const Napi::CallbackInfo& info)
     }
     logger->info("Using data dir '{}'", dataDir);
 
-    std::vector<std::filesystem::path> pluginPaths = {
-      std::filesystem::path(dataDir) / "Skyrim.esm",
-      std::filesystem::path(dataDir) / "Update.esm",
-      std::filesystem::path(dataDir) / "Dawnguard.esm",
-      std::filesystem::path(dataDir) / "HearthFires.esm",
-      std::filesystem::path(dataDir) / "Dragonborn.esm"
-    };
+    std::vector<std::filesystem::path> pluginPaths;
+    for (auto& fileName :
+         partOne->worldState.GetGameProfile().GetDefaultLoadOrder()) {
+      pluginPaths.push_back(std::filesystem::path(dataDir) / fileName);
+    }
     if (serverSettings["loadOrder"].is_array()) {
       pluginPaths.clear();
       for (size_t i = 0; i < serverSettings["loadOrder"].size(); ++i) {
@@ -341,10 +356,13 @@ ScampServer::ScampServer(const Napi::CallbackInfo& info)
     }
 
     auto espm = new espm::Loader(pluginPaths);
+    // Protocol prefix depends on the game (NET-001): a Skyrim client can't
+    // join a Fallout 4 server because the SLikeNet password differs.
+    const std::string protocolPrefix(
+      partOne->worldState.GetGameProfile().GetProtocolPrefix());
     std::string password = serverSettings.contains("password")
-      ? std::string(kNetworkingPasswordPrefix) +
-        static_cast<std::string>(serverSettings["password"])
-      : std::string(kNetworkingPasswordPrefix);
+      ? protocolPrefix + static_cast<std::string>(serverSettings["password"])
+      : protocolPrefix;
     auto realServer =
       Networking::CreateServer(listenHost.c_str(), listenPort, maxPlayers,
                                password.data(), promRegistry);

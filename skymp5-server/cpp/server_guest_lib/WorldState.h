@@ -7,6 +7,7 @@
 #include "MpForm.h"
 #include "MpObjectReference.h"
 #include "NiPoint3.h"
+#include "game_profile/GameProfile.h"
 #include "PartOneListener.h"
 #include "condition_functions/ConditionFunctionMap.h"
 #include "libespm/Loader.h"
@@ -231,6 +232,12 @@ public:
   void SetForbiddenRelootTypes(const std::set<std::string>& types);
   void SetEnableConsoleCommandsForAllSetting(bool enable);
 
+  // Game profile (REF-003). Defaults to Skyrim. Changing it resets
+  // profile-derived defaults such as bannedEspmCharacterRaceIds.
+  const GameProfile& GetGameProfile() const noexcept;
+  std::shared_ptr<const GameProfile> GetGameProfilePtr() const noexcept;
+  void SetGameProfile(std::shared_ptr<GameProfile> profile);
+
 public:
   std::vector<std::string> espmFiles;
   std::unordered_map<int32_t, std::set<uint32_t>> actorIdByProfileId;
@@ -253,18 +260,9 @@ public:
 
   bool disableVanillaScriptsInExterior = true;
 
-  std::vector<uint32_t> bannedEspmCharacterRaceIds = {
-    0x000e7713, 0x00012e82, 0x001052a3, 0x00088884, 0x0008883a, 0x00088846,
-    0x00108272, 0x000a82b9, 0x0008883c, 0x00088794, 0x00088845, 0x0008883d,
-    0x00088844, 0x00088840, 0x000a82ba,
-
-    /* Playable races from ArgonianRace to WoodElfRace */
-    0x00013740, 0x00013741, 0x00013742, 0x00013743, 0x00013744, 0x00013745,
-    0x00013746, 0x00013747, 0x00013748, 0x00013749,
-
-    /* Mannequin */
-    0x0010760a
-  };
+  // Initialized from the game profile (REF-004); gamemodes may still edit it
+  std::vector<uint32_t> bannedEspmCharacterRaceIds =
+    CreateGameProfile(GameId::Skyrim)->GetBannedCharacterRaceIds();
 
   ConditionsEvaluatorSettings conditionsEvaluatorSettings;
   ConditionFunctionMap conditionFunctionMap;
@@ -306,4 +304,5 @@ private:
   std::shared_ptr<Impl> pImpl;
   Viet::Timer timerEffects, timerRegular;
   std::chrono::steady_clock::time_point worldStartTime;
+  std::shared_ptr<GameProfile> gameProfile = CreateGameProfile(GameId::Skyrim);
 };
