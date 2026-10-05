@@ -6,6 +6,10 @@
 //     "profile-id": 123456,                 // generated on first start
 //     "puppet-base": "0x7",                 // base NPC of other players
 //     "puppet-move": "native",              // or "papyrus"
+//     "puppet-warp": "controller",          // or "reference"
+//     "puppet-ai": "package",               // or "restrained", "off"
+//     "puppet-npc-targets": false,          // local NPCs may target puppets
+//     "puppet-local-death": false,          // puppets may die from local hits
 //     "probe": false,                       // write FalloutMP-probe.json
 //     "features": { "combat": false }       // switch a module off
 //   }
