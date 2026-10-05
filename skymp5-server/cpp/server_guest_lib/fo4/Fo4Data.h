@@ -258,6 +258,9 @@ struct WorkshopObjectData
   float happiness = 0.f;
   float budgetCost = 1.f;  // abstract units, see F22 budget model
   bool isPowerConnector = false; // pylons, conduits, switches
+  bool requiresWorker = false;   // crops, scavenging stations, shops
+  bool isRecruitmentBeacon = false;
+  bool isBed = false;
   bool isGenerator() const { return powerGenerated > 0.f; }
 };
 
