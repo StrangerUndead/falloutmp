@@ -111,8 +111,40 @@ public:
   }
   void SendTo(ActorId a, const IMessageBase& msg, bool reliable) override
   {
-    if (auto ac = ActorPtr(a)) {
-      if (partOne.serverState.UserByActor(ac) != Networking::InvalidUserId) {
+    auto ac = ActorPtr(a);
+    if (!ac) {
+      return;
+    }
+    if (partOne.serverState.UserByActor(ac) != Networking::InvalidUserId) {
+      ac->SendToUser(msg, reliable);
+      return;
+    }
+    // A hosted NPC's owner copy goes to its host (F13, S14)
+    if (auto hostActor = ActorPtr(GetHostOf(a))) {
+      if (partOne.serverState.UserByActor(hostActor) !=
+          Networking::InvalidUserId) {
+        hostActor->SendToUser(msg, reliable);
+      }
+    }
+  }
+
+  ActorId GetHostOf(ActorId a) override
+  {
+    auto it = partOne.worldState.hosters.find(a);
+    return it == partOne.worldState.hosters.end() ? 0 : it->second;
+  }
+
+  void SendToNeighboursExcept(ActorId a, ActorId except,
+                              const IMessageBase& msg, bool reliable) override
+  {
+    auto r = Ref(a);
+    if (!r) {
+      return;
+    }
+    for (auto listener : r->GetListeners()) {
+      auto ac = listener->AsActor();
+      if (ac && ac != r && ac->GetFormId() != except &&
+          partOne.serverState.UserByActor(ac) != Networking::InvalidUserId) {
         ac->SendToUser(msg, reliable);
       }
     }
@@ -157,6 +189,14 @@ public:
       auto rot = ac->GetAngle();
       ac->SetAngle({ rot.x, rot.y, yawDeg },
                    SetAngleMode::CalledByUpdateMovement);
+      // Upstream host election treats an actor without movement for 2 s as
+      // unhosted; Fallout 4 movement must refresh the same clock.
+      auto idx = ac->GetIdx();
+      auto& last = partOne.worldState.lastMovUpdateByIdx;
+      if (last.size() <= idx) {
+        last.resize(static_cast<size_t>(idx) + 1);
+      }
+      last[idx] = std::chrono::system_clock::now();
     }
   }
 

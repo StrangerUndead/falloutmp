@@ -27,6 +27,7 @@ export interface CombatOptions {
 export class CombatService {
   private nextShotId = 1;
   private shotSeq = new Map<number, { seq: number; atMs: number }>();
+  private shotShooter = new Map<number, number>(); // local shot -> shooterIdx (0 = me)
   private pendingHits = new Map<number, PendingHit[]>();
   private readonly shotTtlMs: number;
 
@@ -38,12 +39,14 @@ export class CombatService {
   }
 
   // Returns the local shot id the platform uses for later hit reports.
-  fire(weaponBaseId: number, origin: Vec3, direction: Vec3): number {
+  // shooterIdx: 0 for the player, or a hosted NPC's server id.
+  fire(weaponBaseId: number, origin: Vec3, direction: Vec3, shooterIdx = 0): number {
     const id = this.nextShotId;
     this.nextShotId = (this.nextShotId + 1) >>> 0 || 1;
+    this.shotShooter.set(id, shooterIdx);
     this.ctx.send(
       Fo4MsgType.WeaponFire,
-      { weaponBaseId, origin, direction, clientShotId: id },
+      { shooterIdx, weaponBaseId, origin, direction, clientShotId: id },
       false,
     );
     return id;
@@ -54,7 +57,7 @@ export class CombatService {
   reportHit(localShotId: number, projectileIndex: number, targetIdx: number, limb: number): void {
     const known = this.shotSeq.get(localShotId);
     if (known) {
-      this.sendHit(known.seq, projectileIndex, targetIdx, limb);
+      this.sendHit(localShotId, known.seq, projectileIndex, targetIdx, limb);
       return;
     }
     const list = this.pendingHits.get(localShotId) ?? [];
@@ -81,11 +84,13 @@ export class CombatService {
     for (const [id, s] of Array.from(this.shotSeq.entries())) {
       if (now - s.atMs > this.shotTtlMs) {
         this.shotSeq.delete(id);
+        this.shotShooter.delete(id);
       }
     }
     for (const [id, hits] of Array.from(this.pendingHits.entries())) {
       if (hits.length && now - hits[0].atMs > this.shotTtlMs) {
         this.pendingHits.delete(id); // the shot was rejected or lost
+        this.shotShooter.delete(id);
       }
     }
   }
@@ -93,6 +98,7 @@ export class CombatService {
   reset(): void {
     this.shotSeq.clear();
     this.pendingHits.clear();
+    this.shotShooter.clear();
   }
 
   pendingHitCount(): number {
@@ -101,12 +107,13 @@ export class CombatService {
     return n;
   }
 
-  private sendHit(shotSeq: number, projectileIndex: number, targetIdx: number, limb: number): void {
-    this.ctx.send(Fo4MsgType.HitReport, { shotSeq, projectileIndex, targetIdx, limb });
+  private sendHit(localShotId: number, shotSeq: number, projectileIndex: number, targetIdx: number, limb: number): void {
+    const shooterIdx = this.shotShooter.get(localShotId) ?? 0;
+    this.ctx.send(Fo4MsgType.HitReport, { shooterIdx, shotSeq, projectileIndex, targetIdx, limb });
   }
 
   private onFire(m: WeaponFireMessage): void {
-    if (this.ctx.isLocalActor(m.shooterIdx)) {
+    if (this.ctx.isLocalActor(m.shooterIdx) || (m.clientShotId && this.ctx.isHosted(m.shooterIdx))) {
       if (!m.clientShotId) {
         return;
       }
@@ -115,7 +122,7 @@ export class CombatService {
       if (hits) {
         this.pendingHits.delete(m.clientShotId);
         for (const h of hits) {
-          this.sendHit(m.seq, h.projectileIndex, h.targetIdx, h.limb);
+          this.sendHit(m.clientShotId, m.seq, h.projectileIndex, h.targetIdx, h.limb);
         }
       }
       return;

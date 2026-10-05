@@ -8,6 +8,7 @@ import { Fo4MsgType } from "../messages/msgType";
 // conditions, which is all a puppet needs for health bars and crippling.
 export class ActorValueService {
   private own = new Map<number, AvValue>();
+  private hostedOwn = new Map<number, Map<number, AvValue>>();
   private remote = new Map<number, Map<number, AvValue>>();
 
   constructor(private readonly ctx: ClientContext) {
@@ -36,27 +37,53 @@ export class ActorValueService {
 
   forgetActor(actorIdx: number): void {
     this.remote.delete(actorIdx);
+    this.hostedOwn.delete(actorIdx);
   }
 
   reset(): void {
     this.own.clear();
     this.remote.clear();
+    this.hostedOwn.clear();
+  }
+
+  // F13: the host's simulation changed a hosted NPC's values. The server
+  // bounds them (they can never kill) and answers with the truth.
+  reportHosted(npcIdx: number, values: AvValue[]): void {
+    if (!this.ctx.isHosted(npcIdx) || !values.length) {
+      return;
+    }
+    this.ctx.send(Fo4MsgType.ChangeValuesAv, { idx: npcIdx, values: values.map((v) => ({ ...v })) });
+  }
+
+  private hostedValues(idx: number): Map<number, AvValue> {
+    let m = this.hostedOwn.get(idx);
+    if (!m) {
+      m = new Map();
+      this.hostedOwn.set(idx, m);
+    }
+    return m;
   }
 
   private onChangeValues(m: ChangeValuesAvMessage): void {
     const p = this.ctx.platform;
-    if (this.ctx.isLocalActor(m.idx)) {
-      const player = p.getPlayer();
+    const hosted = this.ctx.isHosted(m.idx);
+    if (this.ctx.isLocalActor(m.idx) || hosted) {
+      // Owner copy: absolute values (the player, or an NPC we host)
+      const actor = hosted ? p.refs.toLocal(m.idx) : p.getPlayer();
+      if (!actor) {
+        return;
+      }
+      const own = hosted ? this.hostedValues(m.idx) : this.own;
       for (const v of m.values) {
-        const prev = this.own.get(v.avId);
+        const prev = own.get(v.avId);
         // Max first: setting current above the old max would clamp.
         if (!prev || prev.max !== v.max) {
-          p.setActorValueMax(player, v.avId, v.max);
+          p.setActorValueMax(actor, v.avId, v.max);
         }
         if (!prev || prev.current !== v.current) {
-          p.setActorValueCurrent(player, v.avId, v.current);
+          p.setActorValueCurrent(actor, v.avId, v.current);
         }
-        this.own.set(v.avId, { ...v });
+        own.set(v.avId, { ...v });
       }
     } else {
       const map = this.remote.get(m.idx) ?? new Map<number, AvValue>();

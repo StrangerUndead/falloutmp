@@ -57,7 +57,7 @@ const bridge = new SkympClientBridge(client);
 if (bridge.handleIncoming(msgAny)) break;
 ```
 
-The world view calls `bridge.onCreateActor`, `onDestroyActor` and `client.onActorStreamedIn` as actors stream. On disconnect, `bridge.onConnectionLost()` fails every pending request with `Disconnected` and clears the mirrored state.
+The world view calls `bridge.onCreateActor`, `onDestroyActor` and `client.onActorStreamedIn` as actors stream. Upstream `HostStart`/`HostStop` go to `bridge.onHostStart`/`onHostStop`. The client then sends movement, shots and value changes for those NPCs. On disconnect, `bridge.onConnectionLost()` fails every pending request with `Disconnected` and clears the mirrored state.
 
 ## What needs the game to verify
 

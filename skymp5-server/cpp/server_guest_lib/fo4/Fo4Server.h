@@ -62,6 +62,19 @@ public:
   }
   // Called when the server kills an actor (F12 takes it from here)
   virtual void OnActorKilled(ActorId victim, ActorId killer) = 0;
+  // F13: the player actor hosting an NPC, or 0.
+  virtual ActorId GetHostOf(ActorId actor)
+  {
+    (void)actor;
+    return 0;
+  }
+  // Neighbours of `actor` except `except` (a hosted NPC's own host).
+  virtual void SendToNeighboursExcept(ActorId actor, ActorId except,
+                                      const IMessageBase& msg, bool reliable)
+  {
+    (void)except;
+    SendToNeighbours(actor, msg, reliable);
+  }
   // Applies an accepted movement sample to the actor (position, yaw).
   virtual void SetActorTransform(ActorId actor,
                                  const std::array<float, 3>& pos, float yawDeg)
@@ -100,6 +113,9 @@ struct Fo4ServerSettings
   int64_t timeWeatherIntervalMs = 10000;
   // Objects per WorkshopObjects snapshot chunk (about 40 bytes each).
   uint32_t workshopSnapshotChunk = 200;
+  // F13: until NPC loadouts load from NPC_ records, a hosted NPC may fire
+  // any gun the host names (fire rate and range are still validated).
+  bool npcTrustHostWeapons = true;
   // Biped slots outer apparel may not use over a power armor frame
   // (body armor slots 41-45 in FO4's first-person flags) [verify G-self]
   uint32_t powerArmorBlockedBipedSlots = 0x3E00;
@@ -119,6 +135,7 @@ struct Fo4ActorState
   std::set<FormId> discoveredMarkers;
   int64_t lastCombatMs = -1000000000;
   int32_t lastAnnouncedLevel = 0; // for onFo4LevelUp
+  int64_t lastHostAvReportMs = 0;  // F13 hosted NPC AV reports
 };
 
 class Fo4Server
@@ -177,6 +194,8 @@ public:
   // Party state of `to`'s profile (nonce 0 for pushes).
   void SendPartyState(ActorId to, uint32_t nonce, const std::string& error);
   std::optional<ActorId> FindPlayerByProfile(ProfileId profile) const;
+  // F13: is `npc` a hosted NPC whose host is `player`?
+  bool IsHostedBy(ActorId npc, ActorId player);
   DamageModel& Damage() { return damageModel; }
   std::map<std::string, PerkChartEntry>& PerkChart() { return perkChart; }
   // Effect definitions applied to every actor's effect system
@@ -192,6 +211,9 @@ public:
 private:
   void SendContainer(ActorId to, FormId refId, bool alsoNeighbours);
   void SendPowerArmorStateOf(ActorId actor);
+  // Neighbours of an actor; a hosted NPC's host is skipped because it gets
+  // the owner's copy through SendTo.
+  void Neighbours(ActorId actor, const IMessageBase& msg, bool reliable);
   struct Impl;
   std::unique_ptr<Impl> pImpl;
 

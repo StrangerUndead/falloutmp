@@ -38,11 +38,15 @@ interface RemoteActor {
 // interpolationDelayMs in the past on the server's timeline, extrapolated
 // for at most maxExtrapolationMs, and snapped on cell changes or large
 // errors.
+interface OwnedActor {
+  seq: number;
+  lastSendMs: number;
+  lastFlags: number;
+  paused: boolean;
+}
+
 export class MovementService {
-  private seq = 0;
-  private lastSendMs = -1e12;
-  private lastFlags = -1;
-  private paused = true;
+  private owned = new Map<number, OwnedActor>(); // by server id
   private remotes = new Map<number, RemoteActor>();
   private readonly o: Required<MovementOptions>;
   sentCount = 0;
@@ -58,21 +62,43 @@ export class MovementService {
     ctx.router.on(Fo4MsgType.UpdateMovementFo4, (m) => this.onRemote(m));
   }
 
-  // Owner side, every frame.
+  // Owner side, every frame: the player and every NPC this client hosts.
   tickOwner(): void {
     const p = this.ctx.platform;
-    const cur = p.getMovementFo4();
+    const me = this.ctx.session.localActorId;
+    this.tickOwned(me, p.getPlayer());
+    for (const npc of this.ctx.session.hosted) {
+      const local = p.refs.toLocal(npc);
+      if (local) {
+        this.tickOwned(npc, local);
+      }
+    }
+    for (const id of Array.from(this.owned.keys())) {
+      if (id !== me && !this.ctx.isHosted(id)) {
+        this.owned.delete(id); // hosting ended
+      }
+    }
+  }
+
+  private tickOwned(serverId: number, local: number): void {
+    const p = this.ctx.platform;
+    let o = this.owned.get(serverId);
+    if (!o) {
+      o = { seq: 0, lastSendMs: -1e12, lastFlags: -1, paused: true };
+      this.owned.set(serverId, o);
+    }
+    const cur = p.getMovementFo4(local);
     if (!cur) {
-      this.paused = true; // loading screen: stop sending
+      o.paused = true; // loading screen / unloaded: stop sending
       return;
     }
     const now = p.nowMs();
-    const flagsChanged = cur.flags !== this.lastFlags;
-    if (!this.paused && !flagsChanged && now - this.lastSendMs < this.o.sendIntervalMs) {
+    const flagsChanged = cur.flags !== o.lastFlags;
+    if (!o.paused && !flagsChanged && now - o.lastSendMs < this.o.sendIntervalMs) {
       return;
     }
-    this.paused = false;
-    this.send(cur, now);
+    o.paused = false;
+    this.send(serverId, o, cur, now);
   }
 
   // Remote side, every frame.
@@ -80,6 +106,9 @@ export class MovementService {
     const p = this.ctx.platform;
     const now = p.nowMs();
     for (const [idx, r] of this.remotes) {
+      if (this.ctx.isHosted(idx)) {
+        continue;
+      }
       const local = p.refs.toLocal(idx);
       if (!local || !r.samples.length) {
         continue;
@@ -110,24 +139,28 @@ export class MovementService {
 
   reset(): void {
     this.remotes.clear();
-    this.paused = true;
-    this.lastFlags = -1;
+    this.owned.clear();
+  }
+
+  // A hosted NPC stops being a puppet: its remote buffer is dropped.
+  onHostStart(serverId: number): void {
+    this.remotes.delete(serverId);
   }
 
   remoteCount(): number {
     return this.remotes.size;
   }
 
-  private send(cur: LocalMovement, now: number): void {
-    this.seq = (this.seq + 1) & 0xffff;
-    this.lastSendMs = now;
-    this.lastFlags = cur.flags;
+  private send(serverId: number, o: OwnedActor, cur: LocalMovement, now: number): void {
+    o.seq = (o.seq + 1) & 0xffff;
+    o.lastSendMs = now;
+    o.lastFlags = cur.flags;
     this.sentCount++;
     this.ctx.send(
       Fo4MsgType.UpdateMovementFo4,
       {
-        idx: this.ctx.session.localActorId,
-        seq: this.seq,
+        idx: serverId,
+        seq: o.seq,
         ts: now >>> 0,
         worldOrCell: cur.worldOrCell,
         pos: cur.pos,
@@ -144,8 +177,8 @@ export class MovementService {
   }
 
   private onRemote(m: UpdateMovementFo4Message): void {
-    if (this.ctx.isLocalActor(m.idx)) {
-      return; // only with the server's show-me debug option
+    if (this.ctx.isLocalActor(m.idx) || this.ctx.isHosted(m.idx)) {
+      return; // we simulate it ourselves
     }
     const now = this.ctx.platform.nowMs();
     let r = this.remotes.get(m.idx);

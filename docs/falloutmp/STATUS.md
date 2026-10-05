@@ -22,15 +22,17 @@
 | PEX FO4 reader (M2 PVM-001…006) | Not started | — |
 | Movement (F01): `UpdateMovementFo4` (65), server speed model (walk/sprint/encumbered/PA/jetpack/vertical), per-sample and windowed checks, scored corrections, cell-change rule, history for hit rewind, PA core drain from movement; client capture and interpolated replay | Done | `Fo4MovementTest`, `Fo4ServerTest` [F01], client `movement.test.ts` |
 | Effects (F20-T03): `EffectsUpdate` (92) owner full and neighbour visual subset, pushed on use, expiry and join; `getEffects`/`cureAddictions`/`addRads`; client `EffectsService` | Done | `Fo4ServerTest` [F20], `Fo4MessagesTest`, client effects test |
-| NPC hosting (F13), T2 systems (companions, VATS, stealth, quests, survival) | Not started | — |
+| NPC hosting (F13), first slice: upstream host election (`Host`/`HostStart`/`HostStop`) kept; hosted NPC movement, fire (fire rate enforced, ammo unlimited), hit claims (`HitReport.shooterIdx`) and bounded AV reports (C1) validated like players; owner copies routed to the host; neighbour sends skip the host; Fallout 4 movement refreshes the upstream host-timeout clock; client hosting in movement, combat and actor values | Done | `Fo4ServerTest` [F13], client `hosting.test.ts` |
+| F13 remainder: NPC loadouts and levels from NPC_ records, `NpcAiState` (111) threat/detection, host migration re-seed, hostility matrix | Not started | — |
+| T2 systems (companions, VATS, stealth, quests, survival) | Not started | — |
 
-Test totals at the last commit: C++ 242 test cases and 2030 assertions (`./unit/unit "~[espm]"`); client 55 tests.
+Test totals at the last commit: C++ 243 test cases and 2046 assertions (`./unit/unit "~[espm]"`); client 59 tests.
 
 Guides: [guides/server-admin.md](guides/server-admin.md), [guides/gamemode-api.md](guides/gamemode-api.md), [guides/implementation.md](guides/implementation.md).
 
 ## Next actions (for the next session)
 1. M2: PEX FO4 reader (PVM-001…006), so server Papyrus can run Fallout 4 scripts.
-2. F13: NPC hosting on Fallout 4 data, hosted-NPC actor values within the C1 bounds.
+2. F13 remainder: read NPC_ records (template chain, ACBS level, CNTO loadout, factions) so NPC weapons and levels come from data instead of the host; then `NpcAiState` (111).
 3. Windows work for the user or CI: PLAT-001+ (the F4SE plugin implementing `falloutPlatform.ts`), then the G-self checks in the verification table below.
 4. Still open from planning: user answers to Q-01…Q-19 (05-risks-open-questions.md §2).
 
@@ -121,12 +123,14 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 - F22: `WorkshopObjects` snapshots are chunked at `fo4.workshopSnapshotChunk` (200) objects. Wires and scrapped pre-placed refs ride in chunk 0.
 - F17: fusion core drain carries a signed sub-step remainder (`pendingDrain`) because 10 Hz movement drains less than one condition step per sample. The remainder isn't persisted (at most 0.1% of a core lost on restart).
 - F01: movement speeds are generous defaults (`fo4.movement.*`) until measured in game; `CreateActorFo4` doesn't carry the last flags yet.
+- F13: until NPC loadouts load from NPC_ records, a hosted NPC may fire any gun the host names (`npcTrustHostWeapons`, default on). Fire rate, range and the shot log still apply, and NPC ammo is unlimited.
 - Gamemode events are named `onFo4...` (for example `onFo4PvpFlagChange`) rather than the unprefixed names in some specs.
 - `claimRule: "gamemode"` blocks every player claim; owners are set only with `mp.fo4.setWorkshopOwner`.
 
 ## Evidence log
 | Date | Task | Evidence |
 |---|---|---|
+| 2026-10-05 | F13 hosting slice | `Fo4ServerTest` "a host drives its NPC within the same rules"; client `hosting.test.ts` (4 tests); suite 243/2046 |
 | 2026-10-05 | F20-T03 effects | `Fo4ServerTest` "effects are pushed on use and on expiry", message round trip; suite 242/2030 |
 | 2026-10-05 | F01 movement | `Fo4MovementTest` (9 cases), `Fo4ServerTest` movement and PA drain cases, client `movement.test.ts` (7 tests); suite 241/2003 |
 | 2026-10-05 | Settings, gamemode events, guides | `Fo4SettingsTest` (3 cases), `Fo4ServerTest` "gamemode events observe and can block actions"; full suite 230/1879 |

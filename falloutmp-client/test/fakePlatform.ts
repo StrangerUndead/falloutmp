@@ -234,8 +234,10 @@ export class FakePlatform implements FalloutPlatform {
 
   // Movement
   movement: import("../src/platform/falloutPlatform").LocalMovement | undefined = undefined;
-  getMovementFo4() {
-    return this.movement ? { ...this.movement, pos: [...this.movement.pos] as Vec3 } : undefined;
+  hostedMovement = new Map<number, import("../src/platform/falloutPlatform").LocalMovement>();
+  getMovementFo4(actor: FormId) {
+    const m = actor === kPlayer ? this.movement : this.hostedMovement.get(actor);
+    return m ? { ...m, pos: [...m.pos] as Vec3 } : undefined;
   }
   setActorTransform(actor: FormId, pos: Vec3, yaw: number): void {
     this.record("setActorTransform", actor, pos, yaw);

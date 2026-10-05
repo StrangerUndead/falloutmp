@@ -239,6 +239,7 @@ struct WeaponReloadMessage : public MessageBase<WeaponReloadMessage>
 struct HitReportMessage : public MessageBase<HitReportMessage>
 {
   FO4_MSG_TYPE(HitReport)
+  uint32_t shooterIdx = 0; // 0 = the sender; else a hosted NPC (F13)
   uint32_t shotSeq = 0;
   uint32_t projectileIndex = 0;
   uint32_t targetIdx = 0;
@@ -248,6 +249,7 @@ struct HitReportMessage : public MessageBase<HitReportMessage>
   void Serialize(A& a)
   {
     a.Serialize("t", kMsgType)
+      .Serialize("shooterIdx", shooterIdx)
       .Serialize("shotSeq", shotSeq)
       .Serialize("projectileIndex", projectileIndex)
       .Serialize("targetIdx", targetIdx)

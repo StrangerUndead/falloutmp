@@ -84,6 +84,17 @@ export class FalloutMpClient {
     this.ctx.session.profileId = profileId;
   }
 
+  // F13: the server made this client the host of an NPC (HostStart), or
+  // took it away (HostStop).
+  setHosted(npcServerId: number, hosted: boolean): void {
+    if (hosted) {
+      this.ctx.session.hosted.add(npcServerId);
+      this.movement.onHostStart(npcServerId);
+    } else {
+      this.ctx.session.hosted.delete(npcServerId);
+    }
+  }
+
   // Returns true when the message was a Fallout 4 message handled here.
   onMessage(msg: { t: number }): boolean {
     if (!isFallout4MsgType(msg.t)) {
@@ -124,6 +135,7 @@ export class FalloutMpClient {
 
   onDisconnect(): void {
     this.ctx.requests.failAll("Disconnected");
+    this.ctx.session.hosted.clear();
     this.inventory.reset();
     this.actorValues.reset();
     this.equipment.reset();
@@ -186,8 +198,13 @@ export class FalloutMpClient {
     p.on("terminalActivated", (e) => this.locks.activateTerminal(server(e.ref)));
     p.on("hackGuess", () => this.locks.guessPassword());
     p.on("weaponFired", (e) => {
-      this.lastLocalShotId = this.combat.fire(e.weaponBaseId, e.origin, e.direction);
+      const shooter = e.shooter && e.shooter !== p.getPlayer() ? p.refs.toServer(e.shooter) : 0;
+      if (shooter && !this.ctx.isHosted(shooter)) {
+        return; // not ours to report
+      }
+      this.lastLocalShotId = this.combat.fire(e.weaponBaseId, e.origin, e.direction, shooter);
     });
+    p.on("hostedValuesChanged", (e) => this.actorValues.reportHosted(p.refs.toServer(e.actor), e.values));
     p.on("reloadRequested", () => void this.combat.reload());
     p.on("projectileHit", (e) =>
       this.combat.reportHit(e.localShotId || this.lastLocalShotId, e.projectileIndex, this.toServerActor(e.target), e.limb),

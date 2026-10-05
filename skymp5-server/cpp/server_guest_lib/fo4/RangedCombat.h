@@ -83,9 +83,11 @@ public:
   RangedCombat(const IFo4DataSource& data, FireSettings settings = {});
 
   // `equipped` is the weapon instance the server has as equipped.
+  // unlimitedAmmo: NPCs don't run dry (vanilla gives them ammo); fire
+  // rate is still enforced.
   FireResult Fire(uint32_t shooter, const ItemKey& equipped,
                   Fo4Inventory& inv, const std::array<float, 3>& origin,
-                  int64_t nowMs);
+                  int64_t nowMs, bool unlimitedAmmo = false);
   ReloadResult Reload(uint32_t shooter, const ItemKey& equipped,
                       Fo4Inventory& inv);
   FireError ValidateHit(uint32_t shooter, const HitClaim& claim);

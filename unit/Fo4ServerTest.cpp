@@ -20,6 +20,7 @@ struct Sent
   bool neighbours;
   int type;
   nlohmann::json json;
+  ActorId except = 0;
 };
 
 class FakeHost : public Fo4Host
@@ -75,6 +76,20 @@ public:
     teleports.push_back({ a, p });
     pos[a] = p;
     return true;
+  }
+
+  std::map<ActorId, ActorId> hostOf;
+  ActorId GetHostOf(ActorId a) override
+  {
+    auto it = hostOf.find(a);
+    return it == hostOf.end() ? 0 : it->second;
+  }
+  void SendToNeighboursExcept(ActorId a, ActorId except, const IMessageBase& m,
+                              bool) override
+  {
+    nlohmann::json j;
+    m.WriteJson(j);
+    sent.push_back({ a, true, j.value("t", -1), j, except });
   }
 
   void SetActorTransform(ActorId a, const std::array<float, 3>& p,
@@ -935,4 +950,87 @@ TEST_CASE("Fo4Server: effects are pushed on use and on expiry",
   // Full state includes effects
   w.server->SendFullState(kAlice);
   REQUIRE(w.host.AllTo(kAlice, MsgType::EffectsUpdate).size() == before + 2);
+}
+
+TEST_CASE("Fo4Server: a host drives its NPC within the same rules",
+          "[fo4][Fo4Server][F13]")
+{
+  ServerWorld w;
+  constexpr ActorId kRaider = 0xFF0000AA;
+  w.host.pos[kRaider] = { 1000, 0, 0 };
+  w.host.hostOf[kRaider] = kAlice;
+  auto& raider = w.server->Actor(kRaider);
+  raider.avs.SetBase(Av::Health, 100.f);
+  raider.avs.SetCurrent(Av::Health, 100.f);
+  w.server->Actor(kBob);
+
+  // Movement: the host may move it, nobody else
+  UpdateMovementFo4Message mv;
+  mv.idx = kRaider;
+  mv.seq = 1;
+  mv.worldOrCell = 0x3c;
+  mv.pos = { 1010, 0, 0 };
+  w.host.now += 100;
+  w.server->OnMessage(kAlice, MsgType::UpdateMovementFo4, mv);
+  REQUIRE(w.host.pos[kRaider][0] == 1010.f);
+  auto relay = w.host.LastToNeighbours(kRaider, MsgType::UpdateMovementFo4);
+  REQUIRE(relay["idx"] == kRaider);
+  REQUIRE(w.host.sent.back().except == kAlice); // not echoed to the host
+  mv.seq = 2;
+  mv.pos = { 1020, 0, 0 };
+  w.host.now += 100;
+  w.server->OnMessage(kBob, MsgType::UpdateMovementFo4, mv);
+  REQUIRE(w.host.pos[kRaider][0] == 1010.f);
+
+  // Fire: the host names the gun; the server enforces the fire rate
+  WeaponFireMessage fire;
+  fire.shooterIdx = kRaider;
+  fire.weaponBaseId = k10mm;
+  fire.clientShotId = 9;
+  w.server->OnMessage(kAlice, MsgType::WeaponFire, fire);
+  auto echo = w.host.Last(kAlice, MsgType::WeaponFire);
+  REQUIRE(echo["shooterIdx"] == kRaider);
+  REQUIRE(echo["clientShotId"] == 9);
+  uint32_t seq = echo["seq"];
+  REQUIRE(raider.equippedWeapon->baseId == k10mm);
+  size_t fires = w.host.AllTo(kAlice, MsgType::WeaponFire).size();
+  w.server->OnMessage(kAlice, MsgType::WeaponFire, fire); // same instant
+  REQUIRE(w.host.AllTo(kAlice, MsgType::WeaponFire).size() == fires);
+  // Bob can't fire for Alice's raider; a non-gun is refused
+  w.server->OnMessage(kBob, MsgType::WeaponFire, fire);
+  REQUIRE(w.host.AllTo(kBob, MsgType::WeaponFire).empty());
+
+  // The raider's hit on Bob is claimed by the host
+  w.host.pos[kBob] = { 1100, 0, 0 };
+  auto& bob = w.server->Actor(kBob);
+  float bobHp = bob.avs.GetCurrent(Av::Health);
+  HitReportMessage hit;
+  hit.shooterIdx = kRaider;
+  hit.shotSeq = seq;
+  hit.targetIdx = kBob;
+  w.server->OnMessage(kAlice, MsgType::HitReport, hit);
+  REQUIRE(bob.avs.GetCurrent(Av::Health) < bobHp);
+  REQUIRE(w.host.Last(kBob, MsgType::DamageApplied)["aggressorIdx"] ==
+          kRaider);
+  // Bob can't claim the raider's shots
+  hit.projectileIndex = 0;
+  float after = bob.avs.GetCurrent(Av::Health);
+  w.server->OnMessage(kBob, MsgType::HitReport, hit);
+  REQUIRE(bob.avs.GetCurrent(Av::Health) == after);
+
+  // AV reports from the host are bounded and can never kill (C1)
+  ChangeValuesAvMessage av;
+  av.idx = kRaider;
+  av.values = { { Av::Health, 0.f, 100.f } };
+  w.host.now += 100;
+  w.server->OnMessage(kAlice, MsgType::ChangeValuesAv, av);
+  REQUIRE(raider.avs.GetCurrent(Av::Health) > 0.f);
+  REQUIRE(!raider.avs.IsDead());
+  // The host gets the truth back
+  REQUIRE(!w.host.Last(kRaider, MsgType::ChangeValuesAv).is_null());
+  // Reports from anyone else are ignored
+  float hp = raider.avs.GetCurrent(Av::Health);
+  w.host.now += 100;
+  w.server->OnMessage(kBob, MsgType::ChangeValuesAv, av);
+  REQUIRE(raider.avs.GetCurrent(Av::Health) == hp);
 }

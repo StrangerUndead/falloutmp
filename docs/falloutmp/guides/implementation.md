@@ -65,6 +65,7 @@ Timeouts on the client are driven by its tick: 10 s, then `"Timeout"`. A disconn
 - **Workshops** send a chunked snapshot on build-mode entry and on join, and versioned deltas afterwards. The client discards deltas older than its snapshot.
 - **Movement** is validated before relay against a server-known speed model, per sample and over a one-second window. Out-of-model samples are dropped and scored, and a sustained violation teleports the player back. The history (about 3 s) rewinds hit targets to where they were when the shot arrived. Accepted movement also drives fusion core drain.
 - **Shots** are relayed with a server sequence number. The shooter also gets its own `clientShotId` back, so hit claims name the server shot. Hits are validated against the shot log, range, rewind window and PvP rules.
+- **Hosted NPCs** (F13) use SkyMP's host election. The host's movement, shots, hit claims and actor value reports for its NPCs pass the same checks as a player's, and value reports can never kill. Owner copies of an NPC's state go to its host, and neighbour sends skip the host.
 - **Locks and terminals** are rolled on the server. The client minigame is only a presentation.
 - **Hosted NPC actor values** reported by a host can never kill (review C1).
 

@@ -133,9 +133,9 @@ export interface LocalMovement {
 }
 
 export interface MovementNatives {
-  // The player's transform and movement state this frame; undefined while
-  // a loading screen is up or the player isn't in the world.
-  getMovementFo4(): LocalMovement | undefined;
+  // Transform and movement state of the player or a hosted NPC this frame;
+  // undefined while a loading screen is up or the actor isn't loaded.
+  getMovementFo4(actor: FormId): LocalMovement | undefined;
   // Character-controller warp of a remote actor (no physics fighting).
   setActorTransform(actor: FormId, pos: Vec3, yaw: number): void;
   // Hard move (stream-in, cell change, large error).
@@ -230,10 +230,13 @@ export interface PlatformEvents {
   terminalActivated: { ref: FormId };
   hackGuess: { ref: FormId; sessionId: number };
   // Combat capture.
-  weaponFired: { weaponBaseId: FormId; origin: Vec3; direction: Vec3 };
+  // shooter: the player (omitted) or a hosted NPC's local ref
+  weaponFired: { weaponBaseId: FormId; origin: Vec3; direction: Vec3; shooter?: FormId };
   reloadRequested: Record<string, never>;
   projectileHit: { localShotId: number; projectileIndex: number; target: FormId; limb: number };
   fastTravelRequested: { marker: FormId };
+  // F13: values of a hosted NPC changed in the host's simulation
+  hostedValuesChanged: { actor: FormId; values: { avId: number; current: number; max: number }[] };
 }
 
 export interface PlatformEventSource {

@@ -39,6 +39,16 @@ export class SkympClientBridge {
     }
   }
 
+  // Upstream HostStart/HostStop carry "long" form ids: ids of plugin
+  // references are offset by 0x100000000 (FormIdCasts::LongToNormal).
+  onHostStart(msg: { target: number }): void {
+    this.client.setHosted(longToNormal(msg.target), true);
+  }
+
+  onHostStop(msg: { target: number }): void {
+    this.client.setHosted(longToNormal(msg.target), false);
+  }
+
   onDestroyActor(msg: { idx: number }): void {
     this.client.onActorDestroyed(msg.idx);
   }
@@ -46,4 +56,8 @@ export class SkympClientBridge {
   onConnectionLost(): void {
     this.client.onDisconnect();
   }
+}
+
+export function longToNormal(longFormId: number): number {
+  return longFormId % 0x100000000; // same as the server's LongToNormal
 }

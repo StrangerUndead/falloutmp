@@ -16,6 +16,8 @@ export interface Session {
   // Server id (actor form id) of the local player; set from CreateActor.
   localActorId: number;
   profileId: number;
+  // NPCs this client simulates for the server (F13 HostStart/HostStop)
+  hosted: Set<number>;
 }
 
 export interface RequestOptions {
@@ -28,7 +30,7 @@ export class ClientContext {
   readonly router = new MessageRouter();
   readonly events = new EventBus<ClientEvents>();
   readonly requests: RequestTracker;
-  readonly session: Session = { localActorId: 0, profileId: -1 };
+  readonly session: Session = { localActorId: 0, profileId: -1, hosted: new Set() };
   private quietNonces = new Set<number>();
 
   constructor(
@@ -84,6 +86,10 @@ export class ClientContext {
 
   isLocalActor(serverId: number): boolean {
     return serverId !== 0 && serverId === this.session.localActorId;
+  }
+
+  isHosted(serverId: number): boolean {
+    return this.session.hosted.has(serverId);
   }
 
   // Local reference of a server actor; the player is always resolvable.

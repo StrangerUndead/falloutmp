@@ -54,9 +54,10 @@ ItemKey RangedCombat::ReplaceInstance(Fo4Inventory& inv, const ItemKey& from,
 FireResult RangedCombat::Fire(uint32_t shooter, const ItemKey& equipped,
                               Fo4Inventory& inv,
                               const std::array<float, 3>& origin,
-                              int64_t nowMs)
+                              int64_t nowMs, bool unlimitedAmmo)
 {
   FireResult r;
+  const bool infinite = settings.infiniteAmmo || unlimitedAmmo;
   auto entry = inv.Find(equipped);
   if (!entry) {
     r.error = FireError::NotEquipped;
@@ -69,7 +70,7 @@ FireResult RangedCombat::Fire(uint32_t shooter, const ItemKey& equipped,
   }
   auto stats = resolver.ResolveWeapon(entry->key);
   uint16_t ammo = entry->key.ammoLoaded;
-  if (!settings.infiniteAmmo && stats.capacity > 0 && ammo == 0) {
+  if (!infinite && stats.capacity > 0 && ammo == 0) {
     r.error = FireError::EmptyMagazine;
     return r;
   }
@@ -83,7 +84,7 @@ FireResult RangedCombat::Fire(uint32_t shooter, const ItemKey& equipped,
     }
   }
   uint16_t newAmmo = ammo;
-  if (!settings.infiniteAmmo && stats.capacity > 0) {
+  if (!infinite && stats.capacity > 0) {
     newAmmo = static_cast<uint16_t>(ammo - 1);
   }
   r.weaponAfter = ReplaceInstance(inv, entry->key, newAmmo);

@@ -104,6 +104,7 @@ export interface WeaponReloadMessage {
 
 export interface HitReportMessage {
   t: Fo4MsgType.HitReport;
+  shooterIdx: number; // 0 = the sender; else a hosted NPC
   shotSeq: number;
   projectileIndex: number;
   targetIdx: number;
@@ -514,6 +515,7 @@ export const kMessageDefaults: DefaultsTable = {
   }),
   [Fo4MsgType.WeaponReload]: () => ({ nonce: 0, loaded: 0, ok: false }),
   [Fo4MsgType.HitReport]: () => ({
+    shooterIdx: 0,
     shotSeq: 0,
     projectileIndex: 0,
     targetIdx: 0,
