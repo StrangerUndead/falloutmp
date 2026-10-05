@@ -29,6 +29,7 @@
 
 #include "GameUtil.h"
 #include "Modules.h"
+#include "CombatGuard.h"
 #include "Papyrus.h"
 #include "Platform.h"
 #include "Puppets.h"
@@ -103,6 +104,8 @@ float MaxOf(const RE::ActorValueOwner& v, const RE::ActorValueInfo& info)
 void WriteCurrent(RE::Actor* actor, const RE::ActorValueInfo& info,
                   float value)
 {
+  // Server values pass the combat module's damage guard on puppets
+  combat::ServerWrite serverWrite;
   if (IsHealth(info)) {
     value = std::max(value, kMinHealth); // deaths are killActor's
   }
