@@ -40,7 +40,7 @@ _(none)_
 - Every in-game verification (G-self/G-manual) requires the user (Q-09).
 
 ## Decisions awaiting user
-Q-01 … Q-13 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confirmation: 001, 002, 003, 005, 006, 007, 008, 010–014, 016, 017, 019, 020.
+Q-01 … Q-17 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confirmation: 001, 002, 003, 005, 006, 007, 008, 010–014, 016, 017, 019, 020.
 
 ## Decisions log
 | Date | Decision | By | Affects |
@@ -52,6 +52,33 @@ Q-01 … Q-13 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 - `unit` without data: 138/171 test cases pass. All 33 failures are untagged Skyrim-data tests (REF-001).
 - Docker daemon and `add_repo` were denied by the session permission classifier. Do not retry without user approval (Q-12).
 - Caprica builds on Linux (Styyx1 fork + 2-line patch). Skyrim mode works; FO4 mode does not yet. Use Windows CI for FO4 PEX fixtures (ENV-013).
+
+## Facts to verify (collected from research/specs; verify via G-self or D-real, then update the reference doc)
+| Fact | Where used | How to verify |
+|---|---|---|
+| PlayerRef 0x14 / player base 0x7 / Commonwealth 0x3C / Caps 0xF in Fallout4.esm | F00, F04, REF-004 | D-real (ESPM-015) |
+| AV form ids (RadResistIngestion 0x2E5 vs 0x2E9; RadResistExposure) | F08 | D-real; resolve by EditorID (ESPM-016) |
+| Game-time globals 0x35–0x39 (only TimeScale 0x3A confirmed) | F25 | G-self (`help gamehour 4`) |
+| OMOD flag bits (Legendary 0x08 vs 0x10; Mod Collection 0x40 vs 0x80) | F04, F16 | D-real |
+| BA2 version 7 vs 8 for GNRL/DX10 in NG/AE | ESPM-013/014 | D-real (accept both) |
+| `CookingMenu` is the chem/cooking workbench menu | F15 | G-self (F15-T09) |
+| FO4 head node name `"Head"` for nameplates | F31 | G-self |
+| Keyboard/mouse input path (raw input vs DirectInput8) | PLAT-042 | G-self |
+| libxse vtable IDs on AE (pre-AE numbering) | PLAT-002 | G-self |
+| ~30 missing event-source getters | PLAT-040 | G-self |
+| Live morph rebuild via `Reset3D` on a live actor | F03 | G-self |
+| First-person event and variable behaviour (questions 1–5) | F02 | F02-T01 probe |
+| Bullet projectiles hitscan vs missile; fire cadence; ammo decrement timing | F09 | D-real + G-self |
+| Crits bypass DR?; explosion falloff; VATS hit-chance formula | F10, F11, F18 | G-manual measurements |
+| `LVSG` epic loot chance semantics | F14 | D-real |
+| Vendor restock days; respawn timers (168 h / 480 h) | F14, F23 | D-real (GMSTs) |
+
+## Deliberate deviations recorded during planning
+- F22 coalesces workshop saves to ≤ 1/s per workshop (vs 01-sync-standard §8 rule 4 "next tick").
+- F04 makes `stolenFrom` part of item identity (stacking differs from vanilla).
+- F07 uses `activationReach` = 300 u + 64 u slack with per-type overrides (SkyMP: 512 containers / 256 furniture).
+- F13 spawns essential NPCs as server-invulnerable instead of skipping them (needs Q-14).
+- F03 keeps `SetRaceMenuOpen` (29) frozen; the editor mode is an owner-only `looksMenuMode` property.
 
 ## Evidence log
 | Date | Task | Evidence |

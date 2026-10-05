@@ -43,6 +43,10 @@ L/I = likelihood/impact: H high, M medium, L low, C certain.
 | Q-10 | Approve the SessionStart hook and a vcpkg binary-cache release asset? | No hook; bootstrap manually (~25 min) | ENV-004/005 |
 | Q-11 | Accept the Microsoft MSVC/SDK license via xwin for Linux cross-compiles? | No cross-compiles; rely on CI | ENV-012 |
 | Q-12 | Widen this environment's network policy for GitHub archive downloads, or attach repos (add_repo was denied by the permission classifier)? | Keep using the git-based asset script | ENV-002 |
+| Q-14 | Essential/protected NPCs (vendors, quest givers): spawn them as server-invulnerable (F13 default) instead of SkyMP's skip? | Spawn as invulnerable | F13, F23 |
+| Q-15 | Fast-travel default: `discoveredOnly` (F26) or off (SkyMP parity)? | `discoveredOnly` | F26 |
+| Q-16 | Sleep/wait: allow the T2 option "everyone sleeping advances the clock"? | Off; instant rest disabled | F25 |
+| Q-17 | Quests: shared world quest state only, or also per-player instanced? | Shared only for T2; instancing later | F27 |
 | Q-13 | Upstream fixes to SkyMP (requires signing their CLA: copyright assignment)? | Don't upstream | ENV-016 |
 
 ## 3. Decisions log

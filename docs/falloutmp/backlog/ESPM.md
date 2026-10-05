@@ -10,7 +10,7 @@ Design: `espm::Game` enum. Separate `espm::fo4::*` zero-copy record structs that
   - Accept: Skyrim behaviour is unchanged without light plugins; synthetic ESL tests resolve FE ids; FormDesc round-trips light ids.
 - [ ] **ESPM-004** VMAD v6: Struct and Var property types, object format 2, never throw inside `noexcept` — M — Depends: ESPM-002 — Verify: L-fixture
 - [ ] **ESPM-005** FO4 records batch 1: TES4 (FO4 fields), GMST, GLOB, KYWD, AVIF, FLST, CELL, WRLD, REFR (XTEL, XLKR, XESP, XOWN, XLOC, XSCL, DATA), ACHR, LCTN — M — Depends: ESPM-001 — Verify: L-fixture
-- [ ] **ESPM-006** FO4 NPC_ (ACBS +0x0E template flags, PRPS, TPLT/TPTA, SNAM 5 bytes, CNTO, DOFT, PNAM, MSDK/MSDV, FMRI/FMRS, TETI/TEND, MWGT, HCLF, QNAM) and RACE (200-byte DATA by form version, PRPS, morph groups, tint templates, subgraph data) — L — Depends: ESPM-001 — Verify: L-fixture
+- [ ] **ESPM-006** FO4 NPC_ (ACBS +0x0E template flags, PRPS, TPLT/TPTA, SNAM 5 bytes, CNTO, DOFT, PNAM, MSDK/MSDV, FMRI/FMRS, TETI/TEND, MWGT, HCLF, QNAM, LTPT/LTPC legendary template & chance) and RACE (200-byte DATA by form version, PRPS, morph groups, tint templates, subgraph data) — L — Depends: ESPM-001 — Verify: L-fixture
 - [ ] **ESPM-007** FO4 WEAP (132-byte DNAM, DAMA, CRDT, APPR, OBTE, INRD), ARMO (DATA, FNAM, DAMA, 4-byte BOD2, APPR, OBTE), AMMO (DATA weight +4, DNAM), OMOD (DATA with 24-byte property entries, attach points), INNR, object templates OBTE/OBTS — L — Depends: ESPM-001 — Verify: L-fixture
 - [ ] **ESPM-008** FO4 COBJ (FVPA, CNAM, BNAM, FNAM, INTV, CTDA), CMPO, MISC (CVPA), CONT, LVLI/LVLN (LVLO with chance-none byte, LVLM, LVLF, LVLG, LLKC, LVSG), OTFT — M — Depends: ESPM-001 — Verify: L-fixture
 - [ ] **ESPM-009** FO4 ALCH (ENIT, addiction), MGEF (AVIF refs), SPEL, ENCH, PERK (ranks, entry points), HAZD, EXPL, PROJ (Hitscan flag), BPTD — M — Depends: ESPM-001 — Verify: L-fixture
@@ -23,3 +23,6 @@ Design: `espm::Game` enum. Separate `espm::fo4::*` zero-copy record structs that
   - Accept: the suite passes on the user's AE install, with results recorded in STATUS.md.
 - [ ] **ESPM-016** Look up GMST/FLST/AVIF by EditorID instead of hardcoded form ids (the AV id ambiguity, e.g. RadResistIngestion 0x2E5 vs 0x2E9) — S — Depends: ESPM-005 — Verify: L-fixture
 - [ ] **ESPM-017** Performance: index FO4 REFR by position (exterior cells) and persistent cell children; benchmark Fallout4.esm load time and memory — S — Depends: ESPM-005 — Verify: D-real
+- [ ] **ESPM-018** Workshop/power record data: `BNDS` (wire splines), REFR `XPRM` (primitive), `XWPG`/`XWPN` (workshop power grid/nodes), `XPLK`, `PRPS` on non-NPC base objects (workshop ratings, power) — M — Depends: ESPM-005 — Verify: L-fixture — (needed by F22; F22-T01 tracks it until done)
+- [ ] **ESPM-019** Climate/region weather: `CLMT` (weather list with chances, sun/timing), `REGN` (region weather entries) — S — Depends: ESPM-010 — Verify: L-fixture — (needed by F25-T03)
+- [ ] **ESPM-020** Encounter zones `ECZN` (min/max level, flags) and location-level links used by leveled actors — S — Depends: ESPM-005 — Verify: L-fixture — (needed by F14-T06)

@@ -179,6 +179,8 @@ There is nothing new to persist: detection is transient, and effects persist thr
 - [ ] **F29-T07** Owner meter override (HUD hook or overlay fallback) + `SetNotShowOnStealthMeter` on puppets — M — Depends: F29-T01, PLAT-060 — Verify: G-self — Files: falloutmp-client/src/services/services/stealthMeterService.ts
 - [ ] **F29-T08** Gamemode/Papyrus surface and PvP settings (§4.9) — S — Depends: F29-T04 — Verify: L-int
 - [ ] **F29-T09** `G-manual` script and sign-off; fit approximation constants from collected host reports — S — Depends: F29-T06, F29-T07 — Verify: G-manual — Files: docs/falloutmp/test-scripts/F29-stealth.md
+- [ ] **F29-T10** Pickpocketing (owned here because FO4 pickpocketing is a sneak interaction): `PickpocketAttempt` (119) request → server computes success from the sneak/detection state, the perk entry points (SRV-021) and item weight/value, moves the item atomically (F04, F06 rules), and flags crime via `NpcAiState` (111) on failure. Players can only be pickpocketed when the gamemode allows it (setting `pvp.pickpocket`, default off) — M — Depends: F29-T04, F06-T01, SRV-021 — Verify: L-unit, G-manual — Files: skymp5-server/cpp/server_guest_lib/PickpocketService.{h,cpp}, falloutmp-client/src/services/services/pickpocketService.ts
+  - Accept: unit tests cover success, failure (crime flag, hostility), reject when not sneaking or out of reach (with correction), and the gamemode veto.
 
 ## 8. Open questions & risks
 - Is a per-target detection level readable on the host without heavy RE (`DetectionData` per pair)? Fallback: report only `IsDetectedBy` (detected/not) plus combat state, i.e. levels 0/3 with caution derived from the NPC's alert state.

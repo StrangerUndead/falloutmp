@@ -29,10 +29,10 @@ Every gameplay system has one spec, written with [_TEMPLATE.md](_TEMPLATE.md) an
 | F22 | [Workshop & settlements](F22-workshop-settlements.md) | T1/T2 | L4 | — | M11/M12 |
 | F23 | [Vendors, barter, caps, trade](F23-vendors-barter-trade.md) | T1 | L4 | — | M9 |
 | F24 | [Locks, terminals, hacking, holotapes](F24-locks-terminals-hacking.md) | T1 | L4 | (client unlocks locally) | M9 |
-| F25 | [Time & weather](F25-time-weather.md) | T1 | L3 | TimeService (L2) | M9 |
+| F25 | [Time & weather](F25-time-weather.md) | T1 | L3 | TimeService (L2) | M6 (clock) / M9 |
 | F26 | [Map markers, discovery, fast travel](F26-map-fast-travel.md) | T1 | L3 | — | M9 |
 | F27 | [Quests & dialogue](F27-quests-dialogue.md) | T2 | L3 | quests (L0–L1) | M12 |
-| F28 | [Pip-Boy, radio, HUD, flashlight](F28-pipboy-radio-hud.md) | T1/T2 | L2/L3 | — | M11 |
+| F28 | [Pip-Boy, radio, HUD, flashlight](F28-pipboy-radio-hud.md) | T1/T2 | L2/L3 | — | M5 (menu policy) / M11 |
 | F29 | [Stealth](F29-stealth.md) | T2 | L3 | — | M10 |
 | F30 | [Chat, commands, admin](F30-chat-commands-admin.md) | T0 | L4 | Chat (gamemode), console (L3) | M6 |
 | F31 | [Names, custom properties, gamemode extensibility](F31-names-properties-extensibility.md) | T0 | L4 | Nicknames, properties (L3–L4) | M5 |

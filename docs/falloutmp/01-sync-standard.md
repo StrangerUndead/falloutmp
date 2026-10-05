@@ -147,7 +147,7 @@ Two sub-ranges:
 | 65 | `UpdateMovementFo4` | UpdateMovement (2) | both | U | F01 | pos/rot/worldOrCell, speed/direction, flags bitfield (sneak, sprint, sighted, weapon drawn, jump, PA, swim, furniture, dead), aim pitch/yaw, health % |
 | 66 | `UpdateAppearanceFo4` | UpdateAppearance (4) | both | R | F03 | FO4 appearance (morph sliders, regions, tints, head parts, body morph) |
 | 67 | `UpdateEquipmentFo4` | UpdateEquipment (5) | both | R | F05 | Worn items as item instances (base + OMODs), weapon/grenade slots, numChanges |
-| 68 | `SetInventoryFo4` | SetInventory (28) | S→C | R | F04 | Inventory with FO4 extra data (OMOD list, legendary, health, name) |
+| 68 | `SetInventoryFo4` | SetInventory (28) | S→C | R | F04 | Inventory with FO4 extra data (OMOD list, legendary, health, name). Optional `refId` + `version` fields carry container/workshop contents (F06, F15, F22) |
 | 69 | `PutItemFo4` | PutItem (8) | C→S | R | F06 | Put item instance into a container |
 | 70 | `TakeItemFo4` | TakeItem (9) | C→S | R | F06 | Take item instance from a container |
 | 71 | `DropItemFo4` | DropItem (19) | C→S | R | F06 | Drop item instance |
@@ -196,7 +196,8 @@ Two sub-ranges:
 | 116 | `ConsoleCommandResult` | new | S→C | R | F30 | One result per `ConsoleCommand` (12): ok, code, text (no silent rejects, I12) |
 | 117 | `ContainerPeek` | new | C→S | R | F06 | Start/stop a quick-loot peek subscription on a container/corpse (`target`, 0 = stop); contents come back as `SetInventoryFo4` with `refId` |
 | 118 | `SetFavorites` | new | C→S | R | F04 | Owner's 12 favorite slots (`ItemKey`) and tagged components (T1), persisted in the player profile |
-| 119–122 | free | | | | | Allocate in specs; update this table in the same commit |
+| 119 | `PickpocketAttempt` | new | both | R | F29 | Pickpocket request (target, item key) and authoritative result |
+| 120–122 | free | | | | | Allocate in specs; update this table in the same commit. If the range runs out, discuss a 2-byte type extension (NET) |
 
 Rules for adding a message:
 1. Follow recipe (a) in reference/skymp-sync-inventory.md §4.5.

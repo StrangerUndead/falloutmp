@@ -7,7 +7,7 @@
 | SkyMP analogue | Nameplates drawn over `"NPC Head [Head]"` with `worldPointToScreenPoint` + `createText`, F1 toggle (`skymp5-client/src/view/formView.ts:546-590`, `browserService.ts:25-29`); `displayName` with the `%original_name%` sentinel (`remoteServer.ts:323-337`, `PapyrusObjectReference.cpp:874-897`, `MpChangeForms.h:123`); property system and signed client functions (reference/skymp-sync-inventory.md §1.11). SkyMP level L3 / L4 |
 | Milestone | M4 (`ctx.sp` = falloutPlatform, CLI-071), M5 (nameplates, display names), M6 (I5/I6 regression, property limits), M12 (DOCS-003 shape registry complete) |
 | Workstreams | CLI, PLAT, SRV, GM, DOCS, FRONT |
-| Depends on | PLAT-011 (Text), PLAT-062 (`worldPointToScreenPoint`), PLAT-088 (node world position), PLAT-070 (per-player runtime TESNPC), CLI-030, CLI-031, CLI-070, CLI-071, NET-003, NET-008, F03 (`appearance.name`), DOCS-003 |
+| Depends on | PLAT-011 (Text), PLAT-062 (`worldPointToScreenPoint`), PLAT-088 (node world position), PLAT-070 (per-player runtime TESNPC), CLI-030, CLI-031, CLI-070, CLI-071, NET-003, NET-008, F03 (onboarding calls the F31 name step), F13 (legendary flag), F19 (level), F21 (`companionOwner`), DOCS-003 |
 | References | reference/skymp-sync-inventory.md §1.11, §1.12, §1.14, §2 ("Display names / nicknames", "Custom properties", "Enabled / disabled" rows), §3.2 I5, I6, I19; reference/papyrus-api-map.md §0 item 3, §2.4 (`setDisplayName`, `getName/setName` rows); reference/commonlib-port-map.md §4.11; reference/skyrim-coupling-index.md (gamemodeUpdateService row, gamemode JSON shapes note); reference/prior-art.md §3.4 |
 
 ## 1. Summary
@@ -57,15 +57,14 @@ On Fallout 4, `ctx.sp` is the `falloutPlatform` module. Client code arrives sign
 ## 4. Design
 
 ### 4.1 Authority model
-- **Class A:** character name (F03), `displayName`, custom property values, property definitions and their client code.
+- **Class A:** `displayName` (for players, the character name), custom property values, property definitions and their client code.
 - **Class D:** nameplate rendering and the F1 toggle, each client's evaluation of `updateOwner`/`updateNeighbor`.
 - **Event sources** produce intents. The gamemode validates them on the server (class A).
 
 ### 4.2 Server state & persistence
 | State | Type | Where (class/field) | Persisted (ChangeForm field) | Default source |
 |---|---|---|---|---|
-| Character name | string | `appearance.name` (F03) | yes (`appearanceDump`) | character creation |
-| Display name | optional string (may contain `%original_name%`) | `MpChangeFormREFR.displayName` | yes | none (base name) |
+| Display name (for players this is the character name; F03 §4 moved SkyMP's `Appearance.name` here) | optional string (may contain `%original_name%`) | `MpChangeFormREFR.displayName` | yes | none (base name); set by the onboarding name step |
 | Custom property values | JSON | `dynamicFields` | yes | — |
 | `private.*` / `private.indexed.*` | JSON | `dynamicFields` (never sent / indexed) | yes | — |
 | Property definitions, event sources | flags + signed JS | gamemode → `UpdateGamemodeData` | no (code) | — |
@@ -102,6 +101,10 @@ No new message IDs. The protocol is SkyMP's, which is the point of this spec.
   - fallback: actor position + 128 u.
 - Draw: project with `worldPointToScreenPoint` (PLAT-062), and draw with `createText` (PLAT-011) or the front HTML layer when FRONT-006 styling is on.
 - Hidden when screen z < 0. Text ids are stored in `sp.storage` for hot reload.
+- Text = resolved display name, plus these decorations:
+  - a `★` prefix for legendary NPCs (F13 snapshot flag);
+  - ` (<owner name>)` for companions (F21 `companionOwner`);
+  - ` [<level>]` for players when `nameplates.showLevel` (F19 public `level`).
 
 **Custom properties** (FO4 `GamemodeUpdateService` and `GamemodeEventSourceService`, CLI-071):
 - the same `ctx` as SkyMP, with `ctx.sp = falloutPlatform`, plus `ctx.game = "fallout4"`;
@@ -124,6 +127,11 @@ No new message IDs. The protocol is SkyMP's, which is the point of this spec.
   - optional uniqueness among profiles;
   - `onSetName(actorId, name)` [blockable];
   - a rejected name is returned to the caller as an error, and F03 shows it in the creation UI.
+- **Name submission at creation** (F03 onboarding "name" step):
+  1. The front form fires the gamemode event source `_onCharacterName` (`CustomEvent` 15).
+  2. The default gamemode (GM-010) calls `mp.validateName(name)`, then `mp.set(actor, 'displayName', name)`.
+  3. There is no new message. The name is accepted only while the gamemode's onboarding state allows it, so a player cannot rename at will.
+- **`onSetName`** fires for writes that come from Papyrus or the console. Gamemode `mp.set` writes do not fire it, because the gamemode is the authority.
 - **Property limits (S20, NET-008):**
   - a value is ≤ `properties.maxValueBytes` (16 KB) serialized, otherwise `mp.set` throws;
   - `makeProperty` on a built-in name throws;
@@ -151,6 +159,7 @@ No new message IDs. The protocol is SkyMP's, which is the point of this spec.
 - **`displayName`:** new built-in binding `DisplayNameBinding`, get/set. Set writes the ChangeForm and sends `UpdateProperty`. Setting `null` restores the base name.
 - **Unchanged:** `mp.makeProperty`, `mp.makeEventSource`, `mp.get/set`, `mp.findFormsByPropertyValue`.
 - **New `mp.getGame()`:** returns `"fallout4"` or `"skyrim"`, for cross-game gamemodes [skyrim-coupling-index inference].
+- **New `mp.validateName(name)`:** returns `{ok, reason}` using the `names.*` rules.
 - **Event:** `onSetName` [blockable].
 - **FO4 property shape registry (DOCS-003):**
   - lives in `skymp5-server/ts/gamemodeApi/fo4PropertyShapes.ts` as JSON Schema;
@@ -185,13 +194,14 @@ No new message IDs. The protocol is SkyMP's, which is the point of this spec.
   - `UpdateProperty` to listeners (long id for ESM actors);
   - `CreateActorFo4` carries `displayName`;
   - Papyrus `SetDisplayName` → binding;
-  - name rules (each reject) and `onSetName` veto;
+  - name rules (each reject), `mp.validateName`, and `onSetName` veto for Papyrus and console writes;
   - property value size cap, built-in name collision, event rate cap;
   - persistence round trip of `displayName` and `dynamicFields`.
 - `L-unit` `[F31][Shapes]`: each FO4 built-in binding's JSON validates against `fo4PropertyShapes`.
 - `L-ts`:
   - nameplate visibility rules (distance, LOS, sneak, keyword, menu) with a mocked platform (CLI-050);
   - `%original_name%` substitution;
+  - nameplate decorations (legendary, companion owner, level);
   - signature verification (good, bad, missing, unknown key);
   - `ctx.sp` is falloutPlatform;
   - the I5 and I6 regression cases (CLI-030/031).
@@ -205,7 +215,7 @@ No new message IDs. The protocol is SkyMP's, which is the point of this spec.
 - [ ] **F31-T02** Display-name apply: `%original_name%`, F4SE `SetName` on the clone base, `setRefDisplayName` native for shared bases, re-apply after base recreation — S — Depends: PLAT-070, PLAT-031 — Verify: W-ci, G-self — Files: falloutmp-client/src/view/displayName.ts, fallout4-platform/src/.../NameApi.cpp
 - [ ] **F31-T03** Server `DisplayNameBinding` + `UpdateProperty` to listeners + `CreateActorFo4` prop + Papyrus `SetDisplayName` extension (FO4 profile) — S — Depends: NET-003, PVM-012 — Verify: L-unit — Files: skymp5-server/cpp/addon/property_bindings/DisplayNameBinding.{h,cpp}, PropertyBindingFactory.cpp, skymp5-server/cpp/server_guest_lib/script_classes/PapyrusObjectReference.cpp, unit/DisplayNameTest.cpp
   - Accept: the `[F31]` binding cases pass. The Skyrim SpSnippet path is unchanged.
-- [ ] **F31-T04** Name rules helper `validateDisplayName`, `names.*` settings, `onSetName` event (shared with F03) — S — Depends: F31-T03 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/NameRules.{h,cpp} (new), gamemode_events/SetNameEvent.cpp
+- [ ] **F31-T04** Name rules helper `validateDisplayName` / `mp.validateName`, `names.*` settings, `onSetName` event, onboarding name step in the default gamemode (with F03-T08) — S — Depends: F31-T03 — Verify: L-unit, L-int — Files: skymp5-server/cpp/server_guest_lib/NameRules.{h,cpp} (new), gamemode_events/SetNameEvent.cpp, falloutmp-gamemode/src/systems/chargen.ts
 - [ ] **F31-T05** `ctx.sp = falloutPlatform` + `ctx.game` in `GamemodeUpdateService`/`GamemodeEventSourceService` (implements CLI-071); signature verification kept; signed-source tests — S — Depends: CLI-001, CLI-050 — Verify: L-ts — Files: falloutmp-client/src/services/services/{gamemodeUpdateService,gamemodeEventSourceService,serverJsVerificationService}.ts
 - [ ] **F31-T06** I5/I6 regression suite on top of CLI-030/CLI-031: `isDisabled`, `isDead`, `displayName` and custom properties on ESM-id NPCs — S — Depends: CLI-030, CLI-031 — Verify: L-ts, L-int
   - Accept: a late-joining bot sees an ESM NPC's disabled state and custom property.

@@ -47,8 +47,10 @@ The movement-history ring buffer is used by lag-compensated hit validation (F09/
 ### 4.3 Protocol
 | Message | Dir | Fields | Reliability | Rate |
 |---|---|---|---|---|
-| `UpdateMovementFo4` (65) | C→S, S→C relay | `idx`, `seq` (u16), `ts` (client ms, u32), `worldOrCell`, `pos[3]`, `yaw`, `aimPitch`, `aimHeading`, `speed`, `direction`, `velZ`, `flags` (u16 bitfield: sneaking, sprinting, sighted, weaponDrawn, inJump, swimming, inPowerArmor, inFurniture, isDead, isBlocking, encumbered), `healthPercentage` (u8 quantized) | U | 100 ms, plus immediate on flag change; ≤ 64 B |
+| `UpdateMovementFo4` (65) | C→S, S→C relay | `idx`, `seq` (u16), `ts` (client ms, u32), `worldOrCell`, `pos[3]`, `yaw`, `aimPitch`, `aimHeading`, `speed`, `direction`, `velZ`, `flags` (u16 bitfield, fixed bit order: 0 sneaking, 1 sprinting, 2 sighted, 3 weaponDrawn, 4 inJump, 5 swimming, 6 inPowerArmor, 7 inFurniture, 8 isDead, 9 isBlocking, 10 encumbered, 11 lightOn (F28), 12 jetpackActive (F17), 13–15 reserved), `healthPercentage` (u8 quantized) | U | 100 ms, plus immediate on flag change; ≤ 64 B |
 | `Teleport2` (31) | S→C | correction (unchanged) | R | on violation |
+
+**Relay rewriting:** on relay, the server overwrites `ts` with its own receive time (server ms, used by F09 rewind) and `healthPercentage` with the server-authoritative value (F08-T12). `CreateActorFo4` carries the last accepted `flags`, so late joiners see light, PA and sneak state.
 | `Teleport` (20) | S→C | server-initiated move (doors, fast travel, respawn) | R | event |
 
 Locomotion graph variables travel in F02's `UpdateGraphVariables`. `UpdateMovementFo4` carries only what the server needs for validation and interest management.
@@ -132,7 +134,7 @@ Hosts send `UpdateMovementFo4` for hosted NPCs, with the same validation. Hostin
 - [ ] **F01-T03** Remote-actor AI/motion suppression (engine hooks + template NPC package) — M — Depends: PLAT-070 — Verify: G-self — Files: fallout4-platform hooks
   - Accept: a spawned remote actor does not wander, flee or react to combat for 5 minutes while positioned by the client.
 - [ ] **F01-T04** Client capture `movementGetFo4.ts` + send service (100 ms, flags-change trigger, seq/ts) — M — Depends: F01-T01, F01-T02 — Verify: L-ts — Files: falloutmp-client/src/sync/movementGet.ts, services/movementService.ts
-- [ ] **F01-T05** Server: validate-before-relay, seq, speed model from GameProfile, `movementHistory` ring buffer, metrics — M — Depends: F01-T01, REF-010 — Verify: L-unit — Files: ActionListener.cpp (FO4 handler), MovementValidation.cpp, MpActor.h
+- [ ] **F01-T05** Server: validate-before-relay, seq, speed model from GameProfile (incl. the jetpack allowance when bit 12 is set), `movementHistory` ring buffer, relay rewriting of `ts`/`healthPercentage`, metrics — M — Depends: F01-T01, REF-010 — Verify: L-unit — Files: ActionListener.cpp (FO4 handler), MovementValidation.cpp, MpActor.h
   - Accept: all §6 unit cases pass.
 - [ ] **F01-T06** Client apply with jitter buffer and snap rules (`movementApplyFo4.ts`) — M — Depends: F01-T02, F02-T05 — Verify: L-ts, G-manual — Files: falloutmp-client/src/sync/movementApply.ts
 - [ ] **F01-T07** GameProfile speed table (walk/run/sprint/sneak/swim/PA/jetpack + effect multipliers) — S — Depends: REF-010, F08 (AV access) — Verify: L-unit

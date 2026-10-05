@@ -168,6 +168,7 @@ Papyrus quests are **shared** by default. One VM object exists per quest. A ques
 - **More than 16 active quests for one player:** the oldest untracked ones are not displayed but stay persisted.
 - **Text:** UTF-8 from the server. Characters outside the FO4 font coverage render as boxes, so the front widget is the fallback.
 - **Quest items:** F04 owns non-droppable items. The gamemode marks them, e.g. with a `SweetCantDrop`-style keyword.
+- **Vanilla "Trade" topic:** routing it to F23 barter belongs to this dialogue layer (F23 §8). Until then, barter opens on activation.
 
 ### 4.11 Performance budget
 - `QuestUpdate` ≤ 1.5 KB worst case; normally < 300 B, and rare.

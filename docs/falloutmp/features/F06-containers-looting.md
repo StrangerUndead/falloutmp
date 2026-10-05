@@ -56,7 +56,7 @@ Class A for container contents, occupancy, harvested/picked state, dropped refs 
 | `Activate` (6) | C→S | `caster` (0x14 or hosted NPC), `target`, `isSecondActivation` (close menu) | R | event | reused |
 | `OpenContainer` (21) | S→C | `target` | R | occupancy granted | reused |
 | `SetInventoryFo4` (68) | S→C | `refId` = container/corpse, `version`, entries | R, overwrite per (user, refId) | on open, on change (occupant and peekers), on reject | reused (F04) |
-| `ContainerPeek` (107) | C→S | `target` u32 (0 = stop) | R | crosshair change, ≤ 4/s | **new** (allocated by this spec) |
+| `ContainerPeek` (117) | C→S | `target` u32 (0 = stop) | R | crosshair change, ≤ 4/s | **new** (allocated by this spec) |
 | `TakeItemFo4` (70) | C→S | `source` u32, `item` ItemKey (absent when `mode` = all), `count` u32, `mode` u8 (0 menu, 1 quick, 2 all), `version` u32, `opId` u32 | R | event | twin of `TakeItem` (9) |
 | `PutItemFo4` (69) | C→S | `target` u32, `item` ItemKey, `count` u32, `version` u32, `opId` u32 | R | event | twin of `PutItem` (8) |
 | `DropItemFo4` (71) | C→S | `item` ItemKey, `count` u32, `opId` u32 | R | event | twin of `DropItem` (19) |
@@ -85,7 +85,7 @@ Class A for container contents, occupancy, harvested/picked state, dropped refs 
 3. **Occupancy:** full-menu Put/Take require `occupant == sender`; quick take/peek require no *other* occupant. A second player activating an occupied container gets a refusal notification (no menu).
 4. **Version:** `version` must equal the current contents version for quick take and take-all; menu takes with a stale version are accepted only if the exact `ItemKey` and count still exist. Otherwise reject + fresh `SetInventoryFo4`.
 5. **Item:** exact `ItemKey` and count in the source (F04 `FindByKey`). Put: caps refused unless `caps.allowContainerStore`; WEAP `Can't Drop` flag and quest-flagged items refused; CONT `ONAM` filter list honoured.
-6. **Corpses:** target actor is dead; `No Loot` flag → reject; live NPC activation in sneak (pickpocket) → reject with notification until F29 (stealth) implements pickpocketing; player corpses only if `loot.playerCorpses` (default false).
+6. **Corpses:** target actor is dead; `No Loot` flag → reject; live NPC activation in sneak (pickpocket) → reject with a notification; pickpocketing has no owning spec yet (proposed owner: F29, using `PickpocketAttempt` from world-economy §2 S20); player corpses only if `loot.playerCorpses` (default false).
 7. **Locked containers:** lock state is F24; a locked container refuses open/peek (peek returns `isLocked` via an empty contents message + notification) until unlocked.
 8. **Drop:** caps (`CurrencyBaseId`) refused; `Can't Drop` refused; per-actor live-drop cap (`droppedItems.maxPerActor`, default 10) and global cap; ≤ 5 drops/s.
 9. **Atomic transfer (S13):** validate source and destination first, then mutate both in one tick; the source copy is committed only if the add side succeeds (fix of the `RemoveItems(entries, target)` ordering).
@@ -107,7 +107,7 @@ Class A for container contents, occupancy, harvested/picked state, dropped refs 
 - Settings: `activationReach`, `quickLootReach`, `loot.mode` (`shared` | `instanced` | `hybrid`), `loot.playerCorpses`, `caps.allowContainerStore`, `droppedItems.{lifetimeSec, maxPerActor, persistAcrossRestart}` (lifetime semantics in F14).
 - Papyrus events: `OnOpen`/`OnClose` (P1), `OnActivate`, `OnItemAdded`/`OnItemRemoved` on both container and actor (via F04-T09), `OnContainerChanged` on picked/dropped refs.
 - Papyrus natives: `SendStealAlarm`, `GetActorOwner/SetActorOwner/GetFactionOwner/SetFactionOwner/HasOwner/IsOwnedBy`, `Actor.WouldBeStealing`, `RemoveAllItems(akTransferTo)` (atomic transfer), `SetHarvested`.
-- **Stealing:** taking an owned item (from an owned container or as an owned world item; corpses are never owned) marks the entry `stolenFrom = owner` (F04 identity) and fires `onSteal`. Detection and hostility (who saw it) belong to F29/F13; this spec only records the theft and exposes the hook.
+- **Stealing:** taking an owned item (from an owned container or as an owned world item; corpses are never owned) marks the entry `stolenFrom = owner` (F04 identity) and fires `onSteal`. Detection and hostility (who saw it) belong to F13/F29: the witnessing NPC's host reports the crime in `NpcAiState` (111) and F13 applies hostility; this spec only records the theft and exposes the hook.
 
 ### 4.10 Edge cases & failure modes
 - **Two players, one container:** one occupant; others peek. Concurrent quick takes resolve by `version` (first wins, second gets fresh contents).
@@ -148,7 +148,7 @@ Class A for container contents, occupancy, harvested/picked state, dropped refs 
 - `G-manual`: container, corpse, quick-loot, take-all, flora harvest, drop/pickup between two players; owned-container "Steal" marking.
 
 ## 7. Tasks
-- [ ] **F06-T01** Messages `PutItemFo4` (69), `TakeItemFo4` (70), `DropItemFo4` (71), `ContainerPeek` (107) + TS mirrors — M — Depends: F04-T01, NET-002 — Verify: L-unit — Files: skymp5-server/cpp/messages/{PutItemFo4,TakeItemFo4,DropItemFo4,ContainerPeek}Message.h, Messages.h, falloutmp-client/src/services/messages/
+- [ ] **F06-T01** Messages `PutItemFo4` (69), `TakeItemFo4` (70), `DropItemFo4` (71), `ContainerPeek` (117) + TS mirrors — M — Depends: F04-T01, NET-002 — Verify: L-unit — Files: skymp5-server/cpp/messages/{PutItemFo4,TakeItemFo4,DropItemFo4,ContainerPeek}Message.h, Messages.h, falloutmp-client/src/services/messages/
   - Accept: binary/JSON round trips; protocol version bumped (NET-001).
 - [ ] **F06-T02** Server transfer handlers: `ItemKey`, occupancy, reach (F07-T04), version, atomic two-sided transfer, correction on every reject (I12), `item` arg in events (B11) — M — Depends: F06-T01, F07-T04, NET-007 — Verify: L-unit — Files: ActionListener.cpp, MpObjectReference.cpp (`PutItem`/`TakeItem`/`RemoveItems`), gamemode_events/{PutItemEvent,TakeItemEvent}.cpp, unit/PartOne_ContainersFo4Test.cpp
 - [ ] **F06-T03** Quick loot: peek subscriptions with expiry, push to peekers, quick take, take all, `inUse` property — M — Depends: F06-T02 — Verify: L-unit — Files: MpObjectReference.{h,cpp}
@@ -169,5 +169,5 @@ Class A for container contents, occupancy, harvested/picked state, dropped refs 
 ## 8. Open questions & risks
 - Quick-loot HUD injection needs RE of the HUD data path; fallback for T0 is "peek fills the local container ref before the HUD reads it".
 - Whether the `DoItemTransfer` hook sees the stack id before the engine merges stacks (G-self).
-- Pickpocketing is out of scope here (F29); stealing detection depends on F29/F13 witness reports.
+- Pickpocketing is out of scope here and currently unowned (proposed: F29); stealing detection depends on F13 `NpcAiState` crime reports.
 - Player-corpse looting policy (Q-06 PvP focus) may change the `loot.playerCorpses` default.

@@ -80,7 +80,7 @@ Server-side milestones (M1, M2) and platform milestones (M3–M5) can run in par
   - F02-T02…T09;
   - F03 MVP: race, sex and preset-level appearance;
   - F31: nameplates and display names.
-- **Client:** CLI-020, CLI-021, CLI-030, CLI-031, CLI-040.
+- **Client:** CLI-020, CLI-021, CLI-030, CLI-031, CLI-040; F28's "menus must not pause the game" policy task.
 
 **Exit criteria**
 1. Two players see each other walk, run, sprint, sneak, jump, swim, draw/holster, and aim. Each is checked in 1st and 3rd person on both sides: the `G-manual` F01 and F02 scripts pass.
@@ -90,7 +90,7 @@ Server-side milestones (M1, M2) and platform milestones (M3–M5) can run in par
 ## M6 — Items & world interaction (est. 5–8 weeks)
 - **Features:** F04, F05, F06, F07, F14, F30 (chat and admin baseline).
 - **Platform:** PLAT-080, PLAT-081.
-- **Server:** PVM-013, SRV-030, SRV-080.
+- **Server:** PVM-013, SRV-030, SRV-070, SRV-080, F25-T01 (server clock, needed by respawn timers and Papyrus timers).
 - **Network:** NET-004…NET-007, NET-010, NET-011.
 - **Gamemode and QA:** GM-011, GM-012, QA-040.
 
@@ -129,12 +129,13 @@ Server-side milestones (M1, M2) and platform milestones (M3–M5) can run in par
 ## M9 — Progression & economy (est. 6–10 weeks)
 - **Features:** F15, F16, F19 (full perk engine), F23, F24, F25, F26.
 - **Server and Papyrus:** SRV-021 (full), PVM-014.
+- **Platform:** PLAT-085 (locks/terminals, for F24), PLAT-086 (weather/time, for F25).
 
 **Exit criteria:** crafting, scrapping, modding, perks, vendors, locks, terminals, server time and weather, and map/fast-travel rules are at their target levels.
 
 ## M10 — Fallout 4 signature systems (est. 6–10 weeks)
 - **Features:** F17 (power armor), F21 (companions), F29 (stealth), F20 survival-mode options, F18 VATS-lite.
-- **Platform:** PLAT-084, PLAT-085, PLAT-086.
+- **Platform:** PLAT-084 (power armor; also the PA-station part of F16).
 
 **Exit criteria:** power armor works end to end, including piece health, mods and paint, cores and jetpack, and remotes see it. Companions are owner-hosted. VATS-lite is server-resolved.
 

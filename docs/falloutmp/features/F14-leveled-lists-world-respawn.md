@@ -39,9 +39,9 @@ Class A for all rolls and reset state. Clients never evaluate leveled lists or t
 | State | Type | Where (class/field) | Persisted (ChangeForm field / record) | Default source |
 |---|---|---|---|---|
 | Template chain (TPLT path) | `vector<FormDesc>` | `templateChain` (existing) | yes | rolled at first load |
-| Per-flag template picks | `array<optional<FormDesc>,13>` | `ChangeForm.templateSlots` (new) | yes | rolled from `TPTA` |
-| Actor level | u16 | `ChangeForm.actorLevel` (new) | yes | ACBS + ECZN lock |
-| Legendary | bool | `ChangeForm.isLegendary` (new) | yes | `LTPC` GLOB roll |
+| Per-flag template picks | `array<optional<FormDesc>,13>` | `ChangeForm.templateSlots` (new; complements F13's per-flag `templateChain`) | yes | rolled from `TPTA` |
+| NPC level | u16 | `ChangeForm.npcLevel` (new; field owned by F13 §4.2) | yes, until cell reset | ACBS + ECZN lock (§4.6) |
+| Legendary | `{isLegendary, templateDesc, mutated}` | `ChangeForm.legendary` (new; field owned by F13 §4.2, `mutated` set by F13) | yes | `LTPT`/`LTPC` roll (this spec) |
 | Roll generation | u32 | `ChangeForm.rollGeneration` (new; ++ on every reset/respawn) | yes | 0 |
 | Rolled inventories / outfits | `Inventory` with OMODs | `inv`, `equipment` (F04/F05) | yes | this spec |
 | Reloot time | uint64 ms | `nextRelootDatetime` (existing) | yes | per-type override or cell reset |
@@ -54,7 +54,7 @@ Class A for all rolls and reset state. Clients never evaluate leveled lists or t
 No new messages. The results ride on existing ones:
 | Message | Dir | Fields | Reliability | Rate / trigger | New or reused |
 |---|---|---|---|---|---|
-| `CreateActorFo4` (64) | S→C | `baseId`, `props.templateChain`, `props.templateSlots[13]`, `props.actorLevel`, `props.isLegendary` (all listeners); equipment (F05) | R | on subscribe | reused (F00); new props |
+| `CreateActorFo4` (64) | S→C | `baseId`, `props.templateChain`, `props.templateSlots[13]`, `props.npcLevel`, `props.legendary` (all listeners; same fields as F13 §4.3); equipment (F05) | R | on subscribe | reused (F00); new props |
 | `SetInventoryFo4` (68) | S→C | rolled contents (owner/occupant/peekers) | R | on open/peek | reused (F04) |
 | `UpdateProperty` (7) | S→C | `isHarvested`, `isOpen`, `isDisabled`, `isDead` after reset/respawn | R | on reset | reused |
 | `DestroyActor` (25) / `CreateActor` | S→C | removed corpses and dropped refs; respawned NPCs | R | on reset | reused |
@@ -63,8 +63,8 @@ No new messages. The results ride on existing ones:
 None. The client must **not** run leveled evaluation: vanilla leveled spawns and container rolls are suppressed by the world cleaner (CLI-020) and by creating NPC ghosts from resolved bases (§4.5).
 
 ### 4.5 Apply
-- **Deterministic leveled actors:** the client creates the ghost from `baseId` + `templateSlots` with a platform native `createResolvedNpc(baseId, templateSlots[13], level, isLegendary)` that clones the base TESNPC through `IFormFactory` (PLAT-070) and replaces every template reference with the resolved **non-leveled** NPC_ for that flag, so the engine's own template resolution cannot re-roll [inference: the engine follows `TPTA`/`baseTemplateForm` at load; verify with G-self]. Fallback: hook the engine's leveled-character evaluation (`ExtraLeveledCreature`) to force the server's pick (RE).
-- **Legendary:** the ghost gets the legendary star/name from `isLegendary` (INNR/`LTPT` data); mutation effects come from F11/F13.
+- **Deterministic leveled actors:** the client creates the ghost from `baseId` + `templateSlots` with a platform native `createResolvedNpc(baseId, templateSlots[13], npcLevel, legendary)` that clones the base TESNPC through `IFormFactory` (PLAT-070) and replaces every template reference with the resolved **non-leveled** NPC_ for that flag, so the engine's own template resolution cannot re-roll [inference: the engine follows `TPTA`/`baseTemplateForm` at load; verify with G-self]. Fallback: hook the engine's leveled-character evaluation (`ExtraLeveledCreature`) to force the server's pick (RE).
+- **Legendary:** the ghost gets the legendary star/name from `legendary.isLegendary` (INNR/`LTPT` data); mutation effects come from F11/F13.
 - **Loot:** container/corpse contents and NPC equipment arrive through F04/F05/F06 with their OMODs; no client roll.
 - **Reset:** flora `isHarvested=false`, picked items re-enabled, respawned NPCs streamed in with new picks, removed corpses `DestroyActor`.
 
@@ -87,7 +87,7 @@ All NPCs, hosted or not, are rolled on the server at first `AttachEspmRecord`/sp
 
 ### 4.9 Gamemode API & server Papyrus
 - Events: `onCellReset(cellKey) [blockable]`, `onLegendaryDrop(actorId, item) [blockable; may replace the item]`, `onLeveledRoll(refId, purpose, result)` (observe-only, debug).
-- API: `mp.resetCell(cellKey)`, `mp.getCellResetState(cellKey)`; properties `templateChain`, `templateSlots`, `actorLevel` (get; set only before first spawn), `isLegendary` (get).
+- API: `mp.resetCell(cellKey)`, `mp.getCellResetState(cellKey)`; properties `templateChain`, `templateSlots`, `npcLevel` and `isLegendary` (get; defined with F13 §4.9).
 - Settings: `cellReset.{hours (168), hoursCleared (480), requireEmptyNeighbourhood (true), retryMinutes (5), maxDeferHours (24)}` (defaults overwritten by the ESM GMSTs when present); `npcRespawn.mode` (`cellReset` default | `delay`); `reloot` / `forbiddenReloot` (SkyMP keys, per-type overrides); `relootIgnoresRespawnFlag` (false); `corpses.lifetimeSec` (0 = until cell reset); `droppedItems.{lifetimeSec (120), maxPerActor (10), globalMax, persistAcrossRestart (true)}`; `leveledLists.levelSource`; `legendary.{chanceMult, useEpicLootChance, pools}`.
 - Papyrus natives: `LeveledItem.AddForm/Revert`, `LeveledActor.AddForm/Revert` (persisted in `leveledOverrides`), `Location.IsCleared/SetCleared/HasEverBeenCleared/Reset`, `Cell.Reset`, `ObjectReference.Reset`, `EncounterZone.Reset` (+ F4SE getters), `GlobalVariable` values feeding `LVLG`/`LVSG`/`LTPC`, `DeleteWhenAble`.
 - Papyrus events: `OnReset`, `Location.OnLocationCleared`, `OnLoad`/`OnCellAttach` per load (P1, papyrus-api-map §4.3).
@@ -134,7 +134,7 @@ All NPCs, hosted or not, are rolled on the server at first `AttachEspmRecord`/sp
 - [ ] **F14-T03** Evaluate `LVLG` chance-none global (I17) via the server global-variable store (ESM `GLOB` + Papyrus `SetValue` overrides) — S — Depends: F14-T01, PVM-013 — Verify: L-unit
   - Accept: a list with a 0 % global yields items; SkyMP's "any global = none" behaviour is gone under both profiles (bug fix, Skyrim tests green).
 - [ ] **F14-T04** Deterministic `LeveledRng` (world seed in DB meta, per-ref/purpose/generation seeds) replacing `std::random_device` — S — Depends: SRV-012 — Verify: L-unit
-- [ ] **F14-T05** Leveled actors: per-flag `TPTA` resolution, actor level (ACBS/ECZN/PC-level mult), `LTPT`/`LTPC` legendary roll, outfit and death item with the actor's level; `templateSlots`, `actorLevel`, `isLegendary`, `rollGeneration` persisted and in `CreateActorFo4` — L — Depends: F14-T01, F14-T04, ESPM-006 — Verify: L-unit — Files: MpActor.cpp (`EnsureTemplateChainEvaluated`, `EvaluateDeathItem`), EvaluateTemplate.h, MpChangeForms.{h,cpp}
+- [ ] **F14-T05** Leveled-actor evaluation: per-flag `TPTA` resolution → `templateSlots`, NPC level rule (ACBS/ECZN/PC-level mult), `LTPT`/`LTPC` legendary roll, outfit and death item at the NPC's level, `rollGeneration`; pure functions consumed by F13-T03, which persists `templateChain`/`npcLevel`/`legendary` and fills the snapshot (this task persists `templateSlots` and `rollGeneration`) — L — Depends: F14-T01, F14-T04, ESPM-006 — Verify: L-unit — Files: MpActor.cpp (`EnsureTemplateChainEvaluated`, `EvaluateDeathItem`), EvaluateTemplate.h, skymp5-server/cpp/server_guest_lib/fo4/LeveledActorEvaluator.{h,cpp}, MpChangeForms.{h,cpp}
 - [ ] **F14-T06** Encounter zones: ECZN record parsing (min/max level, flags; not covered by ESPM-005…010), `EncounterZoneState` record, lock/unlock rules — M — Depends: ESPM-001, REF-020 — Verify: L-fixture, L-unit — Files: libespm/include/libespm/fo4/ECZN.h, libespm/src/fo4/ECZN.cpp, skymp5-server/cpp/server_guest_lib/fo4/EncounterZoneService.{h,cpp}
 - [ ] **F14-T07** Client/platform deterministic spawning: `createResolvedNpc`, formView integration, no client re-roll — L — Depends: PLAT-070, F14-T05 — Verify: W-ci, G-self — Files: fallout4-platform/src/platform_fo4/NpcApi.cpp, falloutmp-client/src/view/formView.ts
 - [ ] **F14-T08** `CellResetService` core (SRV-080 part 1): per-cell keys, dirty tracking, game-time timers (SRV-070), GMSTs by EDID (ESPM-016), empty-neighbourhood rule, deferral and partial reset, `cellReset` record — M — Depends: SRV-070, SRV-080, ESPM-016 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/CellResetService.{h,cpp}, WorldState.{h,cpp}

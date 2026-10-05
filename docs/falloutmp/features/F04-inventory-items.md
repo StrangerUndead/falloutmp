@@ -49,21 +49,22 @@ Class A for everything: entries, counts, OMOD lists, names, health, caps, weight
 | Custom name | `optional<string>` | `Entry::name` (reused) | yes | none |
 | Health (PA pieces) | `optional<float>`, quantized 1e-3 | `Entry::health` (reused) | yes | ARMO `DATA.health` |
 | Stolen-from owner | `optional<uint32>` | `Entry::stolenFrom` (new; set by F06) | yes (FormDesc) | none |
+| Feature-owned extras (not identity) | `ammoLoaded` u16 (F09), `paPiece` bool (F17) | `Entry::ammoLoaded`, `Entry::paPiece` (new) | yes (`inv[]`) | 0 / false |
 | Inventory version | u32 | `MpObjectReference::invVersion` (new) | no | 0 at load |
 | Weight cache | float | `MpObjectReference::cachedWeight` (new) | no (derived) | recomputed on change |
 | Favorites[12], tagged components | `ItemKey?`, `FormId[]` | `PlayerProfile` (SRV-060) | yes | empty |
 | `baseContainerAdded` | bool | existing | yes | false |
 
-**Item identity (`ItemKey`)** = `{baseId, omods (canonical order), name?, health?, stolenFrom?}`; `count` is separate. Legendary is derived (any OMOD with the legendary flag). Not part of identity: favorites, loaded ammo (F09), stack index. `stolenFrom` is part of identity (deviation from world-economy §2 S7, which excludes it): the engine keeps owned items in separate stacks [inference], and per-unit stolen state must stay exact for F23 vendors.
+**Item identity (`ItemKey`)** = `{baseId, omods (canonical order), name?, health?, stolenFrom?}`; `count` is separate. Legendary is derived (any OMOD with the legendary flag). Not part of identity: favorites, loaded rounds (`ammoLoaded`, F09; when two stacks merge the equipped stack's value wins), `paPiece` (F17), stack index. `stolenFrom` is part of identity (deviation from world-economy §2 S7, which excludes it): the engine keeps owned items in separate stacks [inference], and per-unit stolen state must stay exact for F23 vendors.
 
 **FO4 persisted entry JSON** (ids as `FormDesc`, per 01-sync-standard §8.3; world-economy's compact raw-id form is wire-only): `{"baseDesc":"4822:Fallout4.esm","count":1,"omods":[["4a0da:Fallout4.esm",0,1]],"name":"Lucky","health":0.75,"stolenFrom":"1c5e1:Fallout4.esm"}`. The loader also accepts the legacy numeric `baseId`. Each entry is parsed defensively: a missing base or OMOD drops that entry/OMOD with a log line, never the whole form (01-sync-standard §8.2).
 
 ### 4.3 Protocol
 | Message | Dir | Fields | Reliability | Rate / trigger | New or reused |
 |---|---|---|---|---|---|
-| `SetInventoryFo4` (68) | S→C | `refId` u32 (0 = own actor; otherwise a container/corpse the user occupies or peeks, F06), `version` u32, `entries[]{baseId u32, count u32, omods[] (u8 len) {id u32, idx u8, rank u8}, name? (≤ 64 B), health? f32, stolenFrom? u32}` | R, deferred channel 0, overwrite per (user, refId) per tick | on change; full snapshot | twin of `SetInventory` (28) |
+| `SetInventoryFo4` (68) | S→C | `refId` u32 (0 = own actor; otherwise a container/corpse the user occupies or peeks, F06), `version` u32, `entries[]{baseId u32, count u32, omods[] (u8 len) {id u32, idx u8, rank u8}, name? (≤ 64 B), health? f32, stolenFrom? u32, ammoLoaded? u16, paPiece? bool}` | R, deferred channel 0, overwrite per (user, refId) per tick | on change; full snapshot | twin of `SetInventory` (28) |
 | `CreateActorFo4` (64) `props.inventory` | S→C | same entry list | R | on subscribe; owner (and hoster subset, §4.7) only | reused (F00) |
-| `SetFavorites` (108) | C→S | `slots[12]{present bool, item ItemKey}`, `taggedComponents u32[]` (≤ 64) | R | on change, ≤ 2/s | **new** (allocated by this spec, T1) |
+| `SetFavorites` (118) | C→S | `slots[12]{present bool, item ItemKey}`, `taggedComponents u32[]` (≤ 64) | R | on change, ≤ 2/s | **new** (allocated by this spec, T1) |
 
 All other inventory-changing intents are defined by their feature (F06 `PutItemFo4`/`TakeItemFo4`/`DropItemFo4`, F20 `UseItem`, F15 `CraftItemFo4`/`ScrapItem`, F16 `ModItem`, F23 `Barter`). They are reliable (I3, NET-005), carry an `ItemKey`, and are answered with `SetInventoryFo4`.
 
@@ -161,7 +162,7 @@ NPC inventories are built on the server from ESM data: `EnsureBaseContainerAdded
 - [ ] **F04-T11** Papyrus natives: instance-aware `AddItem/RemoveItem/GetItemCount/RemoveAllItems`; `AttachModToInventoryItem` family; `GetComponentCount`; F4SE `GetAllMods/GetInventoryItems/GetInventoryWeight` — M — Depends: PVM-013, PVM-014, F04-T06 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/script_classes/PapyrusObjectReference.cpp
 - [ ] **F04-T12** Hosted-NPC combat subset to the hoster — S — Depends: F04-T03, F13 (hosting) — Verify: L-unit
   - Accept: a new hoster receives the NPC's WEAP/AMMO entries; neighbours receive nothing.
-- [ ] **F04-T13** (T1) Favorites and tagged components: `SetFavorites` (108), `PlayerProfile` fields, client capture/apply — S — Depends: SRV-060, F04-T07 — Verify: L-unit, G-manual
+- [ ] **F04-T13** (T1) Favorites and tagged components: `SetFavorites` (118), `PlayerProfile` fields, client capture/apply — S — Depends: SRV-060, F04-T07 — Verify: L-unit, G-manual
   - Accept: favorites survive reconnect on another machine; an unknown `ItemKey` is ignored with a log line.
 - [ ] **F04-T14** Persistence: `FormDesc` ids in FO4 `inv` JSON, per-entry defensive parsing, legacy numeric load — S — Depends: REF-020, F04-T01 — Verify: L-unit — Files: MpChangeForms.cpp, unit/SaveStorageTest.cpp
 - [ ] **F04-T15** In-game sign-off: instance round trip, reconnect, rename display; test script — S — Depends: F04-T08 — Verify: G-self, G-manual — Files: docs/falloutmp/test-scripts/F04-inventory.md

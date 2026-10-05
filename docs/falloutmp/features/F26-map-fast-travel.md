@@ -7,7 +7,7 @@
 | SkyMP analogue | `DisableFastTravelService` calls `Game.enableFastTravel(false)` every frame; map discovery is local to the (template) save. SkyMP level L0 — code: `skymp5-client/src/services/services/disableFastTravelService.ts:9-11` |
 | Milestone | M9 (discovery + fast travel), M12 (vertibird) |
 | Workstreams | SRV, CLI, PLAT, ESPM, NET, GM |
-| Depends on | SRV-060 (per-player profile record), ESPM-005 (REFR), F01 (`Teleport`, server-initiated teleports), F04/F08 (server carry weight), F11 (combat state), F13 (hosted NPC combat targets), CLI-021, PLAT-040 |
+| Depends on | SRV-060 (per-player profile record), ESPM-005 (REFR), F01 (`Teleport`, server-initiated teleports), F08-T11 (encumbrance), F11 (combat state), F13 (hosted NPC combat targets), F19-T05 (discovery XP), F21 (companion carry), CLI-021, PLAT-040 |
 | References | reference/fo4-systems-world-economy.md §2 S13, S11 (`PipboyMapData`), S20 ("HUD markers & compass"), §3.2, §3.3 (`PlayerProfile`), §3.7, §5 item 4; reference/papyrus-api-map.md §1.2 InputEnableLayer, §5.6; reference/skymp-sync-inventory.md §1.15 row 21; reference/prior-art.md §5.3 |
 
 ## 1. Summary
@@ -106,10 +106,11 @@ A denial changes no client state, because the engine travel was cancelled before
 |---|---|
 | Discovery: the marker is in the catalogue and enabled; same `worldOrCell` as the actor; the actor's server-known position (F01 history) was within `map.discoveryRadius` (default 2048 u [inference]) during the last 10 s; ≤ 16 claims/s | ignored + metric `map_discovery_reject_total`; the next delta omits it |
 | Gamemode `onMarkerDiscovered` returns false | not recorded; a delta with the marker in `revoked[]` |
+| Accepted discovery | recorded; delta sent; F19 awards discovery XP (`AwardXp`, source `discover`, F19-T05) |
 | Fast travel: `fastTravel.mode` (`off` / `discoveredOnly` / `settlementsOnly` / `any`; default `discoveredOnly`), plus the marker-level switch | notification "fast travel disabled" |
 | Marker in `travelMarkers` (unless `any`); for `settlementsOnly`, TNAM 13 (Settlement) or a workshop owned by the profile (F22) | notification + `MapDiscovery` delta |
 | Not in combat: no damage dealt or taken within `fastTravel.combatLockSec` (10 s, F11), and no hosted NPC targeting the actor within 4096 u (F13) | notification "enemies nearby" |
-| Not over-encumbered (server carry weight, F04/F08); alive; not in furniture or dialogue; not a container occupant; not in a rest session (F25) | notification with reason |
+| Not over-encumbered (F08-T11 `isOverEncumbered`); alive; not in furniture or dialogue; not a container occupant; not in a rest session (F25) | notification with reason |
 | Cooldown `fastTravel.cooldownSec` (0); survival rule (F20: off unless `mode = vertibird`); same worldspace unless `fastTravel.crossWorldspace` | notification |
 | Gamemode `onFastTravel` returns false | notification "blocked" |
 
@@ -174,7 +175,7 @@ A denial changes no client state, because the engine travel was cancelled before
 ## 6. Tests
 - `L-unit` `[F26][MapMarker]`:
   - catalogue build from a fixture;
-  - discovery accept;
+  - discovery accept, including the F19 discovery XP call;
   - discovery reject (too far, wrong cell, unknown marker, rate);
   - `onMarkerDiscovered` veto with a `revoked` delta;
   - snapshot on spawn;

@@ -624,6 +624,8 @@ Interactive objects (containers, beds, crafting stations, doors, turrets, genera
 ---
 ## 3. Cross-cutting: network messages & server data models
 
+> **Plan note (main session):** Where the feature specs differ from this reference, the specs win. Persist OMODs as `FormDesc` (not raw ids, see 01-sync-standard §8.3). `stolenFrom` is part of item identity (F04). Container contents use `SetInventoryFo4` with `refId` (F06).
+
 > **Plan note (main session):** Message names and fields here are research proposals. The **authoritative IDs are in [01-sync-standard.md §6](../01-sync-standard.md)**. IDs 34–63 are reserved for upstream SkyMP; FO4 twins use 64–79 and new FO4 messages use 80–122. Map proposals onto that registry; do not use IDs proposed here.
 
 ### 3.1 Changes to existing SkyMP messages

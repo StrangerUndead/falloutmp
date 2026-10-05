@@ -108,14 +108,15 @@ Rules:
 | `RestAction` sender is the actor's owner (no NPC idx), `rest.mode ≠ disabled` | `RestAction{denied, reason=disabled}` |
 | `sleep`: the actor occupies `furnitureRefId` (F07 occupancy, ≤ 256 u, per world-economy B3), it is a bed, and it is owned by the profile or a settlement bed it may use (F22), or is unowned | `denied, reason=bed` |
 | Not in combat: no damage dealt or taken within `rest.combatLockSec` (10 s, F11), and no hosted NPC with this actor as combat target within 2048 u (F13) | `denied, reason=combat` |
-| `hours` within 1–24. Survival caps when F20 survival is on: sleeping bag 3 h, mattress 5 h, Well Rested needs ≥ 7 h in a bed (world-economy S20) | `denied, reason=hours` |
+| `hours` within 1–24 | `denied, reason=hours` |
+| F20 survival is off. With survival on, sleep accrues from real-time bed occupancy (F20 §4, `survival.sleepTimeScale`), which caps sleeping bags at 3 h and mattresses at 5 h and needs ≥ 7 h in a bed for Well Rested (world-economy S20), so instant rest is refused | `denied, reason=survival` |
 | Not in power armor (F17), not swimming, not mid-transfer (container occupancy) | `denied, reason=state` |
 | Gamemode `onRest` returns false | `denied, reason=gamemode` |
 | The actor moves more than 64 u, takes damage, or the session expires during a rest | `finished` with partial benefits pro rata |
 
 - **Radstorm exposure** is computed on the server only:
   - every 1 s, for each player in an exterior cell of a slot whose weather has an UNAM *Weather Activate* spell, once the transition has passed that spell's threshold;
-  - rads = MGEF magnitude × dt, applied through F20/F08;
+  - the exposure (MGEF magnitude × dt) is passed to F20's `RadiationService` (F20-T06) as an environmental source, which applies resistance and the F08 Rads AV;
   - `onRadstormExposure` can veto per actor.
 - **Client Rads changes** that do not come from the server are rejected by F08's AV authority.
 - **Clock and weather changes** come only from server code: gamemode, Papyrus, or admin console with permission (F30).
@@ -201,7 +202,8 @@ Rules:
   - `onRest` veto;
   - Papyrus `OnPlayerSleepStart` observed;
   - Well Rested applied via F20;
-  - interruption grants pro-rata benefits.
+  - interruption grants pro-rata benefits;
+  - survival on → `denied, reason=survival`.
 - `L-unit` `[F25][Radstorm]`:
   - only exterior players in the slot accrue rads;
   - rate from a synthetic MGEF magnitude;
@@ -232,9 +234,9 @@ Rules:
   - Accept: the self-test sets 03:00 and 15:00 and the sky follows. A forced radstorm causes no local Rads change.
 - [ ] **F25-T07** Client `TimeWeatherService` (replaces `timeService.ts`): globals, drift correction, weather apply rules, load and interior handling — M — Depends: F25-T04, F25-T06, CLI-050 — Verify: L-ts, G-manual — Files: falloutmp-client/src/services/services/timeWeatherService.ts
   - Accept: two clients differ by ≤ 30 game seconds after 1 h, and their weather matches.
-- [ ] **F25-T08** Radstorm and weather radiation on the server (UNAM spell → F20 effect / F08 Rads), exterior check, `onRadstormExposure`; Far Harbor fog per the D-real finding — M — Depends: F25-T05, SRV-020, F08 — Verify: L-unit, G-manual
+- [ ] **F25-T08** Radstorm and weather radiation on the server (UNAM spell magnitude → F20 `RadiationService` environmental source), exterior check, `onRadstormExposure`; Far Harbor fog per the D-real finding — M — Depends: F25-T05, F20-T06 — Verify: L-unit, G-manual
   - Accept: the `[Radstorm]` cases pass. In game, rads rise only outdoors during a radstorm.
-- [ ] **F25-T09** Rest policy: `disabled` (SetInChargen; SleepWaitMenu/SitWaitMenu closed, with CLI-021) and `benefitsOnly` (`RestService`, validation, effects, Papyrus sleep/wait events, client widget) — M — Depends: F25-T01, F25-T04, F07, F20 — Verify: L-unit, G-manual — Files: skymp5-server/cpp/server_guest_lib/RestService.{h,cpp} (new), falloutmp-client/src/services/services/restService.ts, unit/RestServiceTest.cpp
+- [ ] **F25-T09** Rest policy: `disabled` (SetInChargen; SleepWaitMenu/SitWaitMenu closed, with CLI-021) and `benefitsOnly` (`RestService`, validation, effects, Papyrus sleep/wait events, client widget) — M — Depends: F25-T01, F25-T04, F07-T05, F20 — Verify: L-unit, G-manual — Files: skymp5-server/cpp/server_guest_lib/RestService.{h,cpp} (new), falloutmp-client/src/services/services/restService.ts, unit/RestServiceTest.cpp
   - Accept: the `[Rest]` cases pass. In `disabled` mode the wait key does nothing.
 - [ ] **F25-T10** (T2) Per-region weather slots (REGN areas, e.g. the Glowing Sea), with region resolved from the server position — M — Depends: F25-T05, F25-T03 — Verify: L-unit, G-manual
   - Accept: a player inside the Glowing Sea region sees its weather while the rest of the Commonwealth is clear.
