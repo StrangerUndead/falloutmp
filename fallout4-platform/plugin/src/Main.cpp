@@ -6,7 +6,7 @@
 //
 // At kGameDataReady the client script loads and the feature modules
 // install (modules/Modules.h). The session starts when a save is loaded
-// or a new game begins, and runs every frame from PlayerCharacter::Update.
+// or a new game begins, and runs every frame on the main thread (Hooks.h).
 #include <F4SE/F4SE.h>
 #include <RE/Fallout.h>
 
@@ -29,7 +29,7 @@ void OnMessage(F4SE::MessagingInterface::Message* a_msg)
       if (static_cast<bool>(a_msg->data) && !p.Started()) {
         if (p.Start(fmp::PluginConfig::Load(kConfigPath), kScriptPath)) {
           fmp::modules::InstallAll(p);
-          fmp::hooks::InstallPlayerUpdate();
+          fmp::hooks::InstallFrameTick();
           REX::INFO("{} natives registered", p.NativeNames().size());
         }
       }

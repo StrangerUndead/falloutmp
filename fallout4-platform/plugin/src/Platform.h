@@ -10,7 +10,8 @@
 //   - Emit(name, data): a PlatformEvents event to the script.
 //   - OnFrame(fn): work every frame on the main thread.
 //
-// Threading: natives and frame callbacks run on the game's main thread.
+// Threading: natives and frame callbacks run on the game's main thread,
+// every frame including pausing menus, never during loading screens.
 // Emit, Resolve and QueueTask may be called from any thread (event sinks,
 // Papyrus callbacks); they are delivered on the next frame.
 //
