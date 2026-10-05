@@ -18,6 +18,9 @@ public:
   ~Fo4PartOneGlue();
 
   Fo4Server& Server();
+  // Replaces the server with one using these settings. Only allowed before
+  // any actor or world state was loaded (startup), else throws.
+  void ApplySettings(const Fo4ServerSettings& settings);
   // Loads the sender's saved state on first contact, then handles it.
   void OnMessage(uint32_t actorId, MsgType type, const IMessageBase& msg);
   void Tick();

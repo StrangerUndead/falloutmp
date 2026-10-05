@@ -3,37 +3,56 @@
 > Update this file at the end of every session (see README §1). Newest entries go at the top of each log.
 
 ## Current position
-- **Plan version:** 1.1 (2026-10-05) — after two adversarial reviews (feature specs, core plan)
+- **Plan version:** 1.1 (2026-10-05)
 - **Working branch:** `claude/fallout4-port-research`
-- **Current milestone:** **M0 — Foundations & decisions** (not started)
-- **Code changes so far:** none. The repo is upstream SkyMP `f926944` plus plan docs.
+- **Current milestones:** the Linux-verifiable parts of M1, M2 and M6–M11 are built. The server game layer and the client services are implemented and tested. Everything that needs Fallout 4 running (M3 platform onwards) is not started.
+- **Code so far:** 33 commits on top of upstream SkyMP `f926944`, 16 of them plan-only. See the evidence log below.
+
+## What exists (2026-10-05)
+| Area | State | Verified by |
+|---|---|---|
+| Game profiles, `game` setting, protocol prefix, MsgType 64–120 | Done | `GameProfileTest`, `Fo4MessagesTest` |
+| libespm Fallout 4 readers (WEAP, ARMO, AMMO, MISC, CMPO, COBJ, OMOD, FURN, GLOB, ALCH, LVLI, LVLN, CONT, REFR, keywords, PRPS) | Done, synthetic plugins only | `Fo4EspmTest`, `Fo4EspmDataSourceTest` |
+| Server systems: inventory with instances, crafting, auto-scrap, scrapping, OMOD stats and modding, power armor, workshops (claim, ACL, build mode, placement, power, wires, settlers, ratings, daily update), actor values, damage model, progression, consumables and addictions, barter, locks and hacking, ranged combat validation, parties and PvP, leveled lists, containers and corpse loot, equipment, clock, weather, map discovery and fast travel | Done | `Fo4*Test` (C++) |
+| PartOne integration, per-actor and world persistence, load-order bootstrap | Done | `Fo4PartOneTest`, `Fo4WorldBootstrapTest` |
+| `fo4` server settings block with validation | Done | `Fo4SettingsTest` |
+| Gamemode API `mp.fo4.*` and `mp.onFo4...` events (6 blockable) | Done | `Fo4GamemodeApiTest`, `Fo4ServerTest` |
+| `falloutmp-client` services, `falloutPlatform` contract, skymp bridge | Done, against a fake platform | `npm test` (47 tests, including the C++/TS protocol parity test) |
+| fallout4-platform F4SE plugin | Not started (needs Windows) | — |
+| PEX FO4 reader (M2 PVM-001…006) | Not started | — |
+| Movement validation for PA and jetpack (F01), NPC hosting (F13), T2 systems (companions, VATS, stealth, quests, survival) | Not started | — |
+
+Test totals at the last commit: C++ 230 test cases and 1879 assertions (`./unit/unit "~[espm]"`); client 47 tests.
+
+Guides: [guides/server-admin.md](guides/server-admin.md), [guides/gamemode-api.md](guides/gamemode-api.md), [guides/implementation.md](guides/implementation.md).
 
 ## Next actions (for the next session)
-1. Get answers from the user to the open questions in [05-risks-open-questions.md §2](05-risks-open-questions.md). The most important are Q-02 (runtime), Q-06 (priorities), Q-08 (CI), Q-09 (in-game testing cadence), Q-10 (SessionStart hook), Q-11 (xwin cross-compile, now the R23 fallback) and Q-19 (two instances / second tester).
-2. ENV-001/ENV-002/ENV-003: commit the bootstrap script, the asset script and the build.sh fix. Verify on a fresh container.
-3. REF-000/REF-001: baseline test matrix, then tag the 33 data-dependent tests so `ctest` is green without data.
-4. ENV-016: add the `upstream` remote; first merge.
-5. Start M1 refactors (REF-002, REF-003) and M2 fixtures (ESPM-002) in parallel.
+1. F01: server movement validation with the power armor and jetpack speed model (`UpdateMovementFo4` 65).
+2. M2: PEX FO4 reader (PVM-001…006), so server Papyrus can run Fallout 4 scripts.
+3. F13: NPC hosting on Fallout 4 data, hosted-NPC actor values within the C1 bounds.
+4. `EffectsUpdate` (92) for owner and neighbour effect lists (F20-T03).
+5. Windows work for the user or CI: PLAT-001+ (the F4SE plugin implementing `falloutPlatform.ts`), then the G-self checks in the verification table below.
+6. Still open from planning: user answers to Q-01…Q-19 (05-risks-open-questions.md §2).
 
 ## Milestones
 | Milestone | State | Evidence |
 |---|---|---|
-| M0 Foundations | [ ] | |
-| M1 Game-pluggable core | [ ] | |
-| M2 FO4 data on server | [ ] | |
-| M3 Platform alive | [ ] | |
+| M0 Foundations | [~] REF-001 done (data tests tagged); ENV scripts in `tools/` | `541425d` |
+| M1 Game-pluggable core | [~] profiles, prefix and registry done; REF-004…013 refactors open | `91a92f3` |
+| M2 FO4 data on server | [~] FO4 records and data source done; PEX reader open | `91a92f3`, `ea262f4` |
+| M3 Platform alive | [ ] needs Windows | |
 | M4 Reflection, connect & spawn | [ ] | |
 | M5 See each other | [ ] | |
-| M6 Items & world | [ ] | |
-| M7 Character & status | [ ] | |
-| M8 Combat — T0 parity alpha | [ ] | |
-| M9 Progression & economy | [ ] | |
-| M10 FO4 signature systems | [ ] | |
-| M11 Settlements — T1 beta | [ ] | |
+| M6 Items & world | [~] server and client logic done; in-game apply open | `af67519`, `f6c6654`, `b67cecf` |
+| M7 Character & status | [~] server and client logic done | `78e6675` |
+| M8 Combat — T0 parity alpha | [~] ranged validation and damage done; melee, explosives and VATS open | `45b2c81` |
+| M9 Progression & economy | [~] done on the server and client | `78e6675`, `45b2c81` |
+| M10 FO4 signature systems | [~] power armor done on the server and client | `e27301c`, `b67cecf` |
+| M11 Settlements — T1 beta | [~] workshop server, snapshots, client mirror done | `1f084db`, `b67cecf` |
 | M12 1.0 | [ ] | |
 
 ## In progress
-_(none)_
+_(none; the next session starts at "Next actions")_
 
 ## Blockers
 - Windows CI requires the user to enable GitHub Actions on the fork (Q-08).
@@ -76,6 +95,11 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 | Crits bypass DR?; explosion falloff; VATS hit-chance formula | F10, F11, F18 | G-manual measurements |
 | `LVSG` epic loot chance semantics | F14 | D-real |
 | Vendor restock days; respawn timers (168 h / 480 h) | F14, F23 | D-real (GMSTs) |
+| DAMA entry size in WEAP/ARMO; OMOD property flag bits | F04, F16 (`Fo4Records.cpp`) | D-real |
+| Workshop keyword editor ids and `WorkshopWorkbench` prefix used by the bootstrap | F22 (`Fo4WorldBootstrap.cpp`) | D-real |
+| Power armor blocked biped slots `0x3E00` | F17 (`Fo4ServerSettings`) | G-self |
+| Fusion core drain rates per movement state | F17 (`PowerArmorSettings`) | G-manual |
+| Default weather ids used in guide examples | guides/gamemode-api.md | D-real |
 
 ## Deliberate deviations recorded during planning
 - F22 coalesces workshop saves to ≤ 1/s per workshop (vs 01-sync-standard §8 rule 4 "next tick").
@@ -87,9 +111,31 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 - F24 lockpick/hack outcomes are server-rolled (class A) instead of client minigame results (review C3).
 - F08 hosted-NPC AV reports are cause-bounded and can never kill (review C1).
 
+## Deviations recorded during implementation
+- F17: worn power armor pieces live in the wearer's worn record, not in the player inventory. They move between the frame and the record only on the client's Ack.
+- F22 and others: world state (settlements, frames, locks, parties, containers, clock, weather) is stored in a JSON file (`fo4.worldStatePath`), not in ADR-010 records yet. Writes go through a temporary file and a rename.
+- F09: `WeaponFire` gained `clientShotId`, echoed to the shooter only, so hit claims can name the server sequence. This is not in the 01-sync-standard registry text yet.
+- F32: party pushes reuse `PartyAction` (op `State` with nonce 0, op `Invite` to the invitee). There is no separate message.
+- F22: `WorkshopObjects` snapshots are chunked at `fo4.workshopSnapshotChunk` (200) objects. Wires and scrapped pre-placed refs ride in chunk 0.
+- Gamemode events are named `onFo4...` (for example `onFo4PvpFlagChange`) rather than the unprefixed names in some specs.
+- `claimRule: "gamemode"` blocks every player claim; owners are set only with `mp.fo4.setWorkshopOwner`.
+
 ## Evidence log
 | Date | Task | Evidence |
 |---|---|---|
+| 2026-10-05 | Settings, gamemode events, guides | `Fo4SettingsTest` (3 cases), `Fo4ServerTest` "gamemode events observe and can block actions"; full suite 230/1879 |
+| 2026-10-05 | Client services + parity | `b67cecf`: 47 node tests; parity test parses Fo4Messages.h, MsgType.h and the fo4 enums |
+| 2026-10-05 | Equipment, clock, weather, map, fast travel | `77b355a`, 224/1799 |
+| 2026-10-05 | Leveled lists, containers, loot, drops | `f6c6654` |
+| 2026-10-05 | Gamemode API `mp.fo4` | `eb214cf`, `Fo4GamemodeApiTest`, server tsc clean |
+| 2026-10-05 | Bootstrap from the load order | `cd5e26a`, `Fo4WorldBootstrapTest` |
+| 2026-10-05 | PartOne routing and persistence | `ada1243`, `Fo4PartOneTest` |
+| 2026-10-05 | Server facade | `c237673`, `Fo4ServerTest` |
+| 2026-10-05 | Message structs 64–120 | `e49b5cc`, `Fo4MessagesTest` (binary and JSON round trips, Skyrim layout unchanged) |
+| 2026-10-05 | libespm data source | `ea262f4`, `Fo4EspmDataSourceTest` |
+| 2026-10-05 | Game systems | `af67519`, `e27301c`, `1f084db`, `78e6675`, `45b2c81` with their `Fo4*Test` files |
+| 2026-10-05 | Profiles, prefix, registry, FO4 readers | `91a92f3`, `GameProfileTest`, `Fo4EspmTest` |
+| 2026-10-05 | REF-001 data tagging | `541425d`: suite green without game data |
 | 2026-10-05 | Research | reference/*.md (11 documents) written by research agents; spot-checked by the main session (e.g. NAVM kType bug, GetScriptData noexcept, FO4 lacks SendAnimationEvent/KeepOffsetFromActor in vanilla .psc) |
 
 ## Upstream ports
@@ -100,4 +146,5 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 | Date | Session summary |
 |---|---|
 | 2026-10-05 | Research (11 references) + full plan v1 written: vision, sync standard, architecture/ADRs, milestones, backlog, 32 feature specs, testing, risks. No code changes. |
+| 2026-10-05 | Implementation: server Fallout 4 game layer, PartOne integration and persistence, settings, gamemode API and events, falloutmp-client services with the parity test, admin, gamemode and implementation guides. All Linux tests green. |
 | 2026-10-05 | Plan v1.1: two adversarial reviews applied (5 + 5 critical, 15 + 12 major findings). 33 specs, 645 tasks. Added `tools/falloutmp-plan-stats.py`. No code changes. |

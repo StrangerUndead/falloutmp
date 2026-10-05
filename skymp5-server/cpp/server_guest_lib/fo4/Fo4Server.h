@@ -25,6 +25,7 @@
 #include <nlohmann/json_fwd.hpp>
 #include <random>
 #include <set>
+#include <string>
 
 class IMessageBase;
 enum class MsgType : uint8_t;
@@ -60,6 +61,15 @@ public:
   }
   // Called when the server kills an actor (F12 takes it from here)
   virtual void OnActorKilled(ActorId victim, ActorId killer) = 0;
+  // Gamemode event mp.<name>(...args). Returns false when a gamemode
+  // handler returned false (blocks the action for blockable events).
+  virtual bool FireGamemodeEvent(const std::string& name,
+                                 const nlohmann::json& args)
+  {
+    (void)name;
+    (void)args;
+    return true;
+  }
 };
 
 struct Fo4ServerSettings
@@ -98,6 +108,7 @@ struct Fo4ActorState
   int32_t actorLevelForXp = 1;
   std::set<FormId> discoveredMarkers;
   int64_t lastCombatMs = -1000000000;
+  int32_t lastAnnouncedLevel = 0; // for onFo4LevelUp
 };
 
 class Fo4Server

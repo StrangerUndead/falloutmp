@@ -85,6 +85,20 @@ Fo4Server::Fo4Server(std::shared_ptr<IFo4DataSource> data_, Fo4Host& host_,
   , rng(std::random_device{}())
 {
   workshops.allocateFormId = [this] { return host.AllocateFormId(); };
+  // Gamemode vetoes (blockable events, docs/falloutmp/guides/gamemode-api.md)
+  powerArmor.veto = [this](ActorId a, FormId frame, bool entering) {
+    return host.FireGamemodeEvent(
+      entering ? "onFo4PowerArmorEnter" : "onFo4PowerArmorExit",
+      nlohmann::json::array({ a, frame }));
+  };
+  workshops.veto = [this](ActorId a, FormId workshop, const char* action) {
+    if (std::string(action) == "claim" &&
+        settings.workshop.claimRule == WorkshopSettings::ClaimRule::Gamemode) {
+      return false; // only mp.fo4.setWorkshopOwner assigns owners
+    }
+    return host.FireGamemodeEvent(
+      "onFo4WorkshopAction", nlohmann::json::array({ a, workshop, action }));
+  };
   clock.SetGameDays(8.0 / 24.0, host.NowMs());
 }
 
@@ -188,6 +202,12 @@ void Fo4Server::SendProgression(ActorId actor)
                  st.progression.ownedPerks.end());
   m.created = st.progression.created;
   host.SendTo(actor, m, true);
+  if (st.lastAnnouncedLevel != 0 &&
+      st.progression.level > st.lastAnnouncedLevel) {
+    host.FireGamemodeEvent(
+      "onFo4LevelUp", nlohmann::json::array({ actor, st.progression.level }));
+  }
+  st.lastAnnouncedLevel = st.progression.level;
 }
 
 void Fo4Server::SendFullState(ActorId actor)
@@ -281,6 +301,10 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
                        : std::vector<fo4msg::ItemCount>{});
       if (r.Ok()) {
         SendInventory(sender);
+        host.FireGamemodeEvent(
+          "onFo4Craft",
+          nlohmann::json::array({ sender, m.workbenchRefId, m.recipeId,
+                                  r.created.baseId, r.createdCount }));
       }
       return;
     }
@@ -301,6 +325,11 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
              0, r.Ok() ? std::vector<fo4msg::ItemCount>{ { ToMsg(r.newKey), 1 } }
                        : std::vector<fo4msg::ItemCount>{});
       SendInventory(sender); // correction or new state either way
+      if (r.Ok()) {
+        host.FireGamemodeEvent(
+          "onFo4ModItem",
+          nlohmann::json::array({ sender, item.baseId, m.modId, m.op == 0 }));
+      }
       return;
     }
     case MsgType::ScrapItem: {
@@ -318,6 +347,10 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
       Result(host, sender, m.nonce, type, r.Ok(), CraftErrorToString(r.error),
              0, ToMsg(r.produced));
       SendInventory(sender);
+      if (r.Ok()) {
+        host.FireGamemodeEvent(
+          "onFo4Scrap", nlohmann::json::array({ sender, item.baseId, m.count }));
+      }
       return;
     }
     case MsgType::TakeItemFo4:
@@ -447,6 +480,11 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
       f.nowMs = host.NowMs();
       auto e = map.CanFastTravel(m.markerRefId, st.discoveredMarkers, f);
       bool ok = e == FastTravelError::None;
+      if (ok &&
+          !host.FireGamemodeEvent(
+            "onFo4FastTravel", nlohmann::json::array({ sender, m.markerRefId }))) {
+        return Result(host, sender, m.nonce, type, false, "Vetoed");
+      }
       if (ok) {
         auto marker = map.Find(m.markerRefId);
         ok = host.TeleportActor(sender, marker->pos, marker->worldOrCell);
@@ -459,6 +497,10 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
     }
     case MsgType::UseItem: {
       auto& m = As<UseItemMessage>(msg);
+      if (!host.FireGamemodeEvent("onFo4UseItem",
+                                  nlohmann::json::array({ sender, m.baseId }))) {
+        return Result(host, sender, m.nonce, type, false, "Vetoed");
+      }
       auto r = st.effects->UseItem(m.baseId, st.inventory, st.avs, rng);
       Result(host, sender, m.nonce, type, r.Ok(),
              r.Ok() ? "" : (r.error == UseItemError::Dead ? "Dead"
@@ -489,6 +531,11 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
       }
       Result(host, sender, m.nonce, type, e == ProgressionError::None,
              ProgressionErrorToString(e));
+      if (e == ProgressionError::None &&
+          m.op == ProgressionRequestMessage::kBuyPerk) {
+        host.FireGamemodeEvent("onFo4PerkBought",
+                               nlohmann::json::array({ sender, m.chartKey }));
+      }
       SendProgression(sender);
       SendActorValues(sender);
       return;
@@ -727,6 +774,9 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
         host.SendToNeighbours(sender, delta, true);
         host.SendTo(sender, delta, true);
         SendInventory(sender);
+        host.FireGamemodeEvent(
+          "onFo4WorkshopPlace",
+          nlohmann::json::array({ sender, m.workshopRefId, r.refId, m.baseId }));
       }
       return;
     }
@@ -832,6 +882,11 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
         reply.capsDelta = r.capsDelta;
         reply.error = r.Ok() ? "" : BarterErrorToString(r.error);
         SendInventory(sender);
+        if (r.Ok()) {
+          host.FireGamemodeEvent(
+            "onFo4Trade",
+            nlohmann::json::array({ sender, m.vendorId, r.capsDelta }));
+        }
       }
       host.SendTo(sender, reply, true);
       return;
@@ -866,6 +921,10 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
           SendProgression(sender);
         }
         SendInventory(sender); // pin count
+        if (r.code == LockResultCode::Unlocked) {
+          host.FireGamemodeEvent(
+            "onFo4Unlock", nlohmann::json::array({ sender, m.refId, "lockpick" }));
+        }
       } else {
         locks.CancelLockpick(m.sessionId);
         return;
@@ -891,6 +950,10 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
         SendProgression(sender);
       }
       host.SendTo(sender, reply, true);
+      if (r.code == HackResultCode::Hacked) {
+        host.FireGamemodeEvent(
+          "onFo4Unlock", nlohmann::json::array({ sender, m.refId, "hack" }));
+      }
       return;
     }
     case MsgType::PartyAction: {
@@ -931,6 +994,12 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
           e = parties.Promote(me, m.targetProfileId);
           break;
         case PartyActionMessage::kSetPvpFlag:
+          if (!host.FireGamemodeEvent(
+                "onFo4PvpFlagChange",
+                nlohmann::json::array({ sender, m.value }))) {
+            SendPartyState(sender, m.nonce, "Vetoed");
+            return;
+          }
           e = parties.SetPvpFlag(me, m.value, now);
           break;
         default:
@@ -941,6 +1010,16 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
                      e == PartyError::None ? "" : PartyErrorToString(e));
       if (e != PartyError::None) {
         return;
+      }
+      if (m.op != PartyActionMessage::kSetPvpFlag) {
+        static const char* kOpNames[] = { "invite", "accept",  "decline",
+                                          "leave",  "kick",    "promote" };
+        auto pid = parties.GetPartyOf(me);
+        host.FireGamemodeEvent(
+          "onFo4PartyChange",
+          nlohmann::json::array({ pid ? *pid : m.partyId,
+                                  m.op < 6 ? kOpNames[m.op] : "unknown", me,
+                                  m.targetProfileId }));
       }
       if (m.op == PartyActionMessage::kInvite) {
         if (auto invitee = FindPlayerByProfile(m.targetProfileId)) {
@@ -1256,6 +1335,10 @@ void Fo4Server::Tick()
           m.markers.push_back({ mid, mk->name, mk->type, mk->pos });
         }
         host.SendTo(id, m, true);
+        for (auto mid : found) {
+          host.FireGamemodeEvent("onFo4LocationDiscovered",
+                                 nlohmann::json::array({ id, mid }));
+        }
         // Discovering a location awards XP like vanilla
         st.progression.AwardXp(static_cast<uint32_t>(found.size()) * 20u,
                                false, st.avs);

@@ -34,6 +34,7 @@ The plan is written for **future Claude Code sessions**, which start in a fresh,
 | [05-risks-open-questions.md](05-risks-open-questions.md) | Risk register and the open questions/decisions that need the user | When blocked or planning |
 | [06-workflow-conventions.md](06-workflow-conventions.md) | Branching, commits, upstream SkyMP merges, coding conventions, how to request in-game tests, licensing rules | Before the first commit of a session |
 | [07-dependencies-and-mods.md](07-dependencies-and-mods.md) | Policy and candidate list for required/recommended companion mods (F4SE, Address Library, Buffout 4, High FPS Physics Fix, LooksMenu, MCM, …) and mod-compatibility rules | Before platform/appearance/UI work, and for release docs |
+| [guides/](guides/) | As-built docs: server admin settings, the `mp.fo4` gamemode API and events, the implementation guide | When running a server, writing a gamemode or extending the code |
 | [backlog/](backlog/) | Infrastructure workstreams (ENV, BUILD, REF, ESPM, PVM, DATA, PLAT, NET, SRV, CLI, FRONT, GM, QA, OPS, DOCS) with task IDs | When picking infrastructure work |
 | [features/](features/) | One spec per gameplay system (SkyMP parity and FO4-specific), each with its own task list `Fxx-Tnn` | When implementing or reviewing a feature |
 | [reference/](reference/) | Deep research: SkyMP internals and sync inventory, CommonLibF4 port map, Papyrus API map, FO4 data formats, PEX/VM, animation, FO4 systems, prior art, coupling index, dev environment | As linked from tasks |

@@ -3,6 +3,7 @@
 #include "Fo4WorldBootstrap.h"
 #include "MpActor.h"
 #include "PartOne.h"
+#include "gamemode_events/GameModeEvent.h"
 #include <chrono>
 #include <cmath>
 #include <filesystem>
@@ -10,6 +11,7 @@
 #include <nlohmann/json.hpp>
 #include <set>
 #include <spdlog/spdlog.h>
+#include <stdexcept>
 
 namespace fo4 {
 
@@ -21,6 +23,24 @@ int64_t SteadyMs()
     .count();
 }
 }
+
+// A gamemode event raised by the Fallout 4 layer (mp.onFo4...).
+class Fo4GamemodeEvent : public GameModeEvent
+{
+public:
+  Fo4GamemodeEvent(std::string name_, std::string argsJsonArray_)
+    : name(std::move(name_))
+    , args(std::move(argsJsonArray_))
+  {
+  }
+  const char* GetName() const override { return name.c_str(); }
+  std::string GetArgumentsJsonArray() const override { return args; }
+
+private:
+  void OnFireSuccess(WorldState*) override {}
+  std::string name;
+  std::string args;
+};
 
 class PartOneFo4Host : public Fo4Host
 {
@@ -128,6 +148,13 @@ public:
     ac->Teleport(loc);
     return true;
   }
+  bool FireGamemodeEvent(const std::string& name,
+                         const nlohmann::json& args) override
+  {
+    Fo4GamemodeEvent event(name, args.dump());
+    return event.Fire(&partOne.worldState);
+  }
+
   void OnActorKilled(ActorId victim, ActorId killer) override
   {
     auto v = ActorPtr(victim);
@@ -182,6 +209,16 @@ Fo4PartOneGlue::~Fo4PartOneGlue()
 Fo4Server& Fo4PartOneGlue::Server()
 {
   return *pImpl->server;
+}
+
+void Fo4PartOneGlue::ApplySettings(const Fo4ServerSettings& settings)
+{
+  if (!pImpl->loadedActors.empty() || !pImpl->worldPath.empty()) {
+    throw std::runtime_error(
+      "Fo4PartOneGlue::ApplySettings must run before any state is loaded");
+  }
+  pImpl->server =
+    std::make_unique<Fo4Server>(pImpl->data, *pImpl->host, settings);
 }
 
 void Fo4PartOneGlue::OnMessage(uint32_t actorId, MsgType type,

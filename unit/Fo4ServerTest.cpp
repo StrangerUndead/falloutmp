@@ -3,6 +3,7 @@
 #include "fo4/Fo4Server.h"
 #include <catch2/catch_all.hpp>
 #include <nlohmann/json.hpp>
+#include <set>
 
 using namespace fo4;
 using namespace fo4test;
@@ -74,6 +75,23 @@ public:
     teleports.push_back({ a, p });
     pos[a] = p;
     return true;
+  }
+
+  std::vector<std::pair<std::string, nlohmann::json>> events;
+  std::set<std::string> blocked;
+  bool FireGamemodeEvent(const std::string& name,
+                         const nlohmann::json& args) override
+  {
+    events.push_back({ name, args });
+    return !blocked.count(name);
+  }
+  int CountEvents(const std::string& name) const
+  {
+    int n = 0;
+    for (auto& e : events) {
+      n += e.first == name;
+    }
+    return n;
   }
 
   // Last message of a type sent to an actor's neighbours
@@ -688,4 +706,86 @@ TEST_CASE("Fo4Server: settlement snapshots on build mode and on join",
   w.server->SendFullState(kBob);
   REQUIRE(w.host.AllTo(kBob, MsgType::WorkshopObjects).size() == 3);
   REQUIRE(w.host.Last(kBob, MsgType::PartyAction)["partyId"] == 0);
+}
+
+TEST_CASE("Fo4Server: gamemode events observe and can block actions",
+          "[fo4][Fo4Server]")
+{
+  ServerWorld w;
+  auto& alice = w.server->Actor(kAlice);
+
+  // Power armor entry blocked by the gamemode
+  PowerArmorFrame f;
+  f.refId = kFrameRef;
+  f.pos[0] = 50;
+  w.server->PowerArmor().AddFrame(f);
+  w.host.blocked.insert("onFo4PowerArmorEnter");
+  PowerArmorTransitionMessage enter;
+  enter.nonce = 1;
+  enter.frameRefId = kFrameRef;
+  w.server->OnMessage(kAlice, MsgType::PowerArmorTransition, enter);
+  REQUIRE(w.host.Last(kAlice, MsgType::PowerArmorTransition)["error"] ==
+          "Vetoed");
+  REQUIRE(w.host.events.back().second == nlohmann::json::array(
+                                           { kAlice, kFrameRef }));
+
+  // Consumables blocked
+  alice.inventory.AddSimple(kStimpak, 1);
+  w.host.blocked.insert("onFo4UseItem");
+  UseItemMessage use;
+  use.nonce = 2;
+  use.baseId = kStimpak;
+  w.server->OnMessage(kAlice, MsgType::UseItem, use);
+  REQUIRE(w.host.Last(kAlice, MsgType::RequestResult)["error"] == "Vetoed");
+  REQUIRE(alice.inventory.CountBase(kStimpak) == 1);
+
+  // PvP flag blocked, party changes observed
+  w.host.blocked.insert("onFo4PvpFlagChange");
+  PartyActionMessage flag;
+  flag.nonce = 3;
+  flag.op = PartyActionMessage::kSetPvpFlag;
+  flag.value = true;
+  w.server->OnMessage(kAlice, MsgType::PartyAction, flag);
+  REQUIRE(w.host.Last(kAlice, MsgType::PartyAction)["error"] == "Vetoed");
+  REQUIRE(!w.server->Parties().IsFlagged(1));
+  PartyActionMessage invite;
+  invite.nonce = 4;
+  invite.op = PartyActionMessage::kInvite;
+  invite.targetProfileId = 2;
+  w.server->OnMessage(kAlice, MsgType::PartyAction, invite);
+  REQUIRE(w.host.CountEvents("onFo4PartyChange") == 1);
+  REQUIRE(w.host.events.back().second[1] == "invite");
+
+  // Crafting is observed
+  alice.inventory.AddSimple(kSteelScrap, 10);
+  alice.inventory.AddSimple(kScrewScrap, 5);
+  CraftItemFo4Message craft;
+  craft.nonce = 5;
+  craft.workbenchRefId = kBenchRef;
+  craft.recipeId = kRecipeMount;
+  w.server->OnMessage(kAlice, MsgType::CraftItemFo4, craft);
+  REQUIRE(w.host.Last(kAlice, MsgType::RequestResult)["ok"] == true);
+  REQUIRE(w.host.CountEvents("onFo4Craft") == 1);
+
+  // Level ups are announced once per new level, not on the first sync
+  w.server->SendProgression(kAlice);
+  REQUIRE(w.host.CountEvents("onFo4LevelUp") == 0);
+  alice.progression.AwardXp(1000, true, alice.avs);
+  w.server->SendProgression(kAlice);
+  REQUIRE(w.host.CountEvents("onFo4LevelUp") == 1);
+  w.server->SendProgression(kAlice);
+  REQUIRE(w.host.CountEvents("onFo4LevelUp") == 1);
+
+  // Gamemode-only claims: players can't claim even without a handler
+  w.server->settings.workshop.claimRule =
+    WorkshopSettings::ClaimRule::Gamemode;
+  Fo4Server gm(w.data, w.host, w.server->settings);
+  Workshop shop;
+  shop.workbenchRefId = kShopRef;
+  gm.Workshops().AddWorkshop(shop);
+  WorkshopManageMessage claim;
+  claim.nonce = 6;
+  claim.workshopRefId = kShopRef;
+  gm.OnMessage(kAlice, MsgType::WorkshopManage, claim);
+  REQUIRE(w.host.Last(kAlice, MsgType::RequestResult)["ok"] == false);
 }
