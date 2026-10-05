@@ -1,4 +1,5 @@
 #include "PartOne.h"
+#include "fo4/Fo4PartOneGlue.h"
 #include <array>
 #include <cassert>
 #include <chrono>
@@ -95,6 +96,8 @@ struct PartOne::Impl
   std::string sslSignerKeyAlias;            // empty string
   bool enableGamemodeDataUpdatesBroadcast = false;
 
+  std::unique_ptr<fo4::Fo4PartOneGlue> fo4;
+
   PartOne::OnActorStreamIn onActorStreamIn;
 };
 
@@ -148,6 +151,20 @@ void PartOne::Tick()
   TickPacketHistoryPlaybacks();
   TickDeferredMessages();
   worldState.Tick();
+  if (pImpl->fo4) {
+    pImpl->fo4->Tick();
+  }
+}
+
+fo4::Fo4PartOneGlue* PartOne::GetFo4()
+{
+  if (worldState.GetGameProfile().GetGameId() != GameId::Fallout4) {
+    return nullptr;
+  }
+  if (!pImpl->fo4) {
+    pImpl->fo4 = std::make_unique<fo4::Fo4PartOneGlue>(*this);
+  }
+  return pImpl->fo4.get();
 }
 
 uint32_t PartOne::CreateActor(uint32_t formId, const NiPoint3& pos,
@@ -455,6 +472,9 @@ void PartOne::HandlePacket(void* partOneInstance, Networking::UserId userId,
           // TODO: apply dependency inversion here: connection handling code
           // should not depend on animation system
           this_->animationSystem.ClearInfo(actor);
+          if (this_->pImpl->fo4) {
+            this_->pImpl->fo4->OnActorDisconnected(*actor);
+          }
         }
         this_->serverState.Disconnect(userId);
         this_->serverState.disconnectingUserId = Networking::InvalidUserId;

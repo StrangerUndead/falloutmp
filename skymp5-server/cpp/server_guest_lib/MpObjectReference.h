@@ -141,6 +141,10 @@ public:
   void SetPropertyValueDump(const std::string& propertyName,
                             const std::string& valueDump,
                             bool isVisibleByOwner, bool isVisibleByNeighbor);
+  // Stores a server-private value in the change form without sending any
+  // message (used for Fallout 4 per-actor state).
+  void SetDynamicFieldSilent(const std::string& name,
+                             const std::string& valueDump);
   void SetTeleportFlag(bool value);
   void SetPosAndAngleSilent(const NiPoint3& pos, const NiPoint3& rot);
   void Delete();

@@ -22,6 +22,9 @@
 
 using ProfileId = int32_t;
 class ActionListener;
+namespace fo4 {
+class Fo4PartOneGlue;
+}
 class MessageSerializer;
 
 class PartOneSendTargetWrapper : public Networking::ISendTarget
@@ -133,6 +136,10 @@ public:
                     MpObjectReference& remote);
 
   static MessageSerializer& GetMessageSerializerInstance();
+
+  // Fallout 4 game layer. Created on first use when the game profile is
+  // Fallout 4; nullptr for Skyrim servers.
+  fo4::Fo4PartOneGlue* GetFo4();
 
 private:
   void Init();

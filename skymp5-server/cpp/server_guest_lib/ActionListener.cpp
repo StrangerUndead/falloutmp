@@ -1,4 +1,5 @@
 #include "ActionListener.h"
+#include "fo4/Fo4PartOneGlue.h"
 #include "AnimationSystem.h"
 #include "ConditionsEvaluator.h"
 #include "ConsoleCommands.h"
@@ -1422,4 +1423,22 @@ void ActionListener::SendPapyrusOnHitEvent(MpActor* aggressor,
   args[5] = VarValue(hitData.isBashAttack);  // abBashAttack
   args[6] = VarValue(hitData.isHitBlocked);  // abHitBlocked
   target->SendPapyrusEvent("OnHit", args.data(), args.size());
+}
+
+void ActionListener::OnFallout4Message(const RawMessageData& rawMsgData,
+                                       MsgType type, const IMessageBase& msg)
+{
+  auto fo4 = partOne.GetFo4();
+  if (!fo4) {
+    spdlog::warn("Dropping Fallout 4 message type {} on a non-Fallout 4 "
+                 "server (userId={})",
+                 static_cast<int>(type), rawMsgData.userId);
+    return;
+  }
+  auto ac = partOne.serverState.ActorByUser(rawMsgData.userId);
+  if (!ac) {
+    throw std::runtime_error("Can't handle a Fallout 4 message without an "
+                             "actor attached");
+  }
+  fo4->OnMessage(ac->GetFormId(), type, msg);
 }

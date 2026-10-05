@@ -42,6 +42,11 @@ public:
   virtual void OnActivate(const RawMessageData& rawMsgData,
                           const ActivateMessage& msg);
 
+  // Every Fallout 4 message type (MsgType 64..122). Ignored on Skyrim
+  // servers, so a Skyrim server never runs Fallout 4 handlers.
+  virtual void OnFallout4Message(const RawMessageData& rawMsgData,
+                                 MsgType type, const IMessageBase& msg);
+
   virtual void OnPutItem(const RawMessageData& rawMsgData,
                          const PutItemMessage& msg);
   virtual void OnTakeItem(const RawMessageData& rawMsgData,

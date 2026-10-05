@@ -48,6 +48,11 @@ void PacketParser::TransformPacketIntoAction(Networking::UserId userId,
                      userId, static_cast<int64_t>(result->msgType));
       });
     }
+    if (IsFallout4MsgType(result->msgType)) {
+      actionListener.OnFallout4Message(rawMsgData, result->msgType,
+                                       *result->message);
+      return;
+    }
     switch (result->msgType) {
       case MsgType::Invalid: {
         return;

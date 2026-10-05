@@ -762,6 +762,14 @@ void MpObjectReference::SetPropertyValueDump(const std::string& propertyName,
   pImpl->setPropertyCalled = true;
 }
 
+void MpObjectReference::SetDynamicFieldSilent(const std::string& name,
+                                              const std::string& valueDump)
+{
+  EditChangeForm([&](MpChangeFormREFR& changeForm) {
+    changeForm.dynamicFields.SetValueDump(name, valueDump);
+  });
+}
+
 void MpObjectReference::SetTeleportFlag(bool value)
 {
   pImpl->teleportFlag = value;
