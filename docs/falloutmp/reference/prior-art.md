@@ -684,6 +684,43 @@ Source: the user-supplied Nexus file "CO - Server" 107542, version 1.1.0, dated 
 5. **OPS-002 directory rules:** literal IPv4 equal to the observed source, no hostnames, private ranges only in dev mode. OPS-011 (Iroh relay) is a proven option for NAT-free hosting.
 6. **Avoid:** client-computed `combatHit.damage`, a single world-state host for NPCs/time (we use server authority and per-NPC hosting), JSON over TCP for gameplay, and the 4-proxy cap.
 
+#### 3.5.2 Update 2026-10-05: `Commonwealth-Online-Server` repository, `main` branch (uploaded by the user)
+
+Source: the user-supplied GitHub zip (archive comment `dab76146cffbf11a68078ba38b5ddf52e9e6d9dd`). It contains:
+- the Python dedicated server (`server/`, CLI plus service wrapper);
+- a Qt6 C++ Windows "Host GUI" that runs the CLI as a subprocess and parses its logs;
+- a Linux-compatibility GitHub workflow.
+
+No license file. Same reuse note as §3.5.1. Provenance tag: `[src: CO-main@dab7614:<path>]`.
+
+Differences from the 1.1.0 release package (§3.5.1):
+- This branch **implements** `npcState` and `combatHit` routing.
+- It has a localhost admin channel and a ban store.
+- It has **no Iroh** files; transport is plain TCP 7777 plus UDP 7778 LAN discovery.
+
+| Topic | Behaviour | Source |
+|---|---|---|
+| NPC sync | Only the world-state host (first client, then lowest remaining id) may send `npcState`, ≤ 16 NPCs per packet (`npcId`, `baseFormId`, transform, `cellId`). The server stamps `playerId`/`serverTime`, sets `fullReplace=true`, caches the last snapshot and sends it to late joiners | server_core.py:580-601, 663-680; test_npc_protocol.py |
+| Combat | `combatHit {targetPlayerId, sequence, damage 0<d≤10000, weaponFormId}`. **Damage is computed by the attacker**. The server validates ranges, rejects self-hits, stamps the sender id and routes the packet **only to the victim**, whose client applies it. No authority, no LOS or distance check | server_core.py:1000-1077; test_combat_protocol.py |
+| Late join | Existing transform and NPC snapshots are sent after the joining client's **first packet**, not on accept | server_core.py:496-542 |
+| Admin | Localhost-only JSON-lines admin port 7779: kick, ban player, ban IP, unban, list bans, set time/weather. `sessionEnded {code, reason}` is sent to kicked clients. Bans persist in `bans.json` | admin_server.py; ban_store.py; server_service.py:291-430 |
+| Ops | `start.sh` creates a venv and refuses `sudo`. systemd unit runs as a non-root user with `Restart=on-failure` and journald logs. Graceful SIGTERM shutdown is covered by integration tests. Firewall/port troubleshooting docs | start.sh; commonwealth-online.service.example; tests/test_sigterm_integration.py; PORT_TROUBLESHOOTING.txt |
+| Host GUI | Qt6 window: start/stop, settings editor, client list, logs, packet counters; works by spawning and parsing the CLI | src/MainWindow.cpp, ServerProcess.cpp |
+
+**What this means for FalloutMP**
+1. **NPC authority:**
+   - Commonwealth Online uses a single "world host" for all NPCs.
+   - FalloutMP keeps SkyMP's per-NPC hosting with server-owned NPC state (F13). That is better for load spreading and for server-side validation.
+   - Their late-join NPC snapshot matches our `CreateActorFo4` streaming.
+2. **Combat:** confirms the anti-pattern to avoid: client-computed damage applied by the victim. F09/F11 keep server-computed damage with lag-compensated validation.
+3. **Admin (F30):** adopt these patterns:
+   - a loopback-only admin channel, alongside gamemode commands;
+   - a persistent ban store (player and IP) with reason and time;
+   - `sessionEnded`-style kick notices.
+
+   SkyMP's equivalents are the gamemode and `mp.kick`; FalloutMP should also add an IP-ban store (F30).
+4. **Ops (OPS-001/003):** adopt these as deployment defaults: a non-root systemd unit, graceful SIGTERM (persistence flush), and port-troubleshooting docs. A desktop host GUI (Qt) is optional (FRONT/OPS, post-1.0).
+
 ### 3.6 jjnorris/FalloutTogether — `FT-jj@33a4c87`
 
 - HEAD is an ancestor of TiltedEvolution `dev`. There are no commits by the fork owner.
