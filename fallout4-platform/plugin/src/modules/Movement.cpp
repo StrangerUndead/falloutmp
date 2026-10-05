@@ -45,7 +45,7 @@ namespace fmp::modules {
 namespace {
 
 // UpdateMovementFo4.flags (falloutmp-client codes.ts MoveFlag,
-// skymp5-server fo4/Movement.h)
+// falloutmp-server fo4/Movement.h)
 namespace MoveFlag {
 enum : uint32_t
 {
@@ -65,7 +65,7 @@ enum : uint32_t
 };
 }
 
-constexpr double kVelocityWindowMs = 150;  // speed averaged over this
+constexpr double kVelocityWindowMs = 150; // speed averaged over this
 constexpr double kMinVelocityDtMs = 20;
 constexpr float kTeleportSpeed = 20000.f;  // faster than this = a teleport
 constexpr double kTrackForMs = 3000;       // history while the client asks
@@ -137,8 +137,7 @@ void Record(Owned& o, RE::Actor* actor, double now)
   }
   o.samples.push_back({ now, pos });
   // Keep the youngest sample that is at least a window old as the front
-  while (o.samples.size() > 2 &&
-         now - o.samples[1].t >= kVelocityWindowMs) {
+  while (o.samples.size() > 2 && now - o.samples[1].t >= kVelocityWindowMs) {
     o.samples.pop_front();
   }
 }
@@ -166,18 +165,15 @@ void PollEncumbered(uint32_t id, RE::Actor* actor, Owned& o, double now)
   }
   o.lastEncumberedPollMs = now;
   // No engine accessor in CommonLibF4; Actor.IsOverEncumbered() is cheap
-  papyrus::CallMethod(actor, "Actor", "IsOverEncumbered",
-                      [id](const Json& r) {
-                        auto it = g_owned.find(id);
-                        if (it != g_owned.end()) {
-                          it->second.encumbered =
-                            r.is_boolean() && r.get<bool>();
-                        }
-                      });
+  papyrus::CallMethod(actor, "Actor", "IsOverEncumbered", [id](const Json& r) {
+    auto it = g_owned.find(id);
+    if (it != g_owned.end()) {
+      it->second.encumbered = r.is_boolean() && r.get<bool>();
+    }
+  });
 }
 
-uint32_t FlagsOf(RE::Actor* a, bool isPlayer, Owned& o, float velZ,
-                 double now)
+uint32_t FlagsOf(RE::Actor* a, bool isPlayer, Owned& o, float velZ, double now)
 {
   using CS = RE::IMovementState::CHARACTER_STATE;
   uint32_t f = 0;
@@ -378,7 +374,7 @@ bool Dead(RE::Actor* a)
 {
   auto life = static_cast<RE::ACTOR_LIFE_STATE>(a->lifeState);
   return life == RE::ACTOR_LIFE_STATE::kDying ||
-         life == RE::ACTOR_LIFE_STATE::kDead;
+    life == RE::ACTOR_LIFE_STATE::kDead;
 }
 
 // After the puppet's engine update: hold it at the newest target. A dead
@@ -423,8 +419,7 @@ void TeleportPlayer(Platform& p, const RE::NiPoint3& pos, float yawDeg,
   // MoveTo loads the destination; it needs a reference to move to, so a
   // heading marker is placed there and deleted once the move is done.
   constexpr uint32_t kXMarkerHeading = 0x34;
-  auto marker =
-    game::CreateRef(kXMarkerHeading, pos, yawDeg, world, interior);
+  auto marker = game::CreateRef(kXMarkerHeading, pos, yawDeg, world, interior);
   if (!marker) {
     p.Log("error", "Unable to place the teleport marker");
     return;
@@ -442,8 +437,9 @@ void TeleportPlayer(Platform& p, const RE::NiPoint3& pos, float yawDeg,
     return;
   }
   g_owned.erase(game::kPlayerRef); // speed history restarts there
-  p.Log("info", std::format("Moving to {:.0f} {:.0f} {:.0f} in {:X}", pos.x,
-                            pos.y, pos.z, worldOrCell));
+  p.Log("info",
+        std::format("Moving to {:.0f} {:.0f} {:.0f} in {:X}", pos.x, pos.y,
+                    pos.z, worldOrCell));
 }
 
 void Teleport(Platform& p, uint32_t refId, const Json& posJson, float yawDeg,
@@ -452,8 +448,9 @@ void Teleport(Platform& p, uint32_t refId, const Json& posJson, float yawDeg,
   RE::TESWorldSpace* world;
   RE::TESObjectCELL* interior;
   if (!game::ResolveSpace(worldOrCell, world, interior)) {
-    p.Log("warn", std::format("teleport of {:X}: unknown space {:X}", refId,
-                              worldOrCell));
+    p.Log(
+      "warn",
+      std::format("teleport of {:X}: unknown space {:X}", refId, worldOrCell));
     return;
   }
   auto pos = game::Point(posJson);

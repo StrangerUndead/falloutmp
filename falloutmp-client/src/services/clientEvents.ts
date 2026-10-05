@@ -1,4 +1,4 @@
-// Events the client raises for the UI (CEF front, HUD) and for gamemode
+// Events the client raises for the UI (HUD, menus) and for gamemode
 // client scripts. All payloads are plain data.
 import {
   ActiveEffectEntry,

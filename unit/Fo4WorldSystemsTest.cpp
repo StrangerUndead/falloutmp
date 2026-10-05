@@ -72,8 +72,7 @@ TEST_CASE("Vendor trades are atomic and validated", "[fo4][F23]")
   REQUIRE(vs.Trade(req, player, m, 22.f).error == BarterError::VendorClosed);
   auto stale = req;
   stale.expectedCapsDelta = 50;
-  REQUIRE(vs.Trade(stale, player, m, 12.f).error ==
-          BarterError::PriceChanged);
+  REQUIRE(vs.Trade(stale, player, m, 12.f).error == BarterError::PriceChanged);
   auto r = vs.Trade(req, player, m, 12.f);
   REQUIRE(r.Ok());
   REQUIRE(player.CountBase(kCaps) == 16);
@@ -225,8 +224,7 @@ TEST_CASE("Locks: keys, perk gates, pins and server-rolled picks",
           LockResultCode::SessionExpired);
 }
 
-TEST_CASE("Lockpick success rate matches the configured table",
-          "[fo4][F24]")
+TEST_CASE("Lockpick success rate matches the configured table", "[fo4][F24]")
 {
   LockService ls;
   LockpickerFacts a{ 1, 0, 5.f, 0 };
@@ -250,8 +248,7 @@ TEST_CASE("Lockpick success rate matches the configured table",
   REQUIRE(std::abs(ok / float(n) - chance) < 0.02f);
 }
 
-TEST_CASE("Terminal hacking: Hacker gates, attempts and lockout",
-          "[fo4][F24]")
+TEST_CASE("Terminal hacking: Hacker gates, attempts and lockout", "[fo4][F24]")
 {
   LockService ls;
   ls.settings.baseChance[2] = 0.f; // make expert terminals hard to roll
@@ -391,8 +388,7 @@ TEST_CASE("Parties: lifecycle, leader rules, size cap, persistence",
   REQUIRE(ps.Leave(1) == PartyError::NotInParty);
 }
 
-TEST_CASE("PvP rules: friendly fire, zones, flags and cooldowns",
-          "[fo4][F32]")
+TEST_CASE("PvP rules: friendly fire, zones, flags and cooldowns", "[fo4][F32]")
 {
   PartyService ps;
   ps.Invite(1, 2, 0);
@@ -429,9 +425,9 @@ TEST_CASE("Party XP sharing splits among members in range", "[fo4][F32]")
   ps.Accept(2, *ps.GetPartyOf(1), 0);
   ps.Invite(1, 3, 0);
   ps.Accept(3, *ps.GetPartyOf(1), 0);
-  std::map<ProfileId, std::array<float, 3>> pos{
-    { 1, { 0, 0, 0 } }, { 2, { 100, 0, 0 } }, { 3, { 99999, 0, 0 } }
-  };
+  std::map<ProfileId, std::array<float, 3>> pos{ { 1, { 0, 0, 0 } },
+                                                 { 2, { 100, 0, 0 } },
+                                                 { 3, { 99999, 0, 0 } } };
   auto shares = ps.ShareXp(1, 101, pos);
   REQUIRE(shares.size() == 2);
   uint32_t total = 0;

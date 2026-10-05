@@ -195,17 +195,17 @@ A denial changes no client state, because the engine travel was cancelled before
 - `G-manual`: discover Concord, reconnect, fast travel Sanctuary ↔ Concord, denial while in combat.
 
 ## 7. Tasks
-- [ ] **F26-T01** Map-marker catalogue: ESPM `XMRK`/`FNAM`/`TNAM`/`FULL` on REFR (including initially disabled refs) + `MapService` — M — Depends: ESPM-005, ESPM-002 — Verify: L-fixture, D-real — Files: libespm/src/, skymp5-server/cpp/server_guest_lib/MapService.{h,cpp} (new), unit/MapServiceTest.cpp
+- [ ] **F26-T01** Map-marker catalogue: ESPM `XMRK`/`FNAM`/`TNAM`/`FULL` on REFR (including initially disabled refs) + `MapService` — M — Depends: ESPM-005, ESPM-002 — Verify: L-fixture, D-real — Files: libespm/src/, falloutmp-server/cpp/server_guest_lib/MapService.{h,cpp} (new), unit/MapServiceTest.cpp
   - Accept: the fixture catalogue matches. D-real counts the Commonwealth markers.
 - [ ] **F26-T02** `PlayerProfile` map fields (SRV-060) with defaults and back-compat — S — Depends: SRV-060 — Verify: L-unit
   - Accept: JSON round trip; loading a profile with no map fields gives the defaults.
-- [ ] **F26-T03** `MapDiscovery` (103) and `FastTravelRequest` (104) messages + client mirrors — S — Depends: NET-002 — Verify: L-unit — Files: skymp5-server/cpp/messages/{MapDiscoveryMessage,FastTravelRequestMessage}.h, Messages.h, falloutmp-client/src/services/messages/
+- [ ] **F26-T03** `MapDiscovery` (103) and `FastTravelRequest` (104) messages + client mirrors — S — Depends: NET-002 — Verify: L-unit — Files: falloutmp-server/cpp/messages/{MapDiscoveryMessage,FastTravelRequestMessage}.h, Messages.h, falloutmp-client/src/services/messages/
 - [ ] **F26-T04** Server discovery validation, `onMarkerDiscovered`, `discoveredMarkers`/`travelMarkers` bindings, snapshot on spawn, Papyrus `AddToMap`/`IsMapMarkerVisible`/`CanFastTravelToMarker` — M — Depends: F26-T01…T03, F01-T05 — Verify: L-unit
   - Accept: the `[MapMarker]` cases pass.
 - [ ] **F26-T05** Client `MapService`: capture (PipboyMapData sink, poll fallback), apply via `AddToMap`, `defaultDiscovered` seeding — M — Depends: F26-T03, PLAT-040, CLI-050 — Verify: L-ts, G-self — Files: falloutmp-client/src/services/services/mapService.ts
 - [ ] **F26-T06** Fast-travel interception hook + `InputEnableLayer` policy (replaces `disableFastTravelService.ts`) — M — Depends: PLAT-031, PLAT-040 — Verify: W-ci, G-self — Files: fallout4-platform/src/.../FastTravelHook.cpp, falloutmp-client/src/services/services/fastTravelService.ts
   - Accept: clicking a marker in the Pip-Boy produces a request and no local travel.
-- [ ] **F26-T07** Server `FastTravelService`: rule matrix, `Teleport`, companion carry, `onFastTravel`, `Game.FastTravel`, `OnPlayerTeleport`, `timeCost` hook — M — Depends: F26-T04, F11, F04 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/FastTravelService.{h,cpp} (new), unit/FastTravelTest.cpp
+- [ ] **F26-T07** Server `FastTravelService`: rule matrix, `Teleport`, companion carry, `onFastTravel`, `Game.FastTravel`, `OnPlayerTeleport`, `timeCost` hook — M — Depends: F26-T04, F11, F04 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/FastTravelService.{h,cpp} (new), unit/FastTravelTest.cpp
   - Accept: the `[FastTravel]` cases pass.
 - [ ] **F26-T08** `MapMarkerData` RE + `setMapMarkerState` native (hide, revoke) — M — Depends: PLAT-002 — Verify: W-ci, G-self
   - Accept: a revoked marker disappears from the map without a reload.

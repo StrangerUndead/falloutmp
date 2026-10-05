@@ -232,8 +232,7 @@ void Tick(Platform& p)
 void InstallPuppets(Platform& p)
 {
   auto& cfg = p.Config();
-  g_aiMode =
-    ParseAiMode(RawValue(cfg, "puppet-ai", std::string("package")));
+  g_aiMode = ParseAiMode(RawValue(cfg, "puppet-ai", std::string("package")));
   puppets::Guards guards;
   guards.npcsTargetPuppets = RawValue(cfg, "puppet-npc-targets", false);
   guards.localDeath = RawValue(cfg, "puppet-local-death", false);

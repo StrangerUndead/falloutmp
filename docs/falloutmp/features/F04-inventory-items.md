@@ -27,7 +27,7 @@ Every item a player, NPC or container holds is a server-authoritative **item ins
 - **SP assumptions that break:** template/mod rolls of spawned weapons are client-random (FO4_Wrld finding); `AddItem` of a weapon drags 5–9 rounds of ammo along (reference/prior-art.md §3.1.11); favorites live in the local save.
 
 ## 3. SkyMP baseline
-- `Inventory::Entry{baseId, count, ExtraData}`; stack identity `EqualExceptCount` over Skyrim extras [src: skymp5-server/cpp/server_guest_lib/Inventory.cpp:74-85].
+- `Inventory::Entry{baseId, count, ExtraData}`; stack identity `EqualExceptCount` over Skyrim extras [src: falloutmp-server/cpp/server_guest_lib/Inventory.cpp:74-85].
 - **Bug B2:** `AddItems` returns from the whole function after the first merge, dropping later entries [src: Inventory.cpp:92-104]. Multi-entry adds (crafting yields, scrap, reloot, transfers) lose items.
 - `RemoveItems` is atomic (works on a copy, throws if short) [src: Inventory.cpp:106-136] (S13). `MpObjectReference::RemoveItems(entries, target)` removes then calls `target->AddItems` [src: MpObjectReference.cpp:873-892].
 - `OnItemAdded` fires only from `AddItem`; the `AddItems` call is commented out [src: MpObjectReference.cpp:817-865] (I22).
@@ -140,17 +140,17 @@ NPC inventories are built on the server from ESM data: `EnsureBaseContainerAdded
 - `D-real`: `[fo4data]` ESM-derived NPC inventories produce valid OMOD sets.
 
 ## 7. Tasks
-- [ ] **F04-T01** FO4 extra-data schema: `OmodRef`, `ItemKey`, `Entry::omods`/`stolenFrom`, canonical sort, quantized health, `EqualExceptCount`, `FindByKey`, `Normalize`; Skyrim fields untouched — M — Depends: REF-008, NET-003 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/Inventory.{h,cpp}, unit/InventoryFo4Test.cpp
+- [ ] **F04-T01** FO4 extra-data schema: `OmodRef`, `ItemKey`, `Entry::omods`/`stolenFrom`, canonical sort, quantized health, `EqualExceptCount`, `FindByKey`, `Normalize`; Skyrim fields untouched — M — Depends: REF-008, NET-003 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/Inventory.{h,cpp}, unit/InventoryFo4Test.cpp
   - Accept: §6 stacking cases pass; `./unit/unit "[Inventory]"` (Skyrim) unchanged.
 - [ ] **F04-T02** Fix bug B2 (`AddItems` early return → `continue` the outer loop) with regression test — S — Depends: — — Verify: L-unit — Files: Inventory.cpp, unit/InventoryTest.cpp
   - Accept: adding `[A(merges), B(new)]` yields both; upstreamable commit.
-- [ ] **F04-T03** `SetInventoryFo4` (68): struct, TS mirror, per-(user, refId) overwrite channel, `invVersion` — S — Depends: NET-002, F04-T01 — Verify: L-unit — Files: skymp5-server/cpp/messages/SetInventoryFo4Message.h, Messages.h, MsgType.h, MpObjectReference.cpp (`SendInventoryUpdate`), falloutmp-client/src/services/messages/setInventoryFo4Message.ts
+- [ ] **F04-T03** `SetInventoryFo4` (68): struct, TS mirror, per-(user, refId) overwrite channel, `invVersion` — S — Depends: NET-002, F04-T01 — Verify: L-unit — Files: falloutmp-server/cpp/messages/SetInventoryFo4Message.h, Messages.h, MsgType.h, MpObjectReference.cpp (`SendInventoryUpdate`), falloutmp-client/src/services/messages/setInventoryFo4Message.ts
   - Accept: binary/JSON round trip; one message per tick under 50 mutations.
-- [ ] **F04-T04** FO4 `EnsureBaseContainerAdded`: `CNTO`+`COED`, outfit, LVLI through F14, entries with rolled OMODs (B7) — M — Depends: ESPM-008, F14-T02, F14-T05 — Verify: L-unit, L-fixture — Files: MpObjectReference.cpp, skymp5-server/cpp/server_guest_lib/fo4/BaseContainerFo4.{h,cpp}
+- [ ] **F04-T04** FO4 `EnsureBaseContainerAdded`: `CNTO`+`COED`, outfit, LVLI through F14, entries with rolled OMODs (B7) — M — Depends: ESPM-008, F14-T02, F14-T05 — Verify: L-unit, L-fixture — Files: MpObjectReference.cpp, falloutmp-server/cpp/server_guest_lib/fo4/BaseContainerFo4.{h,cpp}
   - Accept: a synthetic NPC with a leveled weapon gets an entry whose OMODs match an `OBTS` combination.
 - [ ] **F04-T05** Weight model: FO4 `GetWeightFromRecord` (no null deref), instance weight via SRV-022, survival ammo-weight toggle, cached weight, change notification to F08 — M — Depends: SRV-022, REF-030 — Verify: L-unit — Files: GetWeightFromRecord.cpp, MpObjectReference.cpp
   - Accept: weight of a modded rifle equals base + OMOD weight properties; F08 receives one notification per change.
-- [ ] **F04-T06** `ObjectModValidator` for server-created entries (mp.set, console, Papyrus, F14) — M — Depends: ESPM-007 — Verify: L-unit, L-fixture — Files: skymp5-server/cpp/server_guest_lib/fo4/ObjectModValidator.{h,cpp}
+- [ ] **F04-T06** `ObjectModValidator` for server-created entries (mp.set, console, Papyrus, F14) — M — Depends: ESPM-007 — Verify: L-unit, L-fixture — Files: falloutmp-server/cpp/server_guest_lib/fo4/ObjectModValidator.{h,cpp}
   - Accept: wrong form type, missing attach point, duplicate attach index and over-rank are rejected.
 - [ ] **F04-T07** Platform natives `getInventory`, `addItemEx`, `removeItemEx`, `resetContainer`, `inventoryChanged` event, ammo stripping — L — Depends: PLAT-080 — Verify: W-ci, G-self — Files: fallout4-platform/src/platform_fo4/InventoryApi.cpp, TESModPlatform natives
   - Accept: self-test round-trips a 3-OMOD legendary pistol and a PA piece with health 0.5.
@@ -158,8 +158,8 @@ NPC inventories are built on the server from ESM data: `EnsureBaseContainerAdded
   - Accept: L-ts planner suite green; no inventory flicker in G-manual.
 - [ ] **F04-T09** `OnItemAdded`/`OnItemRemoved` on every inventory path (I22) via `NotifyInventoryDelta`, inventory-filter gating, GameProfile gate — M — Depends: F04-T01, PVM-007 — Verify: L-unit — Files: MpObjectReference.{h,cpp}, unit/InventoryEventsFo4Test.cpp
   - Accept: events observed (`onPapyrusEvent:OnItemAdded`) for AddItems, transfer, reloot and craft; none on load.
-- [ ] **F04-T10** Gamemode surface: FO4 `inventory` shape, `inventoryWeight`, `caps`, `onInventoryChange`, docs — S — Depends: F04-T01 — Verify: L-unit, L-int — Files: skymp5-server/cpp/addon/property_bindings/InventoryBinding.cpp, docs (DOCS-003)
-- [ ] **F04-T11** Papyrus natives: instance-aware `AddItem/RemoveItem/GetItemCount/RemoveAllItems`; `AttachModToInventoryItem` family; `GetComponentCount`; F4SE `GetAllMods/GetInventoryItems/GetInventoryWeight` — M — Depends: PVM-013, PVM-014, F04-T06 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/script_classes/PapyrusObjectReference.cpp
+- [ ] **F04-T10** Gamemode surface: FO4 `inventory` shape, `inventoryWeight`, `caps`, `onInventoryChange`, docs — S — Depends: F04-T01 — Verify: L-unit, L-int — Files: falloutmp-server/cpp/addon/property_bindings/InventoryBinding.cpp, docs (DOCS-003)
+- [ ] **F04-T11** Papyrus natives: instance-aware `AddItem/RemoveItem/GetItemCount/RemoveAllItems`; `AttachModToInventoryItem` family; `GetComponentCount`; F4SE `GetAllMods/GetInventoryItems/GetInventoryWeight` — M — Depends: PVM-013, PVM-014, F04-T06 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/script_classes/PapyrusObjectReference.cpp
 - [ ] **F04-T12** Hosted-NPC combat subset to the hoster — S — Depends: F04-T03, F13 (hosting) — Verify: L-unit
   - Accept: a new hoster receives the NPC's WEAP/AMMO entries; neighbours receive nothing.
 - [ ] **F04-T13** (T1) Favorites and tagged components: `SetFavorites` (118), `PlayerProfile` fields, client capture/apply — S — Depends: SRV-060, F04-T07 — Verify: L-unit, G-manual

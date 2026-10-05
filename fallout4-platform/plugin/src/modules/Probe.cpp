@@ -31,17 +31,47 @@ constexpr double kSampleMs = 200;
 
 // Superset of the animation service's list (reference §4.5, T0 + T1)
 const char* const kProbeVariables[] = {
-  "Speed", "SpeedSmoothed", "Direction", "TurnDelta", "VelocityZ",
-  "AimPitchCurrent", "AimHeadingCurrent", "Pitch", "iSyncIdleLocomotion",
-  "iSyncTurnState", "iSyncWalkRun", "iSyncSneakWalkRun",
-  "iSyncLocomotionSpeed", "iSyncDirection", "iSyncForwardBackward",
-  "iSyncJumpState", "iSyncSprintState", "bInJumpState", "IsSneaking",
-  "iIsInSneak", "IsSprinting", "iSyncSightedState", "iSyncGunDown",
-  "iSyncReadyAlertRelaxed", "bAimActive", "bAimEnabled", "isFiring",
-  "isReloading", "IsAttackReady", "iAttackState", "iMeleeState",
-  "bIsThrowing", "IsBlocking", "iWantBlock", "IsStaggering",
-  "staggerMagnitude", "staggerDirection", "iGetUpType", "weaponSpeedMult",
-  "ReloadSpeedMult", "iWeaponChargeMode",
+  "Speed",
+  "SpeedSmoothed",
+  "Direction",
+  "TurnDelta",
+  "VelocityZ",
+  "AimPitchCurrent",
+  "AimHeadingCurrent",
+  "Pitch",
+  "iSyncIdleLocomotion",
+  "iSyncTurnState",
+  "iSyncWalkRun",
+  "iSyncSneakWalkRun",
+  "iSyncLocomotionSpeed",
+  "iSyncDirection",
+  "iSyncForwardBackward",
+  "iSyncJumpState",
+  "iSyncSprintState",
+  "bInJumpState",
+  "IsSneaking",
+  "iIsInSneak",
+  "IsSprinting",
+  "iSyncSightedState",
+  "iSyncGunDown",
+  "iSyncReadyAlertRelaxed",
+  "bAimActive",
+  "bAimEnabled",
+  "isFiring",
+  "isReloading",
+  "IsAttackReady",
+  "iAttackState",
+  "iMeleeState",
+  "bIsThrowing",
+  "IsBlocking",
+  "iWantBlock",
+  "IsStaggering",
+  "staggerMagnitude",
+  "staggerDirection",
+  "iGetUpType",
+  "weaponSpeedMult",
+  "ReloadSpeedMult",
+  "iWeaponChargeMode",
 };
 
 enum class Phase
@@ -63,8 +93,7 @@ struct State
 } g;
 
 // Calls a native through the registry and records the outcome.
-Json Try(Platform& p, Json& results, const std::string& name,
-         const Json& args)
+Json Try(Platform& p, Json& results, const std::string& name, const Json& args)
 {
   Json entry = { { "native", name }, { "args", args } };
   if (!p.HasNative(name)) {
@@ -152,16 +181,17 @@ void SelfTest(Platform& p)
   Try(p, results, "getInventoryEx", Json::array({ me }));
   Try(p, results, "getEquippedItems", Json::array({ me }));
   Try(p, results, "getAppearanceFo4", Json::array({ me }));
-  Try(p, results, "getGraphVariables",
-      Json::array({ me, Json::array({ "Speed", "Direction", "IsSneaking" }) }));
+  Try(
+    p, results, "getGraphVariables",
+    Json::array({ me, Json::array({ "Speed", "Direction", "IsSneaking" }) }));
 
   // A test puppet 150 units in front of the player
   auto player = RE::PlayerCharacter::GetSingleton();
   if (player && p.HasNative("spawnPuppet")) {
     float yaw = player->data.angle.z;
     auto pos = player->GetPosition();
-    Json at = Json::array({ pos.x + 150.f * std::sin(yaw),
-                            pos.y + 150.f * std::cos(yaw), pos.z });
+    Json at = Json::array(
+      { pos.x + 150.f * std::sin(yaw), pos.y + 150.f * std::cos(yaw), pos.z });
     Json spawn = { { "pos", at },
                    { "yaw", game::ToDeg(yaw) + 180.f },
                    { "worldOrCell", game::SpaceOf(player) },
@@ -231,8 +261,9 @@ void InstallProbe(Platform& p)
     if (g.phase != Phase::Recording || g.report["events"].size() > 5000) {
       return;
     }
-    g.report["events"].push_back(
-      { { "tMs", p.NowMs() - g.phaseStartMs }, { "name", name }, { "data", data } });
+    g.report["events"].push_back({ { "tMs", p.NowMs() - g.phaseStartMs },
+                                   { "name", name },
+                                   { "data", data } });
   });
   p.OnFrame([&p](float) {
     double now = p.NowMs();

@@ -8,11 +8,11 @@ on:
     paths:
       - 'fallout4-platform/**'
       - 'falloutmp-client/**'
-      - 'skymp5-server/cpp/messages/**'
-      - 'skymp5-server/cpp/server_guest_lib/Inventory.*'
-      - 'skymp5-server/cpp/server_guest_lib/Equipment.*'
-      - 'skymp5-server/cpp/server_guest_lib/Appearance.*'
-      - 'skymp5-server/cpp/server_guest_lib/AnimationData.*'
+      - 'falloutmp-server/cpp/messages/**'
+      - 'falloutmp-server/cpp/server_guest_lib/Inventory.*'
+      - 'falloutmp-server/cpp/server_guest_lib/Equipment.*'
+      - 'falloutmp-server/cpp/server_guest_lib/Appearance.*'
+      - 'falloutmp-server/cpp/server_guest_lib/AnimationData.*'
       - 'serialization/**'
       - '.github/workflows/falloutmp-client-windows.yml'
   pull_request:

@@ -50,7 +50,7 @@
 - **`src/tilted/**` and `src/platform_lib/**` have zero `RE::/SKSE::/REL::` uses.**
   - Their engine coupling is limited to Win32/D3D/DInput IAT hooks and one CRT import hook (§5).
   - The only way they reach the engine is through `SkyrimPlatformApp::GetMainAddress()`, which uses `Offsets::WinMain` [src: skyrim-platform/src/platform_se/skyrim_platform/main.cpp:435-439].
-- **`skymp5-server/cpp/client/main.cpp` has zero game symbols.** It is only the SLikeNet/JSON `MpClientPlugin.dll` [src: skymp5-server/cpp/client/main.cpp:1-83]. It is portable; only its install path `Data/SKSE/Plugins/` changes [src: skyrim_platform/MpClientPluginApi.cpp:27].
+- **`falloutmp-server/cpp/client/main.cpp` has zero game symbols.** It is only the SLikeNet/JSON `MpClientPlugin.dll` [src: falloutmp-server/cpp/client/main.cpp:1-83]. It is portable; only its install path `Data/SKSE/Plugins/` changes [src: skyrim_platform/MpClientPluginApi.cpp:27].
 - SP aliases in `PCH.h`: `IVM=RE::BSScript::IVirtualMachine`, `VM=…Internal::VirtualMachine`, `StackID=RE::VMStackID`, `Variable`, `FixedString=RE::BSFixedString`, `TypeInfo`, `logger=SKSE::log`, `stl=SKSE::stl` [src: skyrim_platform/PCH.h:78-88]. Below, `sp/` means `skyrim-platform/src/platform_se/skyrim_platform/`.
 - SP relies on **four local patches to CommonLibSSE-NG**. Each one needs an FO4 answer [src: overlay_ports/commonlibsse-ng-flatrim/patches/01-04]:
 
@@ -791,7 +791,7 @@ Verdicts:
 | `src/tilted/hooks/D3D9Hook.*` | D | Unused for FO4. |
 | `src/tilted/ui/*`, `src/tilted/ui_process/*` | P | CEF. Rename strings ("Skyrim Platform", MyChromiumApp.cpp:104-115). |
 | `src/platform_lib/*` | P | HTTP/threads/validators. |
-| `skymp5-server/cpp/client/main.cpp` | P | No game symbols. |
+| `falloutmp-server/cpp/client/main.cpp` | P | No game symbols. |
 
 ---
 

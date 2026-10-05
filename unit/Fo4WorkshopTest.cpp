@@ -8,14 +8,14 @@ using namespace fo4test;
 
 namespace {
 constexpr FormId kSanctuary = 0xFF0010AA;
-constexpr FormId kWoodWall = 0x1001, kGenerator = 0x1002,
-                 kLight = 0x1003, kCrop = 0x1004, kPump = 0x1005,
-                 kBed = 0x1006, kTurret = 0x1007, kBeacon = 0x1008,
-                 kPylon = 0x1009, kCarWreck = 0x100A;
+constexpr FormId kWoodWall = 0x1001, kGenerator = 0x1002, kLight = 0x1003,
+                 kCrop = 0x1004, kPump = 0x1005, kBed = 0x1006,
+                 kTurret = 0x1007, kBeacon = 0x1008, kPylon = 0x1009,
+                 kCarWreck = 0x100A;
 constexpr FormId kRecWall = 0x2001, kRecGen = 0x2002, kRecLight = 0x2003,
                  kRecCrop = 0x2004, kRecPump = 0x2005, kRecBed = 0x2006,
-                 kRecTurret = 0x2007, kRecBeacon = 0x2008,
-                 kRecPylon = 0x2009, kRecCar = 0x200A;
+                 kRecTurret = 0x2007, kRecBeacon = 0x2008, kRecPylon = 0x2009,
+                 kRecCar = 0x200A;
 constexpr FormId kWorkshopKw = 0x54BA6, kLocalLeader = 0x4D88D;
 constexpr FormId kMutfruit = 0x3001, kWater = 0x3002;
 constexpr ActorId kPlayer = 0xFF000001, kFriend = 0xFF000002,
@@ -32,8 +32,7 @@ struct ShopWorld
   {
     Build(data);
     auto obj = [&](FormId base, FormId recipe,
-                   std::vector<ComponentCount> cost,
-                   WorkshopObjectData info) {
+                   std::vector<ComponentCount> cost, WorkshopObjectData info) {
       info.baseId = base;
       data.AddWorkshopObject(info);
       RecipeData r;
@@ -140,13 +139,13 @@ TEST_CASE("Claiming a workshop and permissions", "[fo4][F22][Workshop]")
           WorkshopError::NoPermission);
 
   // Owner grants build+container to a friend
-  REQUIRE(w.ws->SetAcl(w.Actor(), kSanctuary, 2,
-                       WorkshopPerm::Build | WorkshopPerm::Container)
+  REQUIRE(w.ws
+            ->SetAcl(w.Actor(), kSanctuary, 2,
+                     WorkshopPerm::Build | WorkshopPerm::Container)
             .Ok());
   REQUIRE(w.ws->EnterBuildMode(w.Actor(kFriend, 2), kSanctuary).Ok());
   // The friend cannot administer or scrap
-  REQUIRE(w.ws->SetAcl(w.Actor(kFriend, 2), kSanctuary, 3,
-                       WorkshopPerm::All)
+  REQUIRE(w.ws->SetAcl(w.Actor(kFriend, 2), kSanctuary, 3, WorkshopPerm::All)
             .error == WorkshopError::NoPermission);
   // Revoking build kicks the friend out of build mode
   REQUIRE(w.ws->SetAcl(w.Actor(), kSanctuary, 2, 0).Ok());
@@ -178,8 +177,7 @@ TEST_CASE("Placing objects validates mode, area, transform, recipe and "
 {
   ShopWorld w;
   REQUIRE(w.ws->Claim(w.Actor(), kSanctuary).Ok());
-  REQUIRE(w.Place(kWoodWall, kRecWall).error ==
-          WorkshopError::NotInBuildMode);
+  REQUIRE(w.Place(kWoodWall, kRecWall).error == WorkshopError::NotInBuildMode);
   REQUIRE(w.ws->EnterBuildMode(w.Actor(), kSanctuary).Ok());
 
   // Components: workshop container first, then the builder
@@ -266,8 +264,8 @@ TEST_CASE("Power flows through wires; consumers fill capacity in order",
   REQUIRE(w.ws->ConnectWire(w.Actor(), kSanctuary, gen, pylon, 0, 9001).Ok());
   REQUIRE(w.ws->ConnectWire(w.Actor(), kSanctuary, pylon, l1, 0, 9002).Ok());
   REQUIRE(w.ws->ConnectWire(w.Actor(), kSanctuary, pylon, l2, 0, 9003).Ok());
-  REQUIRE(w.ws->ConnectWire(w.Actor(), kSanctuary, pylon, turret, 0, 9004)
-            .Ok());
+  REQUIRE(
+    w.ws->ConnectWire(w.Actor(), kSanctuary, pylon, turret, 0, 9004).Ok());
   // Capacity 3: light 1 + light 1 fit, the turret (2) does not
   REQUIRE(w.W().objects.at(l1).powered);
   REQUIRE(w.W().objects.at(l2).powered);
@@ -277,18 +275,21 @@ TEST_CASE("Power flows through wires; consumers fill capacity in order",
   REQUIRE(w.W().ratings.safety == 0.f); // unpowered turret gives nothing
 
   // Invalid wires
-  REQUIRE(w.ws->ConnectWire(w.Actor(), kSanctuary, gen, pylon, 0, 9005)
-            .error == WorkshopError::WireDuplicate);
-  REQUIRE(w.ws->ConnectWire(w.Actor(), kSanctuary, gen, wall, 0, 9006)
-            .error == WorkshopError::WireInvalid);
+  REQUIRE(
+    w.ws->ConnectWire(w.Actor(), kSanctuary, gen, pylon, 0, 9005).error ==
+    WorkshopError::WireDuplicate);
+  REQUIRE(w.ws->ConnectWire(w.Actor(), kSanctuary, gen, wall, 0, 9006).error ==
+          WorkshopError::WireInvalid);
   auto far = w.Place(kLight, kRecLight, { 2000, 2000, 0 }).refId;
   REQUIRE(far != 0);
-  REQUIRE(w.ws->ConnectWire(w.Actor(), kSanctuary, pylon, far, 0, 9007)
-            .error == WorkshopError::WireTooLong);
+  REQUIRE(
+    w.ws->ConnectWire(w.Actor(), kSanctuary, pylon, far, 0, 9007).error ==
+    WorkshopError::WireTooLong);
 
   // Scrapping a light frees capacity for the turret and removes its wire
-  REQUIRE(w.ws->Edit(w.Actor(), kSanctuary, WorkshopEditOp::Scrap,
-                     { { l1 } }, w.builder, 9100)
+  REQUIRE(w.ws
+            ->Edit(w.Actor(), kSanctuary, WorkshopEditOp::Scrap, { { l1 } },
+                   w.builder, 9100)
             .Ok());
   REQUIRE(w.W().wires.size() == 3);
   REQUIRE(w.W().objects.at(turret).powered);
@@ -312,8 +313,9 @@ TEST_CASE("Scrap refunds into the workshop, store makes placement free",
   REQUIRE(w.W().budget.current == 0.f);
 
   auto wall2 = w.Place(kWoodWall, kRecWall).refId;
-  REQUIRE(w.ws->Edit(w.Actor(), kSanctuary, WorkshopEditOp::Store,
-                     { { wall2 } }, w.builder, 78)
+  REQUIRE(w.ws
+            ->Edit(w.Actor(), kSanctuary, WorkshopEditOp::Store, { { wall2 } },
+                   w.builder, 78)
             .Ok());
   REQUIRE(w.W().stored.at(kWoodWall) == 1);
   PlaceRequest fromStore;
@@ -331,12 +333,14 @@ TEST_CASE("Scrap refunds into the workshop, store makes placement free",
 
   // Moving checks the transform; scrapping unknown refs fails cleanly
   auto id = w.W().objects.begin()->first;
-  REQUIRE(w.ws->Edit(w.Actor(), kSanctuary, WorkshopEditOp::Move,
-                     { { id, { 300, 300, 10 }, { 0, 0, 1 } } }, w.builder, 81)
+  REQUIRE(w.ws
+            ->Edit(w.Actor(), kSanctuary, WorkshopEditOp::Move,
+                   { { id, { 300, 300, 10 }, { 0, 0, 1 } } }, w.builder, 81)
             .Ok());
   REQUIRE(w.W().objects.at(id).pos[2] == 10.f);
-  REQUIRE(w.ws->Edit(w.Actor(), kSanctuary, WorkshopEditOp::Move,
-                     { { 0xDEAD } }, w.builder, 82)
+  REQUIRE(w.ws
+            ->Edit(w.Actor(), kSanctuary, WorkshopEditOp::Move, { { 0xDEAD } },
+                   w.builder, 82)
             .error == WorkshopError::ItemNotFound);
 
   // Pre-placed junk (a car) scraps once, for half its cost
@@ -409,8 +413,7 @@ TEST_CASE("Recruitment needs a powered beacon", "[fo4][F22][Workshop]")
   }
   REQUIRE_FALSE(recruited); // unpowered beacon
   auto gen = w.Place(kGenerator, kRecGen).refId;
-  REQUIRE(w.ws->ConnectWire(w.Actor(), kSanctuary, gen, beacon, 0, 5555)
-            .Ok());
+  REQUIRE(w.ws->ConnectWire(w.Actor(), kSanctuary, gen, beacon, 0, 5555).Ok());
   for (int day = 50; day < 200 && !recruited; ++day) {
     recruited |= w.ws->DailyUpdate(shop, day, rng).recruited;
   }

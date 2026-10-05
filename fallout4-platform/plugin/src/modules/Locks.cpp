@@ -226,9 +226,9 @@ bool InterceptActivation(Kind kind, RE::TESObjectREFR* target,
     }
   }
   if (report) {
-    Platform::Get().Emit(
-      kind == Kind::Terminal ? "terminalActivated" : "lockedActivated",
-      Json{ { "ref", id } });
+    Platform::Get().Emit(kind == Kind::Terminal ? "terminalActivated"
+                                                : "lockedActivated",
+                         Json{ { "ref", id } });
   }
   return true;
 }
@@ -324,9 +324,11 @@ void OpenLockpickMenu(Platform& p, uint32_t id, uint32_t sessionId)
   auto ref = game::Ref(id);
   // The server holds the lock; the local one must be locked for the menu.
   if (!ref || (!IsLocked(ref) && !WriteLock(ref, true))) {
-    p.Log("warn",
-          std::format("openLockpickMenu: {:X} is not a lockable reference", id));
-    p.Emit("lockpickCancelled", Json{ { "ref", id }, { "sessionId", sessionId } });
+    p.Log(
+      "warn",
+      std::format("openLockpickMenu: {:X} is not a lockable reference", id));
+    p.Emit("lockpickCancelled",
+           Json{ { "ref", id }, { "sessionId", sessionId } });
     return;
   }
   {
@@ -364,8 +366,9 @@ void CloseLockpickMenu()
 void OpenWordGame(Platform& p, RE::TESObjectREFR* ref)
 {
   if (!IsLocked(ref) && !WriteLock(ref, true)) {
-    p.Log("warn", std::format("openHackingMenu: terminal {:X} has no lock",
-                              ref->GetFormID()));
+    p.Log("warn",
+          std::format("openHackingMenu: terminal {:X} has no lock",
+                      ref->GetFormID()));
     return;
   }
   // [verify] activating a locked terminal starts the word game (needs the
@@ -406,8 +409,8 @@ void OnLocalHackSuccess(uint32_t terminalId)
     WriteLock(r, true);
   }
   Platform::Get().Log(
-    "info", std::format("Terminal {:X} hacked locally; waiting for the server",
-                        ref));
+    "info",
+    std::format("Terminal {:X} hacked locally; waiting for the server", ref));
 }
 
 // TerminalMenu::AdvanceMovie (IMenu vfunc 0x04): watches the mode for a
@@ -435,8 +438,7 @@ struct TerminalAdvanceHook
       // [verify] a solved word game moves to kLogin/kList; a lockout closes
       // the menu instead
       success = hack.wasHackMode && !hackMode &&
-                mode != RE::TerminalMenu::Mode::kInit &&
-                !hack.awaitingVerdict;
+        mode != RE::TerminalMenu::Mode::kInit && !hack.awaitingVerdict;
       hack.wasHackMode = hackMode;
       ref = hack.ref;
     }
@@ -466,7 +468,8 @@ struct TerminalButtonHook
 
   static void Check(const RE::TerminalMenu& menu, const RE::ButtonEvent& e)
   {
-    if (menu.mode.get() != RE::TerminalMenu::Mode::kHack || !e.QJustPressed()) {
+    if (menu.mode.get() != RE::TerminalMenu::Mode::kHack ||
+        !e.QJustPressed()) {
       return;
     }
     const std::string_view name{ e.QUserEvent().c_str() };
@@ -774,8 +777,8 @@ void OnFrame(Platform& p)
     }
   }
   if (timedOutRef) {
-    p.Log("warn", std::format("Lockpicking menu for {:X} did not open",
-                              timedOutRef));
+    p.Log("warn",
+          std::format("Lockpicking menu for {:X} did not open", timedOutRef));
     p.Emit("lockpickCancelled",
            Json{ { "ref", timedOutRef }, { "sessionId", timedOutSession } });
   }

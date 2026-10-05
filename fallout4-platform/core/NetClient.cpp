@@ -94,7 +94,8 @@ void NetClient::Tick(const OnEvent& onEvent)
       pImpl->serverGuid = packet->guid;
       pImpl->connected = true;
       onEvent(NetEvent::Connected, nullptr, 0, "");
-    } else if (id == ID_CONNECTION_LOST || id == ID_DISCONNECTION_NOTIFICATION) {
+    } else if (id == ID_CONNECTION_LOST ||
+               id == ID_DISCONNECTION_NOTIFICATION) {
       pImpl->connected = false;
       onEvent(NetEvent::Disconnected, nullptr, 0, "");
     } else if (id == ID_CONNECTION_ATTEMPT_FAILED) {

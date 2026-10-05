@@ -33,7 +33,7 @@
 | F13 remainder: `NpcAiState` (111) threat/detection, host migration re-seed, hostility matrix, legendary rolls | Not started | — |
 | T2 systems (companions, VATS, stealth, quests, survival) | Not started | — |
 
-Test totals at the last commit: C++ 256 test cases and about 2150 assertions (`./unit/unit "~[espm]"`); client 70 tests; e2e join PASS.
+Test totals at the last commit: C++ 256 test cases and 2191 assertions (`./unit/unit`; the Skyrim-data `[espm]` tests were removed with Skyrim support); client 79 tests; e2e join PASS.
 
 Guides: [guides/server-admin.md](guides/server-admin.md), [guides/gamemode-api.md](guides/gamemode-api.md), [guides/implementation.md](guides/implementation.md).
 
@@ -74,6 +74,7 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 ## Decisions log
 | Date | Decision | By | Affects |
 |---|---|---|---|
+| 2026-10-05 | Skyrim support removed (ADR-002 superseded): the repository is Fallout 4 only. Removed the Skyrim client (`skymp5-client`), Skyrim Platform, the CEF front, the Skyrim scripts and gamemode library, `savefile`, `client-deps`, the Skyrim CI and SkyMP deploy workflows, and the SweetPie gamemode hacks in the server. The server folder is `falloutmp-server`; the Skyrim game profile is gone and `game` defaults to `fallout4`. The server engine (PartOne, MpActor, papyrus-vm) stays, now Fallout 4 only. Plan criteria that say "Skyrim tests green" or "Skyrim packets byte-identical" no longer apply | User | ADR-002, REF, NET, all specs |
 | 2026-10-05 | ADR-004 amended for the first client slice: the plugin embeds QuickJS-ng instead of Node.js. The client bundle is engine-free, QuickJS builds the same on Linux (tests, headless bot) and Windows, and the DLL stays small. Revisit if npm modules or Node APIs are needed in game | Claude (implementation), user asked to build the client now | PLAT-010, ADR-004 |
 | 2026-10-05 | No DLC content: the Fallout 4 default load order is `Fallout4.esm` only; servers and players need no DLC | User | GameProfile, F00, docs |
 | 2026-10-05 | Fully player-run world: no NPC characters and no game factions. Landlords, traders, governments and factions are real players. Keep `npcEnabled` off; NPC hosting (F13) stays in the code but unused. Systems that assumed NPCs (vendors, settler ratings, NPC quest givers, NPC kill XP) need player-run replacements | User | F13, F21, F22, F23, F27, F32 |

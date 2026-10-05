@@ -52,8 +52,8 @@ std::shared_ptr<InMemoryFo4DataSource> NpcWorld()
 
   NpcData raider; // placed base: everything from the template
   raider.id = kRaiderBase;
-  raider.templateFlags = (1u << NpcData::kStats) |
-    (1u << NpcData::kFactions) | (1u << NpcData::kInventory);
+  raider.templateFlags = (1u << NpcData::kStats) | (1u << NpcData::kFactions) |
+    (1u << NpcData::kInventory);
   raider.defaultTemplate = kRaiderTemplate;
   raider.flags = 1u << 1; // essential (base data stays on the raider)
   d->AddNpc(raider);

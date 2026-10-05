@@ -20,11 +20,11 @@ Most table rows give the location in the first column (`file:line`). Treat that 
 
 | Abbrev | Path |
 |---|---|
-| `sgl/` | `skymp5-server/cpp/server_guest_lib/` |
-| `addon/` | `skymp5-server/cpp/addon/` |
-| `msg/` | `skymp5-server/cpp/messages/` |
-| `mpc/` | `skymp5-server/cpp/mp_common/` |
-| `sts/` | `skymp5-server/ts/` |
+| `sgl/` | `falloutmp-server/cpp/server_guest_lib/` |
+| `addon/` | `falloutmp-server/cpp/addon/` |
+| `msg/` | `falloutmp-server/cpp/messages/` |
+| `mpc/` | `falloutmp-server/cpp/mp_common/` |
+| `sts/` | `falloutmp-server/ts/` |
 | `espm/` | `libespm/` (`include/libespm/*.h`, `src/*.cpp`) |
 | `pvm/` | `papyrus-vm/` |
 | `cl/` | `skymp5-client/src/` |
@@ -67,7 +67,7 @@ Most table rows give the location in the first column (`file:line`). Treat that 
 |---|---|---|
 | MsgTypes on the wire | 33 (1..33, `Max` = 34) | [src: msg/MsgType.h:4-44] |
 | Papyrus native classes registered | 22 | [src: sgl/script_classes/PapyrusClassesFactory.cpp:33-54] |
-| Embedded Skyrim `.pex` stubs (`standard_scripts`) | 133 | [src: skymp5-server/standard_scripts/, cmrc at skymp5-server/CMakeLists.txt:132-139] |
+| Embedded Skyrim `.pex` stubs (`standard_scripts`) | 133 | [src: falloutmp-server/standard_scripts/, cmrc at falloutmp-server/CMakeLists.txt:132-139] |
 | Unit `TEST_CASE`s | 256 | [src: unit/**/*.cpp] |
 | `[espm]`-tagged unit tests | 84 in 13 files (83 in 12 files on Linux) | [src: unit/] (§2.4) |
 | Untagged unit tests that still load Skyrim data through `GetPartOne()` | about 20 files | [inference from src] (§2.4.3) |
@@ -95,7 +95,7 @@ Most table rows give the location in the first column (`file:line`). Treat that 
 
 ---
 
-## 1. Server coupling index (skymp5-server)
+## 1. Server coupling index (falloutmp-server)
 
 ### 1.1 `addon/ScampServer.cpp` / `.h` (N-API entry and settings parsing)
 
@@ -383,11 +383,11 @@ Most table rows give the location in the first column (`file:line`). Treat that 
 
 | Location | What | Cat | Proposal |
 |---|---|---|---|
-| skymp5-server/standard_scripts/ (133 files) | Skyrim .pex stubs | PAP | `standard_scripts/skyrim` + `standard_scripts/fallout4` |
-| skymp5-server/CMakeLists.txt:105-111 | SKYRIM_DIR esm_prefix | LO | `GAME`/`GAME_DIR` variables |
-| skymp5-server/CMakeLists.txt:116-119 | generate_server_settings | SET | Per-game template |
-| skymp5-server/CMakeLists.txt:132-139 | cmrc standard_scripts | PAP | Per game |
-| skymp5-server/cpp/CMakeLists.txt:9-23,70 | MpClientPlugin links server_guest_lib; GLOB_RECURSE | NET | New `game_profile/` subdirectory compiles automatically |
+| falloutmp-server/standard_scripts/ (133 files) | Skyrim .pex stubs | PAP | `standard_scripts/skyrim` + `standard_scripts/fallout4` |
+| falloutmp-server/CMakeLists.txt:105-111 | SKYRIM_DIR esm_prefix | LO | `GAME`/`GAME_DIR` variables |
+| falloutmp-server/CMakeLists.txt:116-119 | generate_server_settings | SET | Per-game template |
+| falloutmp-server/CMakeLists.txt:132-139 | cmrc standard_scripts | PAP | Per game |
+| falloutmp-server/cpp/CMakeLists.txt:9-23,70 | MpClientPlugin links server_guest_lib; GLOB_RECURSE | NET | New `game_profile/` subdirectory compiles automatically |
 
 ### 1.18 TypeScript server (`sts/`)
 
@@ -630,7 +630,7 @@ Docs with Skyrim references: docs_skyrim_platform.md (25), docs_server_configura
 #### Location and wiring [inference: design]
 
 ```
-skymp5-server/cpp/server_guest_lib/game_profile/
+falloutmp-server/cpp/server_guest_lib/game_profile/
   GameId.h                      enum class GameId { Skyrim, Fallout4 }; ToString/FromString
   GameProfile.h                 abstract interface (below)
   GameProfileData.h             plain data structs (ActorValueDesc, AnimationCost, ...)
@@ -639,7 +639,7 @@ skymp5-server/cpp/server_guest_lib/game_profile/
   fallout4/Fallout4GameProfile.h/.cpp   added in phase D
 ```
 
-- `server_guest_lib` uses GLOB_RECURSE [src: skymp5-server/cpp/CMakeLists.txt:70], so the new directory needs no CMake edits.
+- `server_guest_lib` uses GLOB_RECURSE [src: falloutmp-server/cpp/CMakeLists.txt:70], so the new directory needs no CMake edits.
 - `WorldState` gets `void SetGameProfile(std::shared_ptr<GameProfile>)` and `const GameProfile& GetGameProfile() const`. The member defaults to `SkyrimGameProfile`, so all existing unit tests (which build `WorldState`/`PartOne` directly) keep working unchanged.
 - `ScampServer` reads `serverSettings["game"]` (default `"skyrim"`) before `AttachEspm` (addon/ScampServer.cpp:315). After loading, it compares that value with `espm::CombineBrowser::GetGame()` (§5.2) and refuses to start on a mismatch.
 - The persisted database stores `game` in its metadata (§0.6 item 7).
@@ -803,7 +803,7 @@ Mechanics:
 - Reserve MsgType 64..95 for FO4 twins. All values must stay below 123 (`{` means a JSON packet [src: msg/MessageSerializerFactory.cpp:178-179]).
 - `MessageSerializerFactory` gets per-game registration (`CreateMessageSerializer(GameId)`), so a Skyrim server never decodes FO4 types and the reverse. The dispatch vectors stay sized by `MsgType::Max` (raise Max).
 - Template the payload structs (`CreateActorT<...>`) so serialisation code is shared. In-memory domain types can be supersets, because JSON persistence omits `nullopt` [src: serialization/include/archives/JsonOutputArchive.h:38-48] and the JSON reader tolerates missing keys [src: serialization/include/archives/JsonInputArchive.h:69-81].
-- **Protocol version.** `GP.ProtocolPrefix()` returns "7_" (Skyrim) or "fo4-1_" (FO4). Bump only the FO4 counter while it is unstable. The client plugin needs the prefix too: either a compile definition per client build (`MP_PROTOCOL_PREFIX`) or `CreateClientEx(host, port, prefix)` next to the existing `CreateClient` [src: skymp5-server/cpp/client/main.cpp:50-54]. A Skyrim client then cannot connect to a FO4 server, because the RakNet password differs.
+- **Protocol version.** `GP.ProtocolPrefix()` returns "7_" (Skyrim) or "fo4-1_" (FO4). Bump only the FO4 counter while it is unstable. The client plugin needs the prefix too: either a compile definition per client build (`MP_PROTOCOL_PREFIX`) or `CreateClientEx(host, port, prefix)` next to the existing `CreateClient` [src: falloutmp-server/cpp/client/main.cpp:50-54]. A Skyrim client then cannot connect to a FO4 server, because the RakNet password differs.
 - The gamemode JSON shapes (`appearance`, `equipment`, `inventory`, `percentages`) are per game. Document them in `docs/falloutmp/`.
 
 ---

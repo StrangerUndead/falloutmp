@@ -1,13 +1,7 @@
 #include "TestUtils.hpp"
 #include <catch2/catch_all.hpp>
-#include <chrono>
 
 #include "CropRegeneration.h"
-#include "GetBaseActorValues.h"
-#include "libespm/Loader.h"
-
-PartOne& GetPartOne();
-extern espm::Loader l;
 
 TEST_CASE("CropRegeneration function is working correctly",
           "[CropRegeneration]")
@@ -84,50 +78,4 @@ TEST_CASE("CropPeriodAfterLastRegen returns correct value if period is in "
   float maxValidPeriod = 2.0f;
   REQUIRE(CropPeriodAfterLastRegen(1.3f, maxValidPeriod, defaultPeriod) ==
           1.3f);
-}
-
-TEST_CASE("CropHealthRegeneration, CropMagickaRegeneration and "
-          "CropStaminaRegeneration are working correctly, regeneration is not "
-          "too fast",
-          "[CropRegeneration][espm]")
-{
-
-  using namespace std::chrono_literals;
-
-  PartOne& p = GetPartOne();
-  DoConnect(p, 0);
-  p.CreateActor(0xff000000, { 0, 0, 0 }, 0, 0x3c);
-  p.SetUserActor(0, 0xff000000);
-  auto& ac = p.worldState.GetFormAt<MpActor>(0xff000000);
-
-  uint32_t baseId = ac.GetBaseId();
-  auto appearance = ac.GetAppearance();
-  uint32_t raceId = appearance ? appearance->raceId : 0;
-  BaseActorValues baseValues =
-    GetBaseActorValues(&p.worldState, baseId, raceId, {});
-
-  ac.SetPercentages({ 0.0f, 0.0f, 0.0f });
-
-  auto past = std::chrono::steady_clock::now();
-  auto now = past + 1s;
-  ac.SetLastAttributesPercentagesUpdate(past);
-  std::chrono::duration<float> timeDuration = now - past;
-  float time = timeDuration.count();
-
-  float expectedHealth =
-    baseValues.healRate * baseValues.healRateMult * time / 10000.0f;
-  float expectedMagicka =
-    baseValues.magickaRate * baseValues.magickaRateMult * time / 10000.0f;
-  float expectedStamina =
-    baseValues.staminaRate * baseValues.staminaRateMult * time / 10000.0f;
-
-  REQUIRE_THAT(CropHealthRegeneration(1.0f, time, &ac),
-               Catch::Matchers::WithinAbs(expectedHealth, 0.000001f));
-  REQUIRE_THAT(CropMagickaRegeneration(1.0f, time, &ac),
-               Catch::Matchers::WithinAbs(expectedMagicka, 0.000001f));
-  REQUIRE_THAT(CropStaminaRegeneration(1.0f, time, &ac),
-               Catch::Matchers::WithinAbs(expectedStamina, 0.000001f));
-
-  p.DestroyActor(0xff000000);
-  DoDisconnect(p, 0);
 }

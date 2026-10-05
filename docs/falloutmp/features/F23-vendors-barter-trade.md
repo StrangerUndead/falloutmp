@@ -199,8 +199,8 @@ Every rejection sends `Barter result{ok=false}` + `SetInventoryFo4` + current ve
 - `G-manual`: two players at a Diamond City vendor: buy, sell, the last-item race, restock after waiting 2 game days; reconnect.
 
 ## 7. Tasks
-- [ ] **F23-T01** `Barter` (98) message with ops + TS mirror — S — Depends: NET-002, F04 (`ItemKey`) — Verify: L-unit, L-ts — Files: skymp5-server/cpp/messages/BarterMessage.h, Messages.h; falloutmp-client/src/services/messages/
-- [ ] **F23-T02** `VendorService` index: vendor factions → `VENC`, `VENV`, `VEND`; explicit loading of holding-cell containers — M — Depends: ESPM-010, REF-012 — Verify: L-unit, L-fixture — Files: skymp5-server/cpp/server_guest_lib/fo4/vendor/VendorService.{h,cpp}
+- [ ] **F23-T01** `Barter` (98) message with ops + TS mirror — S — Depends: NET-002, F04 (`ItemKey`) — Verify: L-unit, L-ts — Files: falloutmp-server/cpp/messages/BarterMessage.h, Messages.h; falloutmp-client/src/services/messages/
+- [ ] **F23-T02** `VendorService` index: vendor factions → `VENC`, `VENV`, `VEND`; explicit loading of holding-cell containers — M — Depends: ESPM-010, REF-012 — Verify: L-unit, L-fixture — Files: falloutmp-server/cpp/server_guest_lib/fo4/vendor/VendorService.{h,cpp}
 - [ ] **F23-T03** `PriceEngine` (pure): CHA formula, perk entry points, clamps, rounding, gamemode multiplier — S — Depends: SRV-021, SRV-022, F08 — Verify: L-unit — Files: fo4/vendor/PriceEngine.{h,cpp}
   - Accept: golden table matches the wiki-derived values.
 - [ ] **F23-T04** Barter open/close sessions, multi-viewer `invVersion`, hours/distance/hostility checks — M — Depends: F23-T01, F23-T02, F13, F25 — Verify: L-unit
@@ -208,7 +208,7 @@ Every rejection sends `Barter result{ok=false}` + `SetInventoryFo4` + current ve
   - Accept: every §6 reject asserts the correction set; the atomicity test passes.
 - [ ] **F23-T06** Restock service (lazy + sweep) on the server clock, `onVendorRestock`, deferred with open sessions — S — Depends: F23-T02, SRV-070, SRV-080, F14 — Verify: L-unit
 - [ ] **F23-T07** Cap Collector investment — S — Depends: F23-T05, SRV-021 — Verify: L-unit
-- [ ] **F23-T08** Atomic multi-form flush for transactions: cross-cutting, implemented as SRV-092's batch upsert + a trade journal record; this task owns the F23 integration and tests — M (the driver work is in SRV-092) — Depends: REF-020, QA-040 — Verify: L-unit, L-int — Files: viet/include/save_storages/*, skymp5-server/cpp/server_guest_lib/database_drivers/*
+- [ ] **F23-T08** Atomic multi-form flush for transactions: cross-cutting, implemented as SRV-092's batch upsert + a trade journal record; this task owns the F23 integration and tests — M (the driver work is in SRV-092) — Depends: REF-020, QA-040 — Verify: L-unit, L-int — Files: viet/include/save_storages/*, falloutmp-server/cpp/server_guest_lib/database_drivers/*
   - Accept: a fault-injected crash between the two writes never yields dup or loss after restart.
 - [ ] **F23-T09** Platform BarterMenu hooks (`CompleteTrade`, `ConfirmInvestment`, refresh) and `ShowBarterMenu` wrapper — M — Depends: PLAT-042, PLAT-080 — Verify: W-ci, G-self — Files: fallout4-platform/src/.../BarterApi.cpp
 - [ ] **F23-T10** Client `barterService.ts`: open flow, chest fill, capture, reconcile — M — Depends: F23-T01, F23-T09, CLI-050 — Verify: L-ts, G-manual — Files: falloutmp-client/src/services/services/barterService.ts

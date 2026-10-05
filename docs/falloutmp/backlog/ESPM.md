@@ -29,7 +29,7 @@ Design: `espm::Game` enum. Separate `espm::fo4::*` zero-copy record structs that
   - Accept: `IsItem` returns true for KEYM/NOTE on FO4 and unchanged results on Skyrim; `GetRecordsByType` serves the new types.
 - [ ] **ESPM-013** Localized strings: read `Strings/Fallout4_<lang>.{STRINGS,DLSTRINGS,ILSTRINGS}` from loose files **and** from `Fallout4 - Interface.ba2`; fix the 1-byte length bug and case-sensitivity in `LocalizationProvider` — M — Depends: BUILD-007 — Verify: L-fixture
   - Accept: strings resolve from loose files and from a synthetic BA2; the 1-byte length and case bugs have regression tests.
-- [ ] **ESPM-014** Server BA2 script storage + recursive/namespaced directory storage (`A:B` → `A/B.pex`); synthetic BA2 test — M — Depends: BUILD-007, PVM-006 — Verify: L-fixture — Files: skymp5-server/cpp/server_guest_lib/script_storages/*
+- [ ] **ESPM-014** Server BA2 script storage + recursive/namespaced directory storage (`A:B` → `A/B.pex`); synthetic BA2 test — M — Depends: BUILD-007, PVM-006 — Verify: L-fixture — Files: falloutmp-server/cpp/server_guest_lib/script_storages/*
   - Accept: a script inside a synthetic BA2 and a namespaced `A/B.pex` both load through the storage.
 - [ ] **ESPM-015** `[fo4data]` real-data suite: load Fallout4.esm + DLCs, check AVIF ids by EDID, sample records per type, CRCs per version — M — Depends: ESPM-005…010 — Verify: D-real
   - Accept: the suite passes on the user's AE install, with results recorded in STATUS.md.

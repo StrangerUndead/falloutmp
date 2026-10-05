@@ -264,7 +264,7 @@ void ActivePexInstance::ExecuteOpCode(
           break;
         default:
           // assert(0);
-          // Triggered by some array stuff in SkyMP, not sure this is OK
+          // Triggered by some array stuff in scripts, not sure this is OK
           *args[0] = (*args[1]);
           break;
       }

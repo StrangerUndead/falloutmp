@@ -1,6 +1,6 @@
 #pragma once
 // Client side of the SkyMP transport (SLikeNet), as in
-// skymp5-server/cpp/mp_common/Networking.cpp, without the server-only
+// falloutmp-server/cpp/mp_common/Networking.cpp, without the server-only
 // dependencies (prometheus, IdManager) so the F4SE plugin stays small.
 #include <cstdint>
 #include <functional>

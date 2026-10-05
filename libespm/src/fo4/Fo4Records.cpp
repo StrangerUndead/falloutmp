@@ -1,7 +1,7 @@
 #include "libespm/fo4/Fo4Records.h"
 #include "libespm/RecordHeaderAccess.h"
-#include <cctype>
 #include <algorithm>
+#include <cctype>
 #include <cstring>
 
 namespace espm::fo4 {

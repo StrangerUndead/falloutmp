@@ -70,10 +70,10 @@
 [C] ClientListener service --emit("sendMessage"| "sendMessageWithRefrId")-->
     NetworkingService.onSendMessage / onSendMessageWithRefrId   (skymp5-client/src/services/services/networkingService.ts:21-50)
       (_refrId → idx resolved from WorldModel; undefined _refrId = own character)
-    sp.mpClientPlugin.send(JSON, reliable) → MpClientPlugin::Send   (skymp5-server/cpp/mp_common/MpClientPlugin.cpp:91-102)
+    sp.mpClientPlugin.send(JSON, reliable) → MpClientPlugin::Send   (falloutmp-server/cpp/mp_common/MpClientPlugin.cpp:91-102)
       → MessageSerializer::Serialize(json): JSON→binary; unknown 't' → raw JSON  (cpp/messages/MessageSerializerFactory.cpp:188-222)
       → RakNet Client::Send  RELIABLE | UNRELIABLE, MEDIUM_PRIORITY, channel 0      (cpp/mp_common/Networking.cpp:88-92)
-[S] node loop: server.tick(); await setTimeout(1)                         (skymp5-server/ts/index.ts:221-235)
+[S] node loop: server.tick(); await setTimeout(1)                         (falloutmp-server/ts/index.ts:221-235)
     ScampServer::Tick → ServerCombined::Tick → Server::Tick (drain all packets) (cpp/addon/ScampServer.cpp:470-508; Networking.cpp:184-207)
     → HandlePacketServerside → PartOne::HandlePacket (connect/disconnect/message)  (Networking.cpp:359+; server_guest_lib/PartOne.cpp:429-474)
     → PartOne::HandleMessagePacket (packet-history record, playback suppression)  (PartOne.cpp:915-960)
@@ -195,7 +195,7 @@
 
 ### 1.7 Per-message reliability, direction, rate and handler (all 33 MsgTypes)
 
-Ids come from `[src: skymp5-server/cpp/messages/MsgType.h]`; the client mirror is `skymp5-client/src/services/messages.ts`.
+Ids come from `[src: falloutmp-server/cpp/messages/MsgType.h]`; the client mirror is `skymp5-client/src/services/messages.ts`.
 
 Column meanings:
 - **Rel.**: `R` = reliable, `U` = unreliable. The client sends `R` as RakNet `RELIABLE`; the server sends `R` as `RELIABLE_ORDERED` [src: Networking.cpp:91,181].
@@ -498,7 +498,7 @@ Client: `DeathService` handles `DeathStateContainer` (kill with `Actor.kill` / r
 ## 2. Feature table, end to end
 
 Conventions for this table:
-- Server files are under `skymp5-server/cpp/server_guest_lib/` and client files under `skymp5-client/src/`, unless a cell says otherwise.
+- Server files are under `falloutmp-server/cpp/server_guest_lib/` and client files under `skymp5-client/src/`, unless a cell says otherwise.
 - "AL" means `ActionListener.cpp`, "MOR" means `MpObjectReference.cpp`, "RS" means `services/services/remoteServer.ts`, and "SIS" means `services/services/sendInputsService.ts`.
 - All cells are [src] unless they say [inference].
 - Tests list the file and its Catch2 tag(s), and are in `unit/` unless a cell says otherwise.
@@ -660,7 +660,7 @@ Tag index (file → tags):
   1. Merges `server-settings-base.json` with `<test>.settings.json`.
   2. Wipes `world/changeForms` and copies a satellite DB folder if present.
   3. Copies the test to `gamemode.js`.
-  4. Runs `node dist_back/skymp5-server.js` (60 s).
+  4. Runs `node dist_back/falloutmp-server.js` (60 s).
   5. Passes on exit code 0 and `Test passed!` in stdout.
 - ctest properties: `TIMEOUT 120`, `RESOURCE_LOCK server_directory`, `FIXTURES_REQUIRED unit_passed`.
 - Existing tests: `test_crash`, `test_dlc1chauruscocoonscript_stack_overflow`, `test_factions`, `test_findclosestreferenceoftypefromref`, `test_isdead`, `test_onPapyrusEvent_OnItemAdded`, `test_onactivate`, `test_partial_location_save`, `test_registerforsingleupdate`, `test_removeallitems`, `test_spawnpoint_of_placed_actors`.
@@ -672,9 +672,9 @@ Tag index (file → tags):
 
 | Step | File | Action |
 |---|---|---|
-| 1 | `skymp5-server/cpp/messages/MsgType.h` | Append `Foo = 34` before `Max` (never renumber) |
-| 2 | `skymp5-server/cpp/messages/FooMessage.h` | New struct (skeleton below) |
-| 3 | `skymp5-server/cpp/messages/Messages.h` | `#include "FooMessage.h"` + `REGISTER_MESSAGE(FooMessage)` |
+| 1 | `falloutmp-server/cpp/messages/MsgType.h` | Append `Foo = 34` before `Max` (never renumber) |
+| 2 | `falloutmp-server/cpp/messages/FooMessage.h` | New struct (skeleton below) |
+| 3 | `falloutmp-server/cpp/messages/Messages.h` | `#include "FooMessage.h"` + `REGISTER_MESSAGE(FooMessage)` |
 | 4 | `server_guest_lib/PacketParser.cpp` | `case MsgType::Foo:` → `actionListener.OnFoo(rawMsgData, *message)` (C→S only) |
 | 5 | `server_guest_lib/ActionListener.h/.cpp` | `virtual void OnFoo(const RawMessageData&, const FooMessage&)`; ownership check (S6), validation, `GameModeEvent` (S11), correction (S12) |
 | 6 | `mp_common/Config.h` | Bump `kMessagingProtocolVersion` |
@@ -739,7 +739,7 @@ export interface FooMessage { t: MsgType.Foo; idx: number; value?: number; }
 #### (c) New built-in property (PropertyBindingFactory)
 
 ```cpp
-// skymp5-server/cpp/addon/property_bindings/FooBarBinding.h
+// falloutmp-server/cpp/addon/property_bindings/FooBarBinding.h
 #pragma once
 #include "PropertyBinding.h"
 class FooBarBinding : public PropertyBinding {

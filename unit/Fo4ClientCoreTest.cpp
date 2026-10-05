@@ -1,10 +1,10 @@
 // fallout4-platform/core: the QuickJS host, wire codec and runtime.
 #ifdef WITH_FMP_CORE
-#include "Codec.h"
-#include "JsHost.h"
-#include "Runtime.h"
-#include <catch2/catch_all.hpp>
-#include <nlohmann/json.hpp>
+#  include "Codec.h"
+#  include "JsHost.h"
+#  include "Runtime.h"
+#  include <catch2/catch_all.hpp>
+#  include <nlohmann/json.hpp>
 
 using nlohmann::json;
 
@@ -107,11 +107,13 @@ TEST_CASE("Codec writes known messages in the binary format",
           "[fo4][ClientCore]")
 {
   fmp::Codec codec;
-  json mov = { { "t", 65 },        { "idx", 0xff000001u }, { "seq", 7 },
-               { "ts", 1234 },     { "worldOrCell", 0x3c }, { "pos", { 1.5, 2, 3 } },
-               { "yaw", 90 },      { "aimPitch", 0 },      { "aimHeading", 0 },
-               { "speed", 300 },   { "direction", 0 },     { "velZ", 0 },
-               { "flags", 2 },     { "healthPercentage", 100 } };
+  json mov = {
+    { "t", 65 },      { "idx", 0xff000001u },     { "seq", 7 },
+    { "ts", 1234 },   { "worldOrCell", 0x3c },    { "pos", { 1.5, 2, 3 } },
+    { "yaw", 90 },    { "aimPitch", 0 },          { "aimHeading", 0 },
+    { "speed", 300 }, { "direction", 0 },         { "velZ", 0 },
+    { "flags", 2 },   { "healthPercentage", 100 }
+  };
   auto bytes = codec.Encode(mov.dump());
   REQUIRE(bytes.size() > 2);
   REQUIRE(bytes[0] == 134); // MinPacketId
@@ -152,10 +154,13 @@ TEST_CASE("Runtime forwards ticks and natives to the script",
                         "rt.js"));
   rt.Tick(16);
   rt.Tick(33);
-  REQUIRE(game.logs == std::vector<std::string>{ "tick 16 true", "tick 33 true" });
+  REQUIRE(game.logs ==
+          std::vector<std::string>{ "tick 16 true", "tick 33 true" });
   REQUIRE_FALSE(rt.IsConnected());
   // Sending while offline is a no-op, not an error
-  REQUIRE(rt.LoadScript(R"(__fmp.send(JSON.stringify({ t: 1, contentJsonDump: "{}" }), true))", "s.js"));
+  REQUIRE(rt.LoadScript(
+    R"(__fmp.send(JSON.stringify({ t: 1, contentJsonDump: "{}" }), true))",
+    "s.js"));
   // A bad port is a script exception, not a crash
   REQUIRE_FALSE(rt.Js().Eval("__fmp.connect('127.0.0.1', 0)", "c.js"));
   REQUIRE(game.logs.back().find("bad port 0") != std::string::npos);

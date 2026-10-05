@@ -14,14 +14,22 @@ struct Entry
 };
 
 constexpr Entry kModules[] = {
-  { "session", InstallSession },       { "movement", InstallMovement },
-  { "puppets", InstallPuppets },       { "animation", InstallAnimation },
-  { "appearance", InstallAppearance }, { "inventory", InstallInventory },
-  { "equipment", InstallEquipment },   { "actorValues", InstallActorValues },
-  { "progression", InstallProgression }, { "effects", InstallEffects },
-  { "combat", InstallCombat },         { "powerArmor", InstallPowerArmor },
-  { "workshop", InstallWorkshop },     { "locks", InstallLocks },
-  { "map", InstallMap },               { "world", InstallWorld },
+  { "session", InstallSession },
+  { "movement", InstallMovement },
+  { "puppets", InstallPuppets },
+  { "animation", InstallAnimation },
+  { "appearance", InstallAppearance },
+  { "inventory", InstallInventory },
+  { "equipment", InstallEquipment },
+  { "actorValues", InstallActorValues },
+  { "progression", InstallProgression },
+  { "effects", InstallEffects },
+  { "combat", InstallCombat },
+  { "powerArmor", InstallPowerArmor },
+  { "workshop", InstallWorkshop },
+  { "locks", InstallLocks },
+  { "map", InstallMap },
+  { "world", InstallWorld },
   { "probe", InstallProbe },
 };
 }

@@ -264,10 +264,10 @@ Every rejection sends `RequestResult{ok=false, error}` plus the state needed to 
 **T1 — core build**
 - [ ] **F22-T01** ESPM gaps: `BNDS`, REFR `XPRM`/`XWPG`/`XWPN`/`XPLK`, base-object `PRPS`, workshop keywords by EDID — M — Depends: ESPM-005, ESPM-010, ESPM-016 — Verify: L-fixture — Files: libespm/include/libespm/fo4/{BNDS.h,REFR.h}, libespm/src/fo4/*
   - Accept: fixture refs expose primitive, grid and spline data.
-- [ ] **F22-T02** `MpWorkshop` record, `workshops` save-storage collection, JSON schema with defaults, coalesced save policy — L — Depends: REF-020, F00-T07 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/workshop/MpWorkshop.{h,cpp}, viet/include/save_storages/ISaveStorage.h (collection), database_drivers/*
+- [ ] **F22-T02** `MpWorkshop` record, `workshops` save-storage collection, JSON schema with defaults, coalesced save policy — L — Depends: REF-020, F00-T07 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/fo4/workshop/MpWorkshop.{h,cpp}, viet/include/save_storages/ISaveStorage.h (collection), database_drivers/*
   - Accept: round trip, backward-compatible load, 3k objects < 50 ms.
 - [ ] **F22-T03** Workshop discovery: workbench refs, linked container, build-area primitives, `areaCells`, pre-placed scrappable index (lazy, REF-012) — M — Depends: F22-T01, REF-012 — Verify: L-unit, D-real — Files: fo4/workshop/WorkshopRegistry.{h,cpp}
-- [ ] **F22-T04** Messages 93–97, 108, 109 + TS mirrors, protocol bump — M — Depends: NET-002, NET-003, F15-T01 — Verify: L-unit, L-ts — Files: skymp5-server/cpp/messages/Workshop*Message.h, Messages.h; falloutmp-client/src/services/messages/
+- [ ] **F22-T04** Messages 93–97, 108, 109 + TS mirrors, protocol bump — M — Depends: NET-002, NET-003, F15-T01 — Verify: L-unit, L-ts — Files: falloutmp-server/cpp/messages/Workshop*Message.h, Messages.h; falloutmp-client/src/services/messages/
 - [ ] **F22-T05** Ownership, claim/abandon, ACL (`WorkshopManage` claim/abandon/setAcl), `onWorkshopClaim`, settings — M — Depends: F22-T02, F22-T04, SRV-060, GM-030 — Verify: L-unit
 - [ ] **F22-T06** Build mode: `WorkshopMode` handling, area tracking from movement, forced exit — S — Depends: F22-T03, F22-T04, F01 — Verify: L-unit
 - [ ] **F22-T07** Place/move/scrap/store/repair handlers with validation, `ComponentLedger` provider, budget, refunds, `RequestResult` + undo corrections, gamemode events — L — Depends: F22-T05, F22-T06, F15-T03, F15-T07, NET-007 — Verify: L-unit

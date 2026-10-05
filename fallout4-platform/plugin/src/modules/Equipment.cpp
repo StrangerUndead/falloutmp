@@ -92,17 +92,17 @@ std::vector<Key> Worn(RE::Actor* actor, bool apparel = true)
 RE::Actor* Target(Platform& p, uint32_t actorId, const char* what)
 {
   auto actor = game::ActorOf(actorId);
-  if (!actor ||
-      (actorId != game::kPlayerRef && !puppets::IsPuppet(actorId))) {
-    p.Log("warn", std::format("{}: {:X} is not the player or a puppet", what,
-                              actorId));
+  if (!actor || (actorId != game::kPlayerRef && !puppets::IsPuppet(actorId))) {
+    p.Log(
+      "warn",
+      std::format("{}: {:X} is not the player or a puppet", what, actorId));
     return nullptr;
   }
   return actor;
 }
 
-void Equip(Platform& p, uint32_t actorId, const Key& key,
-           bool preventRemoval, bool silent)
+void Equip(Platform& p, uint32_t actorId, const Key& key, bool preventRemoval,
+           bool silent)
 {
   auto actor = Target(p, actorId, "equipItemEx");
   auto manager = RE::ActorEquipManager::GetSingleton();
@@ -119,9 +119,10 @@ void Equip(Platform& p, uint32_t actorId, const Key& key,
       inst = items::Find(actor, key, true);
     }
     if (!inst) {
-      p.Log("warn", std::format("equipItemEx: {:X} has no {:X} with this "
-                                "instance",
-                                actorId, key.baseId));
+      p.Log("warn",
+            std::format("equipItemEx: {:X} has no {:X} with this "
+                        "instance",
+                        actorId, key.baseId));
     } else if (!inst->equipped) {
       RE::BGSObjectInstance object{ inst->object,
                                     items::InstanceDataOf(actor, *inst) };
@@ -129,13 +130,14 @@ void Equip(Platform& p, uint32_t actorId, const Key& key,
       // so getEquippedItems sees it at once. [verify] the default slot
       // (null) is right for weapons and apparel, and a puppet with AI off
       // shows the weapon and the OMOD meshes
-      bool ok = manager->EquipObject(actor, object, inst->stackIndex, 1,
-                                     nullptr, false, true, !silent, true,
-                                     preventRemoval);
+      bool ok =
+        manager->EquipObject(actor, object, inst->stackIndex, 1, nullptr,
+                             false, true, !silent, true, preventRemoval);
       if (!ok) {
-        p.Log("warn", std::format("equipItemEx: the engine refused {:X} on "
-                                  "{:X}",
-                                  key.baseId, actorId));
+        p.Log("warn",
+              std::format("equipItemEx: the engine refused {:X} on "
+                          "{:X}",
+                          key.baseId, actorId));
       }
     }
   }
@@ -183,7 +185,7 @@ Json GetEquipped(uint32_t actorId)
 
 // --- Capture ---------------------------------------------------------------
 
-std::atomic<uint64_t> g_eventSeq{ 0 };     // player equip events (sink)
+std::atomic<uint64_t> g_eventSeq{ 0 };      // player equip events (sink)
 std::atomic<bool> g_resetBaseline{ false }; // a loading screen came up
 uint64_t g_seenSeq = 0;
 double g_lastEventMs = 0;
@@ -221,9 +223,8 @@ void Capture(Platform& p)
   auto removed = *g_baseline;
   std::vector<Key> added;
   for (auto& k : current) {
-    auto it = std::find_if(removed.begin(), removed.end(), [&](auto& r) {
-      return items::SameStack(r, k);
-    });
+    auto it = std::find_if(removed.begin(), removed.end(),
+                           [&](auto& r) { return items::SameStack(r, k); });
     if (it != removed.end()) {
       removed.erase(it);
     } else {
@@ -313,8 +314,8 @@ void InstallEquipment(Platform& p)
   p.RegisterNative("equipItemEx", [&p](const Json& a) -> Json {
     bool preventRemoval = a.size() > 2 && BoolArg(a.at(2));
     bool silent = a.size() > 3 ? BoolArg(a.at(3)) : true;
-    Equip(p, a.at(0).get<uint32_t>(), items::FromJson(a.at(1)),
-          preventRemoval, silent);
+    Equip(p, a.at(0).get<uint32_t>(), items::FromJson(a.at(1)), preventRemoval,
+          silent);
     return nullptr;
   });
   p.RegisterNative("unequipItemEx", [&p](const Json& a) -> Json {

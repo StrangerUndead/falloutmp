@@ -90,8 +90,7 @@ bool MayChange(RE::TESObjectREFR* ref)
   if (!ref->As<RE::Actor>()) {
     return true;
   }
-  return id == game::kPlayerRef || puppets::IsPuppet(id) ||
-    ref->IsDead(false);
+  return id == game::kPlayerRef || puppets::IsPuppet(id) || ref->IsDead(false);
 }
 
 Json GetInventory(uint32_t refId)
@@ -115,8 +114,8 @@ Json GetInventory(uint32_t refId)
     }
   }
   for (auto& m : merged) {
-    out.push_back(Json{ { "item", items::ToJson(m.key) },
-                        { "count", m.count } });
+    out.push_back(
+      Json{ { "item", items::ToJson(m.key) }, { "count", m.count } });
   }
   return out;
 }
@@ -129,25 +128,24 @@ void ChangeItems(Platform& p, const Json& a, bool add)
   bool silent = a.size() > 3 ? BoolArg(a.at(3)) : true;
   auto ref = game::Ref(refId);
   if (!count || !MayChange(ref)) {
-    p.Log("warn", std::format("{}ItemEx: refused for {:X} (item {:X} x{})",
-                              add ? "add" : "remove", refId, key.baseId,
-                              count));
+    p.Log("warn",
+          std::format("{}ItemEx: refused for {:X} (item {:X} x{})",
+                      add ? "add" : "remove", refId, key.baseId, count));
     return;
   }
   bool ok = add ? items::Add(ref, key, count, silent)
                 : items::Remove(ref, key, count, silent);
   if (!ok) {
-    p.Log("warn", std::format("{}ItemEx: {:X} x{} on {:X} failed",
-                              add ? "add" : "remove", key.baseId, count,
-                              refId));
+    p.Log("warn",
+          std::format("{}ItemEx: {:X} x{} on {:X} failed",
+                      add ? "add" : "remove", key.baseId, count, refId));
   }
 }
 
 void SetAmmoLoaded(uint32_t actorId, const Json& roundsJson)
 {
   auto actor = game::ActorOf(actorId);
-  if (!actor ||
-      (actorId != game::kPlayerRef && !puppets::IsPuppet(actorId))) {
+  if (!actor || (actorId != game::kPlayerRef && !puppets::IsPuppet(actorId))) {
     return;
   }
   double v = roundsJson.is_number() ? roundsJson.get<double>() : 0;
@@ -281,8 +279,8 @@ void ProcessTransfers(Platform& p)
   bool puppet = g_open->puppet;
   for (auto& [key, delta] : deltas) {
     if (puppet) {
-      p.Log("warn", std::format("Reverting a transfer with puppet {:X}",
-                                container));
+      p.Log("warn",
+            std::format("Reverting a transfer with puppet {:X}", container));
       RevertPuppetTransfer(ref, key, delta);
       continue;
     }
@@ -380,8 +378,9 @@ void OnContainerMenu(Platform& p, bool opening)
   open.snapshot = items::Read(ref.get());
   g_open = std::move(open);
   if (g_open->puppet) {
-    p.Log("info", std::format("Closing the container menu of puppet {:X}",
-                              g_open->refId));
+    p.Log(
+      "info",
+      std::format("Closing the container menu of puppet {:X}", g_open->refId));
     CloseContainerMenu();
   }
 }
@@ -401,8 +400,8 @@ public:
     if (from == player && to == 0) {
       // Consumed or destroyed items have no reference; a drop creates one
       if (e.referenceFormID != 0 && !items::Applying()) {
-        g_drops.push_back({ e.referenceFormID, e.baseObjectFormID,
-                            e.itemCount });
+        g_drops.push_back(
+          { e.referenceFormID, e.baseObjectFormID, e.itemCount });
       }
     } else if (from == player && to != 0 && to != player) {
       g_transfers.push_back({ to, e.baseObjectFormID });
@@ -493,8 +492,9 @@ void InstallInventory(Platform& p)
   if (auto src = RE::TESContainerChangedEvent::GetEventSource()) {
     src->RegisterSink(&containerSink);
   } else {
-    p.Log("error", "No TESContainerChangedEvent source: drops and container "
-                   "transfers are not reported");
+    p.Log("error",
+          "No TESContainerChangedEvent source: drops and container "
+          "transfers are not reported");
   }
   if (auto src = RE::TESEquipEvent::GetEventSource()) {
     src->RegisterSink(&useSink);

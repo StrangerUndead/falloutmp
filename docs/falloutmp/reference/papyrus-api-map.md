@@ -2401,7 +2401,7 @@ File paths in "Used in" are relative to `skymp5-client/src/`. `services/services
 | `Game.setGameSettingFloat(gmst, v)` | svc/ragdollService.ts:29-34 (`fDiffMultHPToPC{E,H,L,N,VE,VH}`) | neutralise difficulty damage multipliers | F4SE `SetGameSettingFloat(string, float) [G,F4SE]` | Same (F4SE) | Check the GMST names in Fallout4.esm; FO4 adds Survival multipliers [inference] |
 | `Game.setGameSettingInt(gmst, v)` | index.ts:62 (`iDeathDropWeaponChance`) | no weapon drop on death | F4SE `SetGameSettingInt(string, int) [G,F4SE]` | Same (F4SE) | Check the GMST exists [inference] |
 | `Game.setInChargen(a,b,c)` | svc/singlePlayerService.ts:22; svc/enforceLimitationsService.ts:12,16 | disable save/wait | `SetInChargen(bool abDisableSaving, bool abDisableWaiting, bool abShowControlsDisabledMessage) [G]` | Same | |
-| `Game.showRaceMenu()` | svc/remoteServer.ts:854, plus server SpSnippet `ShowRaceMenu` / `ShowLimitedRaceMenu` [src: skymp5-server/cpp/server_guest_lib/script_classes/PapyrusGame.cpp:243-244] | character editor | `ShowRaceMenu(ObjectReference akMenuTarget = None, int uiMode = 0, ObjectReference akMenuSpouseFemale = None, ObjectReference akMenuSpouseMale = None, ObjectReference akVendor = None) [G]`; the menu is `LooksMenu` | Sig-diff | uiMode values [web: https://falloutck.uesp.net/wiki/ShowRaceMenu_-_Game]: 0 = start-of-game chargen (has spouse logic), 1 = Remake (player only, no sex change), 2 = haircut, 3 = surgery, 4 = face paint. Use 1; map `ShowLimitedRaceMenu` to 2/3/4. Pass all 5 args |
+| `Game.showRaceMenu()` | svc/remoteServer.ts:854, plus server SpSnippet `ShowRaceMenu` / `ShowLimitedRaceMenu` [src: falloutmp-server/cpp/server_guest_lib/script_classes/PapyrusGame.cpp:243-244] | character editor | `ShowRaceMenu(ObjectReference akMenuTarget = None, int uiMode = 0, ObjectReference akMenuSpouseFemale = None, ObjectReference akMenuSpouseMale = None, ObjectReference akVendor = None) [G]`; the menu is `LooksMenu` | Sig-diff | uiMode values [web: https://falloutck.uesp.net/wiki/ShowRaceMenu_-_Game]: 0 = start-of-game chargen (has spouse logic), 1 = Remake (player only, no sex change), 2 = haircut, 3 = surgery, 4 = face paint. Use 1; map `ShowLimitedRaceMenu` to 2/3/4. Pass all 5 args |
 
 #### 2.3.2 Debug / Utility / UI / Input
 | Skyrim call | Used in | Purpose | FO4 equivalent | Status | Notes |
@@ -2556,7 +2556,7 @@ File paths in "Used in" are relative to `skymp5-client/src/`. `services/services
 | `on("playerBowShot")` | svc/playerBowShotService.ts:13 | weapon fire via animation event + `PlayerAmmoCountEvent` [src: libxse include/RE/P/PlayerAmmoCountEvent.h] | Replace |
 
 #### 2.3.10 Calls the server sends to clients via SpSnippet
-The client must keep supporting these on FO4. Sites are in `skymp5-server/cpp/server_guest_lib/script_classes/`.
+The client must keep supporting these on FO4. Sites are in `falloutmp-server/cpp/server_guest_lib/script_classes/`.
 
 | Server native → client call | Server site | FO4 client call | Status |
 |---|---|---|---|
@@ -2609,7 +2609,7 @@ The table gives one line per missing call. **N** = new native in the FO4 `TESMod
 
 ---
 
-## 3. Server mapping (`skymp5-server/cpp/server_guest_lib/script_classes`)
+## 3. Server mapping (`falloutmp-server/cpp/server_guest_lib/script_classes`)
 
 ### 3.0 How natives work today
 
@@ -2795,7 +2795,7 @@ The serializer (`SpSnippetFunctionGen`) only handles forms (formId + type). It m
 
 There are 135 events in this table plus the 37 `OnStory*` events listed below it. "auto" means the game sends the event to scripts attached to the form, and to aliases and active magic effects on it. `ActiveMagicEffect`, `ReferenceAlias` and `RefCollectionAlias` also receive every `ObjectReference` and `Actor` event; `RefCollectionAlias` adds a leading `ObjectReference akSenderRef` parameter [src: comparison of vanilla/ActiveMagicEffect.psc, ReferenceAlias.psc, RefCollectionAlias.psc].
 
-The "SkyMP server today" column gives citations relative to `skymp5-server/cpp/server_guest_lib/`.
+The "SkyMP server today" column gives citations relative to `falloutmp-server/cpp/server_guest_lib/`.
 
 | Owner | Event (signature) | Registration / delivery | SkyMP server today | FalloutMP server plan |
 |---|---|---|---|---|
@@ -2806,8 +2806,8 @@ The "SkyMP server today" column gives citations relative to `skymp5-server/cpp/s
 | ScriptObject | `OnDistanceGreaterThan(ObjectReference akObj1, ObjectReference akObj2, float afDistance)` | RegisterForDistanceGreaterThanEvent(o1,o2,d) - single-shot, one per pair | — | P1: server-computable from positions (grid) |
 | ScriptObject | `OnEndState(string asNewState)` | GotoState() | VM-internal | P0 (as above) |
 | ScriptObject | `OnGainLOS(ObjectReference akViewer, ObjectReference akTarget)` | RegisterForDetectionLOSGain / RegisterForDirectLOSGain - single-shot, throttled | — | P2: needs a client raycast report; approximate with distance |
-| ScriptObject | `OnHit(ObjectReference akTarget, ObjectReference akAggressor, Form akSource, Projectile akProjectile, bool abPowerAttack, bool abSneakAttack, bool abBashAttack, bool abHitBlocked, string asMaterialName)` | RegisterForHitEvent(target, filters...) - SINGLE-SHOT, per script; re-register in handler | fired unconditionally with the Skyrim 7-arg signature [src: skymp5-server/cpp/server_guest_lib/ActionListener.cpp:1410-1424] | P0 CHANGE: deliver only to scripts holding a matching RegisterForHitEvent registration (aggressor/source/projectile/power/sneak/bash/block filters, abMatch), FO4 9-arg order (akTarget first, asMaterialName last), then drop the registration |
-| ScriptObject | `OnInit()` | auto (after properties are filled) | fired once on first player subscription [src: skymp5-server/cpp/server_guest_lib/MpObjectReference.cpp:989] | P0 keep; also after `PlaceAtMe` of scripted forms |
+| ScriptObject | `OnHit(ObjectReference akTarget, ObjectReference akAggressor, Form akSource, Projectile akProjectile, bool abPowerAttack, bool abSneakAttack, bool abBashAttack, bool abHitBlocked, string asMaterialName)` | RegisterForHitEvent(target, filters...) - SINGLE-SHOT, per script; re-register in handler | fired unconditionally with the Skyrim 7-arg signature [src: falloutmp-server/cpp/server_guest_lib/ActionListener.cpp:1410-1424] | P0 CHANGE: deliver only to scripts holding a matching RegisterForHitEvent registration (aggressor/source/projectile/power/sneak/bash/block filters, abMatch), FO4 9-arg order (akTarget first, asMaterialName last), then drop the registration |
+| ScriptObject | `OnInit()` | auto (after properties are filled) | fired once on first player subscription [src: falloutmp-server/cpp/server_guest_lib/MpObjectReference.cpp:989] | P0 keep; also after `PlaceAtMe` of scripted forms |
 | ScriptObject | `OnLostLOS(ObjectReference akViewer, ObjectReference akTarget)` | RegisterForDetectionLOSLost / RegisterForDirectLOSLost - single-shot, throttled | — | P2 (as above) |
 | ScriptObject | `OnMagicEffectApply(ObjectReference akTarget, ObjectReference akCaster, MagicEffect akEffect)` | RegisterForMagicEffectApplyEvent(target, filters) - single-shot | — | P2 (needs server magic effects) |
 | ScriptObject | `OnMenuOpenCloseEvent(string asMenuName, bool abOpening)` | RegisterForMenuOpenCloseEvent(menuName) - persistent | — | P2: needs a client menu report message (today only race-menu state reaches the server) |
@@ -3223,7 +3223,7 @@ On the server, either load the vanilla `.pex` (licensing: users' own game files 
 - **FO4 signatures:** parsed from the F4SE repository's `scripts/vanilla` and `scripts/modified` `.psc` files (F4SE 0.7.9 tree).
 - **Latent list:** MediaWiki API query of `Category:Latent_Functions` on falloutck.uesp.net (61 members), plus F4SE `LatentNativeFunction*` registrations.
 - **Client calls:** extracted from `skymp5-client/src` by matching against `skyrim-platform/src/platform_se/codegen/convert-files/skyrimPlatform.ts`, then hand-verified.
-- **Server natives:** every `AddMethod` / `AddStatic` in `skymp5-server/cpp/server_guest_lib/script_classes/*.cpp`.
+- **Server natives:** every `AddMethod` / `AddStatic` in `falloutmp-server/cpp/server_guest_lib/script_classes/*.cpp`.
 - **Server events:** every `SendPapyrusEvent` call under `server_guest_lib`.
 
 **To regenerate**

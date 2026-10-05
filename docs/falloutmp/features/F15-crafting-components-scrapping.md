@@ -4,7 +4,7 @@
 |---|---|
 | Tier | T1 (chem, cooking, armor, weapon and PA stations; components; scrap). Robot workbench and Contraptions machines are T2 (F21, F22) |
 | Target level | L4 |
-| SkyMP analogue | `CraftItem` (MsgType 13): the client infers a craft from container-change streaks (`skymp5-client/src/services/services/craftService.ts:18-70`); the server matches a COBJ by exact input counts, bench keyword and CTDA (`skymp5-server/cpp/server_guest_lib/CraftService.cpp:20-277`) and fires `onCraft` (`gamemode_events/CraftEvent.cpp`). SkyMP level L3–L4 |
+| SkyMP analogue | `CraftItem` (MsgType 13): the client infers a craft from container-change streaks (`skymp5-client/src/services/services/craftService.ts:18-70`); the server matches a COBJ by exact input counts, bench keyword and CTDA (`falloutmp-server/cpp/server_guest_lib/CraftService.cpp:20-277`) and fires `onCraft` (`gamemode_events/CraftEvent.cpp`). SkyMP level L3–L4 |
 | Milestone | M9 (stations, components, scrap); workshop-container and supply-network sources complete with F22 in M11 |
 | Workstreams | SRV, ESPM, CLI, PLAT, NET, GM, PVM |
 | Depends on | F04 (`ItemKey`, B2 fix), F07 (workbench occupancy, F07-T04 reach), F19 (perks, XP), F22 (workshop container as a source; optional), ESPM-008, ESPM-010, ESPM-011, REF-009, REF-013, SRV-021, PLAT-042, PLAT-080, NET-007 |
@@ -148,23 +148,23 @@ N/A for crafting: NPCs do not craft, and hosted NPCs using workbenches play idle
 - `G-manual`: two players at one settlement craft from the same workshop container; one lacks Chemist and is refused; scrap a modded weapon with and without Scrapper.
 
 ## 7. Tasks
-- [ ] **F15-T01** Messages `CraftItemFo4` (76), `ScrapItem` (86), `RequestResult` (107) + TS mirrors, protocol bump — S — Depends: NET-002, NET-003, F04 (`ItemKey` serializer) — Verify: L-unit, L-ts — Files: skymp5-server/cpp/messages/{CraftItemFo4Message.h,ScrapItemMessage.h,RequestResultMessage.h}, Messages.h, MsgType.h; falloutmp-client/src/services/messages/
+- [ ] **F15-T01** Messages `CraftItemFo4` (76), `ScrapItem` (86), `RequestResult` (107) + TS mirrors, protocol bump — S — Depends: NET-002, NET-003, F04 (`ItemKey` serializer) — Verify: L-unit, L-ts — Files: falloutmp-server/cpp/messages/{CraftItemFo4Message.h,ScrapItemMessage.h,RequestResultMessage.h}, Messages.h, MsgType.h; falloutmp-client/src/services/messages/
   - Accept: binary and JSON round trips; FO4-only registration; error-code enum shared in one header.
-- [ ] **F15-T02** `RecipeIndex` (bench keyword → COBJ, created form → COBJ, item → scrap recipe; global ids) — S — Depends: ESPM-008 — Verify: L-unit, L-fixture — Files: skymp5-server/cpp/server_guest_lib/fo4/crafting/RecipeIndex.{h,cpp}
+- [ ] **F15-T02** `RecipeIndex` (bench keyword → COBJ, created form → COBJ, item → scrap recipe; global ids) — S — Depends: ESPM-008 — Verify: L-unit, L-fixture — Files: falloutmp-server/cpp/server_guest_lib/fo4/crafting/RecipeIndex.{h,cpp}
   - Accept: fixture lookups O(1); FLST created objects indexed; no `NAM1` read on FO4.
-- [ ] **F15-T03** `ComponentLedger` (pure): `Take(sources, needs)`, leftovers, `ScrapYield(item, scrapperRank)` — M — Depends: ESPM-008, F04 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/crafting/ComponentLedger.{h,cpp}
+- [ ] **F15-T03** `ComponentLedger` (pure): `Take(sources, needs)`, leftovers, `ScrapYield(item, scrapperRank)` — M — Depends: ESPM-008, F04 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/fo4/crafting/ComponentLedger.{h,cpp}
   - Accept: determinism (same inputs → same breaks); shortfall is a no-op; yields match the wiki rarity table for the fixture.
-- [ ] **F15-T04** FO4 `CraftService` path: occupancy/reach, bench check via `GameProfile::Crafting()`, conditions, ledger, outputs, nonce cache, `RequestResult` + correction, extended `onCraft` — M — Depends: F15-T01…T03, REF-013, REF-009, F07-T04, NET-007 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/{CraftService.{h,cpp},ActionListener.cpp,gamemode_events/CraftEvent.cpp}
+- [ ] **F15-T04** FO4 `CraftService` path: occupancy/reach, bench check via `GameProfile::Crafting()`, conditions, ledger, outputs, nonce cache, `RequestResult` + correction, extended `onCraft` — M — Depends: F15-T01…T03, REF-013, REF-009, F07-T04, NET-007 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/{CraftService.{h,cpp},ActionListener.cpp,gamemode_events/CraftEvent.cpp}
   - Accept: all §6 craft cases pass; Skyrim `[Craft][espm]` tests unchanged.
-- [ ] **F15-T05** Scrap handler + `onScrapItem` event — S — Depends: F15-T03, F15-T04 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/crafting/ScrapService.{h,cpp}, gamemode_events/ScrapItemEvent.{h,cpp}
-- [ ] **F15-T06** FO4 crafting condition functions (`GetValue` 14, `GetStageDone` 59, `GetIsID` 72, `GetGlobalValue` 74, `HasPerk` 448, `HasKeyword` 560), unless F19 already delivered them — M — Depends: ESPM-011, REF-009, SRV-010, SRV-021 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/condition_functions/fo4/*
+- [ ] **F15-T05** Scrap handler + `onScrapItem` event — S — Depends: F15-T03, F15-T04 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/fo4/crafting/ScrapService.{h,cpp}, gamemode_events/ScrapItemEvent.{h,cpp}
+- [ ] **F15-T06** FO4 crafting condition functions (`GetValue` 14, `GetStageDone` 59, `GetIsID` 72, `GetGlobalValue` 74, `HasPerk` 448, `HasKeyword` 560), unless F19 already delivered them — M — Depends: ESPM-011, REF-009, SRV-010, SRV-021 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/condition_functions/fo4/*
   - Accept: a fixture COBJ gated by `HasPerk(Chemist01)` passes and fails as expected.
 - [ ] **F15-T07** `IComponentSource` provider interface so F22 can add the workshop container and supply network — S — Depends: F15-T03 — Verify: L-unit — Files: fo4/crafting/ComponentSource.h
 - [ ] **F15-T08** Crafting XP through F19 (`AwardXp(source="craft")`) + `PlayerProfile.stats` counters — S — Depends: F15-T04, F19, SRV-060 — Verify: L-unit
 - [ ] **F15-T09** Platform workbench menu hooks, `craftConfirm`/`scrapConfirm` events, `refreshWorkbenchMenu`, `CookingMenu` RTTI check; pre-commit cancel if RE allows — M — Depends: PLAT-042, PLAT-080 — Verify: W-ci, G-self — Files: fallout4-platform/src/.../WorkbenchApi.cpp, hooks
   - Accept: the self-test logs the recipe FormID for a chem craft and a cooking craft, and the scrapped item's `ItemKey`.
 - [ ] **F15-T10** Client `craftService.ts` (FO4): capture, send, reconcile with `RequestResult`, HUD messages — M — Depends: F15-T01, F15-T09, CLI-050 — Verify: L-ts, G-manual — Files: falloutmp-client/src/services/services/craftService.ts
-- [ ] **F15-T11** Server Papyrus natives and `OnPlayerUseWorkBench` — S — Depends: PVM-014, F15-T03 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/script_classes/{PapyrusObjectReference.cpp,PapyrusMiscObject.cpp,PapyrusComponent.cpp,PapyrusConstructibleObject.cpp}
+- [ ] **F15-T11** Server Papyrus natives and `OnPlayerUseWorkBench` — S — Depends: PVM-014, F15-T03 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/script_classes/{PapyrusObjectReference.cpp,PapyrusMiscObject.cpp,PapyrusComponent.cpp,PapyrusConstructibleObject.cpp}
 - [ ] **F15-T12** (T2) Robot workbench: `CraftItemFo4` with an NPC_ `CNAM` → owned robot actor; robot OMODs via F16 — L — Depends: F21, F13, F16-T04 — Verify: L-unit, G-manual
 - [ ] **F15-T13** `G-manual` crafting/scrap scenario script and sign-off — S — Depends: F15-T10 — Verify: G-manual — Files: docs/falloutmp/test-scripts/F15-crafting.md
 

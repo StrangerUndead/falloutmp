@@ -87,8 +87,7 @@ TEST_CASE("Entering power armor moves pieces and core onto the wearer",
           "[fo4][F17][PowerArmor]")
 {
   PaWorld w;
-  REQUIRE(w.pa->RequestEnter(w.Facts(), kFrameRef, 7, w.now) ==
-          PaError::None);
+  REQUIRE(w.pa->RequestEnter(w.Facts(), kFrameRef, 7, w.now) == PaError::None);
   REQUIRE(w.pa->GetPhase(kPlayer) == PaPhase::Entering);
   auto entering = w.pa->Snapshot(kPlayer);
   REQUIRE(entering.pieces.size() == 6); // still read from the frame
@@ -136,8 +135,7 @@ TEST_CASE("Power armor enter is rejected for every invalid case",
   REQUIRE(w.pa->RequestEnter(w.Facts(), kFrameRef, 1, w.now) ==
           PaError::OwnedByOther);
   w.pa->settings.allowStealing = true;
-  REQUIRE(w.pa->RequestEnter(w.Facts(), kFrameRef, 1, w.now) ==
-          PaError::None);
+  REQUIRE(w.pa->RequestEnter(w.Facts(), kFrameRef, 1, w.now) == PaError::None);
   REQUIRE(w.pa->FindFrame(kFrameRef)->ownerProfileId == 42); // not claimed
 
   // A second actor cannot take the same frame
@@ -151,8 +149,7 @@ TEST_CASE("Power armor enter is rejected for every invalid case",
 TEST_CASE("Unacknowledged transitions roll back", "[fo4][F17][PowerArmor]")
 {
   PaWorld w;
-  REQUIRE(w.pa->RequestEnter(w.Facts(), kFrameRef, 7, w.now) ==
-          PaError::None);
+  REQUIRE(w.pa->RequestEnter(w.Facts(), kFrameRef, 7, w.now) == PaError::None);
   REQUIRE(w.pa->Tick(w.now + 5000).empty());
   auto rolled = w.pa->Tick(w.now + 10001);
   REQUIRE(rolled == std::vector<ActorId>{ kPlayer });
@@ -200,15 +197,18 @@ TEST_CASE("Core drains by movement, swaps automatically, then goes "
   REQUIRE(w.pa->GetWorn(kPlayer)->CoreCharge() == 1.f);
   // 10 minutes of running = half a core
   w.pa->Drain(kPlayer, 600.f, PaMovement::Run, 1.f, w.playerInv);
-  REQUIRE(w.pa->GetWorn(kPlayer)->CoreCharge() == Catch::Approx(0.5f).margin(0.002));
+  REQUIRE(w.pa->GetWorn(kPlayer)->CoreCharge() ==
+          Catch::Approx(0.5f).margin(0.002));
   // Nuclear Physicist style duration x2 halves the drain
   w.pa->Drain(kPlayer, 120.f, PaMovement::Run, 2.f, w.playerInv);
-  REQUIRE(w.pa->GetWorn(kPlayer)->CoreCharge() == Catch::Approx(0.45f).margin(0.002));
+  REQUIRE(w.pa->GetWorn(kPlayer)->CoreCharge() ==
+          Catch::Approx(0.45f).margin(0.002));
 
   ItemKey spare{ kFusionCore };
   spare.condition = FractionToCondition(0.3f);
   w.playerInv.Add(spare, 1);
-  auto ev = w.pa->Drain(kPlayer, 10000.f, PaMovement::Sprint, 1.f, w.playerInv);
+  auto ev =
+    w.pa->Drain(kPlayer, 10000.f, PaMovement::Sprint, 1.f, w.playerInv);
   REQUIRE(ev.coreDepleted);
   REQUIRE(ev.coreSwapped);
   REQUIRE(w.playerInv.CountBase(kFusionCore) == 0);
@@ -255,8 +255,8 @@ TEST_CASE("Broken pieces lose protection and cannot be attached",
   auto ev = w.pa->DamagePiece(kPlayer, PowerArmorSlot::Helmet, 100.f);
   REQUIRE(ev.piecesBroken.empty());
   ev = w.pa->DamagePiece(kPlayer, PowerArmorSlot::Helmet, 150.f);
-  REQUIRE(ev.piecesBroken == std::vector<PowerArmorSlot>{
-                               PowerArmorSlot::Helmet });
+  REQUIRE(ev.piecesBroken ==
+          std::vector<PowerArmorSlot>{ PowerArmorSlot::Helmet });
   REQUIRE(w.pa->GetWornProtection(kPlayer).armorRating == 310.f);
   // Damage to a missing slot is ignored
   REQUIRE(w.pa->DamagePiece(kPlayer, PowerArmorSlot::None, 10.f)

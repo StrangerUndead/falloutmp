@@ -1,6 +1,0 @@
-{
-  "name": "@skymp/skyrim-platform",
-  "version": "2.9.0",
-  "description": "A modding tool for Skyrim allowing writing scripts with JavaScript/TypeScript",
-  "license": "GPL-3.0"
-}

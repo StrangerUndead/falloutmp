@@ -36,8 +36,9 @@ template <class T, class... Args>
 T* New(Args&&... args)
 {
   auto mem = RE::malloc(sizeof(T));
-  return mem ? std::construct_at(static_cast<T*>(mem), std::forward<Args>(args)...)
-             : nullptr;
+  return mem
+    ? std::construct_at(static_cast<T*>(mem), std::forward<Args>(args)...)
+    : nullptr;
 }
 
 template <class T>
@@ -53,7 +54,8 @@ const Json& Array(const Json& j, const char* key)
 {
   auto& v = j.at(key);
   if (!v.is_array()) {
-    throw std::invalid_argument(std::format("appearance: {} is not an array", key));
+    throw std::invalid_argument(
+      std::format("appearance: {} is not an array", key));
   }
   return v;
 }
@@ -73,7 +75,8 @@ template <class T>
 void Truncate(std::vector<T>& v, std::size_t max, const char* what)
 {
   if (v.size() > max) {
-    REX::WARN("appearance: {} has {} entries, keeping {}", what, v.size(), max);
+    REX::WARN("appearance: {} has {} entries, keeping {}", what, v.size(),
+              max);
     v.resize(max);
   }
 }
@@ -197,9 +200,11 @@ Tint ReadTint(tint::Entry* e)
   return t;
 }
 
-void WriteHeadParts(RE::TESNPC* npc, const std::vector<RE::BGSHeadPart*>& parts)
+void WriteHeadParts(RE::TESNPC* npc,
+                    const std::vector<RE::BGSHeadPart*>& parts)
 {
-  const auto n = static_cast<std::int8_t>(std::min<std::size_t>(parts.size(), 127));
+  const auto n =
+    static_cast<std::int8_t>(std::min<std::size_t>(parts.size(), 127));
   RE::BGSHeadPart** arr = nullptr;
   if (n > 0) {
     if (npc->headParts && npc->numHeadParts >= n) {
@@ -258,7 +263,8 @@ Appearance FromJson(const Json& j)
     Tint x;
     x.tintIndex = t.at("tintIndex").get<uint16_t>();
     x.dataType = t.at("dataType").get<uint8_t>();
-    x.value = static_cast<uint8_t>(std::min(t.at("value").get<uint32_t>(), 100u));
+    x.value =
+      static_cast<uint8_t>(std::min(t.at("value").get<uint32_t>(), 100u));
     x.rgba = t.at("rgba").get<uint32_t>();
     x.templateColorIndex = t.at("templateColorIndex").get<int16_t>();
     a.tints.push_back(x);
@@ -334,8 +340,7 @@ std::optional<Appearance> Read(RE::TESNPC* npc,
     }
   }
   std::ranges::sort(a.headPartIds);
-  a.bodyMorph = { npc->morphWeight.x, npc->morphWeight.y,
-                  npc->morphWeight.z };
+  a.bodyMorph = { npc->morphWeight.x, npc->morphWeight.y, npc->morphWeight.z };
   if (auto r = npc->morphRegionSliderValues) {
     a.morphRegions.assign(r->begin(), r->end());
   }
@@ -349,11 +354,10 @@ std::optional<Appearance> Read(RE::TESNPC* npc,
     for (const auto& kv : *m) {
       const auto& t = kv.second;
       // FMRS is pos[3], rot[3], scale: the engine keeps the scale in x
-      a.faceRegions.push_back(
-        { kv.first,
-          { t.position.x, t.position.y, t.position.z },
-          { t.rotation.x, t.rotation.y, t.rotation.z },
-          t.scale.x });
+      a.faceRegions.push_back({ kv.first,
+                                { t.position.x, t.position.y, t.position.z },
+                                { t.rotation.x, t.rotation.y, t.rotation.z },
+                                t.scale.x });
     }
     std::ranges::sort(a.faceRegions, {}, &FaceRegion::index);
   }
@@ -366,10 +370,11 @@ std::optional<Appearance> Read(RE::TESNPC* npc,
       }
     }
   }
-  a.skinTone = static_cast<uint32_t>(static_cast<uint8_t>(npc->bodyTintColorR)) |
-               static_cast<uint32_t>(static_cast<uint8_t>(npc->bodyTintColorG)) << 8 |
-               static_cast<uint32_t>(static_cast<uint8_t>(npc->bodyTintColorB)) << 16 |
-               static_cast<uint32_t>(static_cast<uint8_t>(npc->bodyTintColorA)) << 24;
+  a.skinTone =
+    static_cast<uint32_t>(static_cast<uint8_t>(npc->bodyTintColorR)) |
+    static_cast<uint32_t>(static_cast<uint8_t>(npc->bodyTintColorG)) << 8 |
+    static_cast<uint32_t>(static_cast<uint8_t>(npc->bodyTintColorB)) << 16 |
+    static_cast<uint32_t>(static_cast<uint8_t>(npc->bodyTintColorA)) << 24;
   return a;
 }
 
@@ -487,8 +492,7 @@ bool Write(RE::TESNPC* npc, const Appearance& a, std::string& error)
 }
 
 void WriteTints(RE::BGSCharacterTint::Entries* entries,
-                const std::vector<Tint>& tints, RE::TESRace* race,
-                bool female)
+                const std::vector<Tint>& tints, RE::TESRace* race, bool female)
 {
   if (!entries) {
     return;
@@ -556,13 +560,15 @@ void Detach(RE::TESNPC* npc, const RE::TESNPC* source)
     RE::ACTOR_BASE_DATA::TEMPLATE_USE_FLAG::kTraits);
 
   // Copy() may have copied pointers: duplicate whatever is shared
-  if (npc->headRelatedData && npc->headRelatedData == source->headRelatedData) {
-    npc->headRelatedData = New<RE::TESNPC::HeadRelatedData>(*source->headRelatedData);
+  if (npc->headRelatedData &&
+      npc->headRelatedData == source->headRelatedData) {
+    npc->headRelatedData =
+      New<RE::TESNPC::HeadRelatedData>(*source->headRelatedData);
   }
   if (npc->headParts && npc->headParts == source->headParts) {
     const int n = std::max<int>(npc->numHeadParts, 0);
     auto arr = n ? static_cast<RE::BGSHeadPart**>(RE::malloc(
-                   sizeof(RE::BGSHeadPart*) * static_cast<std::size_t>(n)))
+                     sizeof(RE::BGSHeadPart*) * static_cast<std::size_t>(n)))
                  : nullptr;
     if (arr) {
       std::copy_n(source->headParts, n, arr);
@@ -581,7 +587,8 @@ void Detach(RE::TESNPC* npc, const RE::TESNPC* source)
       New<RE::BSTHashMap<std::uint32_t, float>>(*source->morphSliderValues);
   }
   if (npc->facialBoneRegionSliderValues &&
-      npc->facialBoneRegionSliderValues == source->facialBoneRegionSliderValues) {
+      npc->facialBoneRegionSliderValues ==
+        source->facialBoneRegionSliderValues) {
     npc->facialBoneRegionSliderValues =
       New<RE::BSTHashMap<std::uint32_t, morph::Transform>>(
         *source->facialBoneRegionSliderValues);

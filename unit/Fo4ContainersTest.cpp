@@ -12,22 +12,30 @@
 using namespace fo4;
 using namespace fo4test;
 
-TEST_CASE("Leveled lists: levels, use all, chance none, nesting",
-          "[fo4][F14]")
+TEST_CASE("Leveled lists: levels, use all, chance none, nesting", "[fo4][F14]")
 {
   InMemoryFo4DataSource d;
   Build(d);
   // Ammo list: level 1 -> 10mm x10, level 10 -> .45 x5
-  d.AddLeveledList({ 0x100, 0, false, false, false,
+  d.AddLeveledList({ 0x100,
+                     0,
+                     false,
+                     false,
+                     false,
                      { { 1, kAmmo10mm, 10, 0 }, { 10, kAmmo45, 5, 0 } } });
   // Use all with one entry always none
-  d.AddLeveledList({ 0x101, 0, true, false, true,
+  d.AddLeveledList({ 0x101,
+                     0,
+                     true,
+                     false,
+                     true,
                      { { 1, kWrench, 1, 0 }, { 1, kDuctTape, 1, 100 } } });
   // Nested and for-each
   d.AddLeveledList({ 0x102, 0, true, true, false, { { 1, 0x101, 1, 0 } } });
   // Self-referencing list must terminate
   d.AddLeveledList({ 0x103, 0, true, false, false, { { 1, 0x103, 1, 0 } } });
-  d.AddLeveledList({ 0x104, 100, true, false, true, { { 1, kWrench, 1, 0 } } });
+  d.AddLeveledList(
+    { 0x104, 100, true, false, true, { { 1, kWrench, 1, 0 } } });
 
   LeveledListResolver r(d);
   std::mt19937 rng(1);
@@ -69,18 +77,18 @@ TEST_CASE("Containers: open resolves contents once; take, put, stolen, "
 
   Fo4Inventory me;
   std::array<float, 3> near{ 100, 0, 0 }, far{ 1000, 0, 0 };
-  REQUIRE(cs.Take(0xFF00C001, ItemKey{ kStimpak }, 1, far, me, false,
-                  false) == ContainerError::OutOfReach);
-  REQUIRE(cs.Take(0xFF00C001, ItemKey{ kStimpak }, 1, near, me, false,
-                  true) == ContainerError::Locked);
+  REQUIRE(cs.Take(0xFF00C001, ItemKey{ kStimpak }, 1, far, me, false, false) ==
+          ContainerError::OutOfReach);
+  REQUIRE(cs.Take(0xFF00C001, ItemKey{ kStimpak }, 1, near, me, false, true) ==
+          ContainerError::Locked);
   REQUIRE(cs.Take(0xFF00C001, ItemKey{ kStimpak }, 3, near, me, false,
                   false) == ContainerError::ItemNotFound);
   REQUIRE(cs.Take(0xFF00C001, ItemKey{ kStimpak }, 1, near, me, false,
                   false) == ContainerError::None);
   // Owned container: the item is marked stolen
   REQUIRE(me.Entries()[0].key.stolenFrom == 0xFAC);
-  REQUIRE(cs.Take(0xFF00C001, ItemKey{ kStimpak }, 1, near, me, true,
-                  false) == ContainerError::None);
+  REQUIRE(cs.Take(0xFF00C001, ItemKey{ kStimpak }, 1, near, me, true, false) ==
+          ContainerError::None);
   REQUIRE(me.CountBase(kStimpak) == 2);
   REQUIRE(me.Entries().size() == 2); // stolen and owned stacks
 
@@ -120,8 +128,12 @@ TEST_CASE("libespm reads FO4 LVLO chance none and CONT", "[fo4][F14]")
   b.AddRecord("MISC", 0x10).EditorId("Junk");
   {
     FieldWriter lvlo;
-    lvlo.Add<uint16_t>(3).Zeros(2).Add<uint32_t>(0x10).Add<uint16_t>(4)
-      .Add<uint8_t>(25).Zeros(1);
+    lvlo.Add<uint16_t>(3)
+      .Zeros(2)
+      .Add<uint32_t>(0x10)
+      .Add<uint16_t>(4)
+      .Add<uint8_t>(25)
+      .Zeros(1);
     b.AddRecord("LVLI", 0x20)
       .EditorId("LL_Junk")
       .AddValue<uint8_t>("LVLD", 10)
@@ -131,7 +143,9 @@ TEST_CASE("libespm reads FO4 LVLO chance none and CONT", "[fo4][F14]")
   {
     FieldWriter cnto;
     cnto.Add<uint32_t>(0x20).Add<int32_t>(2);
-    b.AddRecord("CONT", 0x30).EditorId("Chest").Add("CNTO", cnto)
+    b.AddRecord("CONT", 0x30)
+      .EditorId("Chest")
+      .Add("CNTO", cnto)
       .AddValue<uint8_t>("DATA", 0x2);
   }
   auto bytes = b.Build();

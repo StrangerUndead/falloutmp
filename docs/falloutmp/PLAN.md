@@ -86,7 +86,7 @@ SkyMP is three products stacked together. About 40% of its code is game-agnostic
 | --- | --- | --- |
 | SkyrimPlatform | SKSE plugin that embeds Node.js and a Chromium overlay. It hooks the Papyrus VM so TypeScript can call any game function, and spawns the player by patching a template save | Forked as `fallout4-platform` on F4SE + CommonLibF4. Node, the overlay and the event plumbing carry over. Every engine address and hook is rewritten |
 | skymp5-client | TypeScript client. Sends movement every 130 ms plus animation events. Remote actors are local NPC clones, and NPCs are "hosted" by a client | Forked as `falloutmp-client`. Networking, the world model, the service layer and hosting carry over. All sync modules are rewritten |
-| skymp5-server | Node plus a C++ core: UDP networking, a 4096-unit grid with 3×3 visibility, server-side Papyrus, ESM loading, file/MongoDB persistence, JS gamemodes with veto events | Kept shared and game-pluggable through a `GameProfile` abstraction, so upstream fixes keep merging |
+| falloutmp-server | Node plus a C++ core: UDP networking, a 4096-unit grid with 3×3 visibility, server-side Papyrus, ESM loading, file/MongoDB persistence, JS gamemodes with veto events | Kept shared and game-pluggable through a `GameProfile` abstraction, so upstream fixes keep merging |
 | libespm, papyrus-vm | Plugin parser and script VM | Gain FO4 record layouts, light plugins (ESL), and FO4 compiled scripts with structs, Var and 11 new opcodes |
 
 **Key findings.**

@@ -18,7 +18,7 @@ SCRIPT="$REPO/falloutmp-client/build/falloutmp-client.js"
 rm -rf "$WORK/srv" && mkdir -p "$WORK/srv/data"
 cd "$WORK/srv"
 cp -r "$BUILD/dist/server/dist_back" "$BUILD/dist/server/scam_native.node" "$BUILD/dist/server/package.json" .
-cp -r "$BUILD/dist/server/data/scripts" data/
+[ -d "$BUILD/dist/server/data/scripts" ] && cp -r "$BUILD/dist/server/data/scripts" data/
 "$BUILD/fallout4-platform/fmp_make_test_esm" data/Fallout4.esm
 touch gamemode.js
 cat > server-settings.json <<JSON
@@ -26,7 +26,7 @@ cat > server-settings.json <<JSON
   "port": $PORT, "maxPlayers": 10, "offlineMode": true, "npcEnabled": false }
 JSON
 
-node dist_back/skymp5-server.js > server.log 2>&1 &
+node dist_back/falloutmp-server.js > server.log 2>&1 &
 SERVER=$!
 trap 'kill $SERVER 2>/dev/null || true' EXIT
 for _ in $(seq 1 60); do

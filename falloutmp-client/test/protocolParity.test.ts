@@ -12,9 +12,9 @@ import { Fo4MsgType } from "../src/services/messages/msgType";
 
 const repoRoot = path.resolve(__dirname, "..", "..", "..");
 const read = (rel: string) => fs.readFileSync(path.join(repoRoot, rel), "utf8");
-const messagesH = read("skymp5-server/cpp/messages/Fo4Messages.h");
-const msgTypeH = read("skymp5-server/cpp/messages/MsgType.h");
-const fo4Dir = "skymp5-server/cpp/server_guest_lib/fo4/";
+const messagesH = read("falloutmp-server/cpp/messages/Fo4Messages.h");
+const msgTypeH = read("falloutmp-server/cpp/messages/MsgType.h");
+const fo4Dir = "falloutmp-server/cpp/server_guest_lib/fo4/";
 
 interface CppStruct {
   name: string;

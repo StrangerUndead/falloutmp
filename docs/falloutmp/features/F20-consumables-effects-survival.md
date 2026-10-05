@@ -244,20 +244,20 @@ On accept: remove 1 on a copy, commit, then apply the effects:
 - `G-manual`: use chems from the Pip-Boy while another player watches the visual effects; stimpak a downed teammate; survival needs over 1 game day at accelerated timescale.
 
 ## 7. Tasks
-- [ ] **F20-T01** `UseItem` (91) message + handler: atomic consumption, targets, block fix, corrections, nonce — M — Depends: F04, NET-002, NET-007 — Verify: L-unit — Files: skymp5-server/cpp/messages/UseItemMessage.h, skymp5-server/cpp/server_guest_lib/fo4/UseItemService.{h,cpp}, gamemode_events/EatItemEvent.cpp; unit/UseItemTest.cpp
-- [ ] **F20-T02** **Magic-effect pipeline (SRV-020, I10):** list-based `Fo4EffectSystem`, archetype handlers (§4.6 table), conditions, timer wheel on the server clock, persistence/re-arm — L — Depends: SRV-010, SRV-020, ESPM-009, ESPM-011, F25-T01 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/EffectSystem.{h,cpp}, fo4/effects/*.cpp; unit/Fo4EffectSystemTest.cpp
+- [ ] **F20-T01** `UseItem` (91) message + handler: atomic consumption, targets, block fix, corrections, nonce — M — Depends: F04, NET-002, NET-007 — Verify: L-unit — Files: falloutmp-server/cpp/messages/UseItemMessage.h, falloutmp-server/cpp/server_guest_lib/fo4/UseItemService.{h,cpp}, gamemode_events/EatItemEvent.cpp; unit/UseItemTest.cpp
+- [ ] **F20-T02** **Magic-effect pipeline (SRV-020, I10):** list-based `Fo4EffectSystem`, archetype handlers (§4.6 table), conditions, timer wheel on the server clock, persistence/re-arm — L — Depends: SRV-010, SRV-020, ESPM-009, ESPM-011, F25-T01 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/fo4/EffectSystem.{h,cpp}, fo4/effects/*.cpp; unit/Fo4EffectSystemTest.cpp
   - Accept: every archetype row has a test; restart re-arms remaining durations within 100 ms.
-- [ ] **F20-T03** `EffectsUpdate` (92): owner full vs neighbour visual subset, coalescing, snapshot fields — S — Depends: F20-T02, NET-002 — Verify: L-unit — Files: skymp5-server/cpp/messages/EffectsUpdateMessage.h; falloutmp-client/src/services/messages/effectsUpdateMessage.ts
+- [ ] **F20-T03** `EffectsUpdate` (92): owner full vs neighbour visual subset, coalescing, snapshot fields — S — Depends: F20-T02, NET-002 — Verify: L-unit — Files: falloutmp-server/cpp/messages/EffectsUpdateMessage.h; falloutmp-client/src/services/messages/effectsUpdateMessage.ts
 - [ ] **F20-T04** Perk/AV modifiers on effects via SRV-021 (Medic, Chemist, `ChemDurationMod`, addiction entry points) — S — Depends: F20-T02, SRV-021 — Verify: L-unit
-- [ ] **F20-T05** Addiction & withdrawal — M — Depends: F20-T02, F20-T04 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/AddictionService.{h,cpp}
-- [ ] **F20-T06** `RadiationService`: emitters/hazards/water/radstorm, resistance curve, ingestion, client increase-only path with F08 — M — Depends: F20-T02, F08, F25, ESPM-005 — Verify: L-unit, G-self — Files: skymp5-server/cpp/server_guest_lib/fo4/RadiationService.{h,cpp}
+- [ ] **F20-T05** Addiction & withdrawal — M — Depends: F20-T02, F20-T04 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/fo4/AddictionService.{h,cpp}
+- [ ] **F20-T06** `RadiationService`: emitters/hazards/water/radstorm, resistance curve, ingestion, client increase-only path with F08 — M — Depends: F20-T02, F08, F25, ESPM-005 — Verify: L-unit, G-self — Files: falloutmp-server/cpp/server_guest_lib/fo4/RadiationService.{h,cpp}
 - [ ] **F20-T07** Legendary/enchantment constant and equip-ability effects, Cloak auras (with F05/F16/F11) — M — Depends: F20-T02, F05, F16 — Verify: L-unit
 - [ ] **F20-T08** Client capture: ALCH consumption hook (cancel + limb), use-on-other UI, rad-delta reporter — M — Depends: PLAT-081, PLAT-040, F20-T01 — Verify: G-self, L-ts — Files: fallout4-platform/src/platform_fo4/ConsumeHook.cpp, falloutmp-client/src/services/services/useItemService.ts
 - [ ] **F20-T09** Client apply: effects list feed (F28), cosmetic visuals on self and puppets, correction handling — M — Depends: F20-T03, F28 — Verify: G-manual — Files: falloutmp-client/src/sync/effects.ts
 - [ ] **F20-T10** Slow Time policy (`disable`/`convert`) — S — Depends: F20-T02 — Verify: L-unit
-- [ ] **F20-T11** Survival module: needs, stage effects, sleep via bed occupancy, healing slowdown, carry/ammo weight hooks — L — Depends: F20-T02, F25, F07, F04 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/SurvivalService.{h,cpp}
+- [ ] **F20-T11** Survival module: needs, stage effects, sleep via bed occupancy, healing slowdown, carry/ammo weight hooks — L — Depends: F20-T02, F25, F07, F04 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/fo4/SurvivalService.{h,cpp}
 - [ ] **F20-T12** Survival diseases (risk pool) and adrenaline — M — Depends: F20-T11, F12 — Verify: L-unit
-- [ ] **F20-T13** Gamemode/Papyrus surface (§4.9), registration-based events, docs — M — Depends: F20-T02, PVM-007 — Verify: L-int — Files: skymp5-server/ts typings, script_classes/PapyrusActor.cpp
+- [ ] **F20-T13** Gamemode/Papyrus surface (§4.9), registration-based events, docs — M — Depends: F20-T02, PVM-007 — Verify: L-int — Files: falloutmp-server/ts typings, script_classes/PapyrusActor.cpp
 - [ ] **F20-T14** `G-manual` script and sign-off — S — Depends: F20-T09 — Verify: G-manual — Files: docs/falloutmp/test-scripts/F20-consumables.md
 
 ## 8. Open questions & risks

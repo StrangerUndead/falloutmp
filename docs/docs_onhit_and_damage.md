@@ -17,12 +17,12 @@ uint32_t target = 0; // target actor
 ## Damage formula
 
 There is an interface
-[`IDamageFormula`](https://github.com/skyrim-multiplayer/skymp/blob/main/skymp5-server/cpp/server_guest_lib/formulas/IDamageFormula.h),
+[`IDamageFormula`](https://github.com/skyrim-multiplayer/skymp/blob/main/falloutmp-server/cpp/server_guest_lib/formulas/IDamageFormula.h),
 which allows calculating damage based on aggressor and target actors, as well as hit data.
 
 By default, vanilla Skyrim damage formula is used (althrough it's not fully
 implemented yet, see below):
-[`TES5DamageFormula`](https://github.com/skyrim-multiplayer/skymp/blob/main/skymp5-server/cpp/server_guest_lib/formulas/TES5DamageFormula.cpp).
+[`TES5DamageFormula`](https://github.com/skyrim-multiplayer/skymp/blob/main/falloutmp-server/cpp/server_guest_lib/formulas/TES5DamageFormula.cpp).
 But abstract formula will allow custom server implementations to easily redefine
 formula by something else.
 

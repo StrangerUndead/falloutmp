@@ -27,7 +27,7 @@ namespace fmp::items {
 
 using Json = nlohmann::json;
 
-// Condition encoding (skymp5-server/cpp/server_guest_lib/fo4/Condition.h):
+// Condition encoding (falloutmp-server/cpp/server_guest_lib/fo4/Condition.h):
 //   0 = full / not tracked, 1..999 = per-mille of maximum, 0xFFFF = zero.
 constexpr uint16_t kConditionFull = 0;
 constexpr uint16_t kConditionZero = 0xFFFF;
@@ -59,8 +59,8 @@ struct Stack
 {
   Key key;
   uint32_t count = 0;
-  bool equipped = false;                  // worn / wielded (kSlotMask)
-  RE::TESBoundObject* object = nullptr;   // the base form
+  bool equipped = false;                // worn / wielded (kSlotMask)
+  RE::TESBoundObject* object = nullptr; // the base form
 };
 
 // The inventory of a reference with instance data (mods, condition), one
@@ -69,8 +69,7 @@ std::vector<Stack> Read(RE::TESObjectREFR* ref);
 
 // Adds or removes items with their instance data. `silent` suppresses the
 // HUD message and sound. Returns false if nothing could be done.
-bool Add(RE::TESObjectREFR* ref, const Key& key, uint32_t count,
-         bool silent);
+bool Add(RE::TESObjectREFR* ref, const Key& key, uint32_t count, bool silent);
 bool Remove(RE::TESObjectREFR* ref, const Key& key, uint32_t count,
             bool silent);
 

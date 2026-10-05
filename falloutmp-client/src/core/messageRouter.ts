@@ -19,7 +19,7 @@ export class MessageRouter {
   }
 
   // Returns false when no service handles the type, so the caller can
-  // pass the message on to the upstream SkyMP handlers.
+  // pass the message on to the core message handlers.
   dispatch(msg: { t: number }): boolean {
     const list = this.handlers.get(msg.t);
     if (!list || !list.length) {

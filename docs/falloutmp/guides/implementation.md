@@ -9,7 +9,7 @@ Fallout 4 + F4SE ── fallout4-platform plugin (Windows, not written yet)
                          │  implements src/platform/falloutPlatform.ts
 falloutmp-client ── services (TypeScript, engine-free, Node-tested)
                          │  JSON messages 64-120 over the SkyMP client plugin
-skymp5-server ───── PacketParser → ActionListener → PartOne::GetFo4()
+falloutmp-server ───── PacketParser → ActionListener → PartOne::GetFo4()
                          │
                     Fo4PartOneGlue (Fo4Host on WorldState, persistence)
                          │
@@ -85,24 +85,24 @@ Timeouts on the client are driven by its tick: 10 s, then `"Timeout"`. A disconn
 
 ## 7. Adding a gamemode function or event
 
-- **Function:** add a command to the table in `Fo4GamemodeApi.cpp`, a test in `unit/Fo4GamemodeApiTest.cpp`, and the typed wrapper in `skymp5-server/ts/fo4.ts`.
+- **Function:** add a command to the table in `Fo4GamemodeApi.cpp`, a test in `unit/Fo4GamemodeApiTest.cpp`, and the typed wrapper in `falloutmp-server/ts/fo4.ts`.
 - **Event:** call `host.FireGamemodeEvent("onFo4Name", json::array({...}))`. For a blockable event, act only when it returns true. Document it in `guides/gamemode-api.md`.
 
 ## 8. Tests
 
 ```bash
 # C++ (inside build/)
-cmake --build . && ./unit/unit "~[espm]"
+cmake --build . && ./unit/unit
 ./unit/unit "[Fo4Server]"          # one area
 
 # Client
 cd falloutmp-client && npm install && npm test
 
 # Server TypeScript
-cd skymp5-server && npx tsc --noEmit -p .
+cd falloutmp-server && npx tsc --noEmit -p .
 ```
 
-`[espm]` tests need Skyrim data. `[fo4data]` tests would need Fallout 4 data, and none exist yet. Everything else runs on a bare Linux container.
+`[fo4data]` tests would need Fallout 4 data, and none exist yet (the Skyrim-data `[espm]` tests were removed). Everything else runs on a bare Linux container.
 
 ## 9. What the platform plugin must provide
 

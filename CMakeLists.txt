@@ -26,9 +26,7 @@ else()
 endif()
 
 if("$ENV{CI}" STREQUAL "true" AND WIN32)
-  # The same submodule but moved to a larger disk in Windows CI. See action files:
-  # - https://github.com/skyrim-multiplayer/skymp/blob/main/.github/workflows/pr-windows.yml
-  # - https://github.com/skyrim-multiplayer/skymp/blob/main/.github/workflows/pr-windows-ae.yml
+  # The same submodule but moved to a larger disk in Windows CI
   set(CMAKE_TOOLCHAIN_FILE "C:/vcpkg/scripts/buildsystems/vcpkg.cmake")
 else()
   set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
@@ -45,34 +43,15 @@ endif()
 
 if(NOT "${CMAKE_BINARY_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}/build")
   set(msg "CMake binary directory ${CMAKE_BINARY_DIR} must be <repo_root>/build (${CMAKE_SOURCE_DIR}/build)")
-  set(msg "${msg}\nUse commands below after cloning the repo (replace path with your actual Skyrim SE folder):")
+  set(msg "${msg}\nUse commands below after cloning the repo:")
   set(msg "${msg}\n  mkdir build")
   set(msg "${msg}\n  cd build")
-  set(msg "${msg}\nFor users who have Skyrim SE installed:")
-  set(msg "${msg}\n  cmake .. -DSKYRIM_DIR=\"C:/Program Files (x86)/Steam/steamapps/common/Skyrim Special Edition\"")
-  set(msg "${msg}\nFor users who don't have Skyrim SE installed:")
   set(msg "${msg}\n  cmake ..")
   message(FATAL_ERROR "${msg}")
 endif()
 
-# Bool options (Part 1)
-option(SKYRIM_VR "Skyrim VR (1.4) build" OFF)
-option(BUILD_NODEJS "Build NodeJS port if ON, use a pre-built otherwise" OFF)
-
-if(SKYRIM_VR)
-  list(APPEND VCPKG_MANIFEST_FEATURES "skyrim-vr")
-else()
-  list(APPEND VCPKG_MANIFEST_FEATURES "skyrim-flatrim")
-endif()
-
-if(BUILD_NODEJS)
-  list(APPEND VCPKG_MANIFEST_FEATURES "build-nodejs")
-else()
-  list(APPEND VCPKG_MANIFEST_FEATURES "prebuilt-nodejs")
-endif()
-
 cmake_minimum_required(VERSION 3.19)
-project(skymp)
+project(falloutmp)
 enable_testing()
 
 # Check the Visual Studio version
@@ -82,62 +61,26 @@ if(MSVC)
   endif()
 endif()
 
-# Bool options (Part 2)
-option(PREPARE_NEXUS_ARCHIVES "Prepare SP and other archives during build or not" OFF)
-option(BUILD_UNIT_TESTS "Build unit tests (excluded from build when off - workaround for #1182)" ON)
-option(INSTALL_CLIENT_DIST "Install the client into SKYRIM_DIR after build" OFF)
-option(BUILD_GAMEMODE "Build gamemode" OFF)
-option(BUILD_CLIENT "Build client" ON)
-option(BUILD_FRONT "Build front" OFF)
-option(BUILD_SKYRIM_PLATFORM "Build Skyrim Platform" ON)
-option(BUILD_SCRIPTS "Build skymp5-scripts and Papyrus scripts in skyrim-platform" ON)
-option(OFFLINE_MODE "Enable offline mode in generated server settings and client settings" ON)
-option(GENERATE_CLIENT_SETTINGS "Generate skymp5-client-settings.txt into the client dist. Turn OFF to keep the settings installed by skymp5-installer when using INSTALL_CLIENT_DIST" ON)
+# Bool options
+option(BUILD_UNIT_TESTS "Build unit tests" ON)
+option(OFFLINE_MODE "Enable offline mode in generated server settings" ON)
 
-message(STATUS PREPARE_NEXUS_ARCHIVES=${PREPARE_NEXUS_ARCHIVES})
-message(STATUS SKYRIM_VR=${SKYRIM_VR})
 message(STATUS BUILD_UNIT_TESTS=${BUILD_UNIT_TESTS})
-message(STATUS INSTALL_CLIENT_DIST=${INSTALL_CLIENT_DIST})
-message(STATUS BUILD_GAMEMODE=${BUILD_GAMEMODE})
-message(STATUS BUILD_CLIENT=${BUILD_CLIENT})
-message(STATUS BUILD_SCRIPTS=${BUILD_SCRIPTS})
-message(STATUS BUILD_FRONT=${BUILD_FRONT})
-message(STATUS BUILD_SKYRIM_PLATFORM=${BUILD_SKYRIM_PLATFORM})
 message(STATUS OFFLINE_MODE=${OFFLINE_MODE})
-message(STATUS GENERATE_CLIENT_SETTINGS=${GENERATE_CLIENT_SETTINGS})
-message(STATUS BUILD_NODEJS=${BUILD_NODEJS})
-
-if(PREPARE_NEXUS_ARCHIVES AND EMSCRIPTEN)
-  message(FATAL_ERROR "PREPARE_NEXUS_ARCHIVES is not supported on Emscripten")
-endif()
 
 # Path options
-option(UNIT_DATA_DIR "Path to directory with Skyrim.esm and other data files required for testing. CMAKE_SOURCE_DIR would be used to resolve a relative path if passed." OFF)
-option(DOWNLOAD_SKYRIM_DATA "Download Skyrim.esm and other data files required for testing" OFF)
-option(SKYRIM_DIR "Path to Skyrim, would be used for tests if UNIT_DATA_DIR is not specified" OFF)
+option(UNIT_DATA_DIR "Path to a directory with Fallout4.esm, used by the data-dependent tests ([espm], [fo4data]). CMAKE_SOURCE_DIR would be used to resolve a relative path if passed." OFF)
+option(FALLOUT4_DIR "Path to Fallout 4 (the folder with Fallout4.exe). Generated server settings point at its Data folder" OFF)
 option(CPPCOV_PATH "Path to OpenCppCoverage" OFF)
-
-if(DOWNLOAD_SKYRIM_DATA AND NOT UNIT_DATA_DIR)
-  set(UNIT_DATA_DIR "skyrim_data_files")
-endif()
 
 if(UNIT_DATA_DIR AND NOT IS_ABSOLUTE "${UNIT_DATA_DIR}")
   get_filename_component(UNIT_DATA_DIR "${UNIT_DATA_DIR}" ABSOLUTE BASE_DIR ${CMAKE_SOURCE_DIR})
 endif()
 
-if(DOWNLOAD_SKYRIM_DATA)
-  include(${CMAKE_SOURCE_DIR}/cmake/download_skyrim_data.cmake)
-  download_skyrim_data("${UNIT_DATA_DIR}")
-endif()
-
-if(NOT SKYRIM_DIR)
-  message(STATUS "SKYRIM_DIR is not specified. You will have to fill server config with esm paths manually")
-endif()
-string(REPLACE "\\" "/" SKYRIM_DIR "${SKYRIM_DIR}")
-
-if(SKYRIM_DIR)
-  if (NOT EXISTS ${SKYRIM_DIR}/SkyrimSE.exe)
-    message(FATAL_ERROR "Bad SKYRIM_DIR: ${SKYRIM_DIR}")
+string(REPLACE "\\" "/" FALLOUT4_DIR "${FALLOUT4_DIR}")
+if(FALLOUT4_DIR)
+  if (NOT EXISTS ${FALLOUT4_DIR}/Fallout4.exe)
+    message(FATAL_ERROR "Bad FALLOUT4_DIR: ${FALLOUT4_DIR}")
   endif()
 endif()
 
@@ -203,91 +146,4 @@ endforeach()
 foreach(project ${sorted_projects})
   message(STATUS "Adding project: ${project} with priority ${CMAKEPROJ_PRIORITY_${project}}")
   add_subdirectory(${project})
-endforeach()
-
-if(PREPARE_NEXUS_ARCHIVES)
-  add_custom_target(
-    prepare_nexus_archives ALL
-    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SOURCE_DIR}/cmake/prepare_nexus_archives.cmake
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  )
-
-  add_dependencies(prepare_nexus_archives skyrim-platform papyrus-vm)
-  set(TARGETS_ADDITIONAL
-    skymp5-client
-    skymp5-front
-    skymp5-functions-lib
-    skymp5-scripts
-    skymp5-server
-  )
-  foreach(target ${TARGETS_ADDITIONAL})
-    if(TARGET ${target})
-      add_dependencies(prepare_nexus_archives ${target})
-    endif()
-  endforeach()
-endif()
-
-# One or more of these targets help dev_service not to crash during build (watch mode). Not sure which target exactly.
-set(TARGETS_ADDITIONAL
-    skymp5-client
-    skymp5-front
-    skymp5-functions-lib
-    skymp5-scripts
-    skymp5-server
-  )
-foreach(target ${TARGETS_ADDITIONAL})
-  if(TARGET ${target} AND TARGET RestartGame)
-    add_dependencies(RestartGame ${target})
-  endif()
-endforeach()
-
-if(INSTALL_CLIENT_DIST)
-  add_custom_target(
-    install_client_dist ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/dist/client ${SKYRIM_DIR}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  )
-  add_dependencies(install_client_dist skymp5-client skyrim-platform)
-endif()
-
-# Integration tests from misc/tests
-file(GLOB INTEGRATION_TESTS "${CMAKE_SOURCE_DIR}/misc/tests/test_*.js")
-foreach(TEST_SCRIPT ${INTEGRATION_TESTS})
-  get_filename_component(TEST_NAME "${TEST_SCRIPT}" NAME_WE)
-
-  # Check for satellite DB folder (same name as test file without .js)
-  set(TEST_DB_DIR "${CMAKE_SOURCE_DIR}/misc/tests/${TEST_NAME}")
-  if(NOT IS_DIRECTORY "${TEST_DB_DIR}")
-    unset(TEST_DB_DIR)
-  endif()
-
-  # Check for test-specific server settings patch (same name as test file with .settings.json)
-  set(TEST_SETTINGS_JSON "${CMAKE_SOURCE_DIR}/misc/tests/${TEST_NAME}.settings.json")
-  if(NOT EXISTS "${TEST_SETTINGS_JSON}")
-    unset(TEST_SETTINGS_JSON)
-  endif()
-
-  set(ADD_TEST_ARGS
-    -DTEST_SCRIPT=${TEST_SCRIPT}
-    -DSERVER_DIR=${CMAKE_BINARY_DIR}/dist/server
-    -DSERVER_SETTINGS_BASE_JSON=${CMAKE_BINARY_DIR}/server-settings-base.json
-  )
-  if(TEST_DB_DIR)
-    list(APPEND ADD_TEST_ARGS -DTEST_DB_DIR=${TEST_DB_DIR})
-  endif()
-  if(TEST_SETTINGS_JSON)
-    list(APPEND ADD_TEST_ARGS -DTEST_SETTINGS_JSON=${TEST_SETTINGS_JSON})
-  endif()
-
-  add_test(
-    NAME integration_${TEST_NAME}
-    COMMAND ${CMAKE_COMMAND} ${ADD_TEST_ARGS}
-      -P ${CMAKE_SOURCE_DIR}/cmake/run_integration_test.cmake
-  )
-
-  set_tests_properties(integration_${TEST_NAME} PROPERTIES
-    TIMEOUT 120
-    RESOURCE_LOCK server_directory
-    FIXTURES_REQUIRED unit_passed
-  )
 endforeach()

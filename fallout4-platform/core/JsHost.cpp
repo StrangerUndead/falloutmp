@@ -170,10 +170,9 @@ void JsHost::Emit(const std::string& kind, const std::string& payloadJson)
   JSValue global = JS_GetGlobalObject(ctx);
   JSValue fn = JS_GetPropertyStr(ctx, global, "__fmpOnEvent");
   if (JS_IsFunction(ctx, fn)) {
-    JSValue args[2] = {
-      JS_NewStringLen(ctx, kind.data(), kind.size()),
-      JS_NewStringLen(ctx, payloadJson.data(), payloadJson.size())
-    };
+    JSValue args[2] = { JS_NewStringLen(ctx, kind.data(), kind.size()),
+                        JS_NewStringLen(ctx, payloadJson.data(),
+                                        payloadJson.size()) };
     JSValue res = JS_Call(ctx, fn, global, 2, args);
     if (JS_IsException(res)) {
       LogException();

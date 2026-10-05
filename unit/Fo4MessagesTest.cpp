@@ -65,8 +65,8 @@ TEST_CASE("Fallout 4 messages round trip in binary and JSON",
     for (auto r : { RoundTripBinary(m), RoundTripJson(m) }) {
       REQUIRE(r.refId == 7);
       REQUIRE(r.entries.size() == 2);
-      REQUIRE(r.entries[0].item.mods == std::vector<uint32_t>{ 0x7002,
-                                                               0x7003 });
+      REQUIRE(r.entries[0].item.mods ==
+              std::vector<uint32_t>{ 0x7002, 0x7003 });
       REQUIRE(r.entries[0].item.ammoLoaded == 9);
       REQUIRE(r.entries[1].count == 250);
     }
@@ -141,8 +141,8 @@ TEST_CASE("Fallout 4 messages round trip in binary and JSON",
     m.chunk = 2;
     m.chunkCount = 5;
     for (uint32_t i = 0; i < 96; ++i) {
-      m.added.push_back({ 0xFF100000 + i, 0x1001, { 1, 2, 3 }, { 0, 0, 0 },
-                          1.f, 0 });
+      m.added.push_back(
+        { 0xFF100000 + i, 0x1001, { 1, 2, 3 }, { 0, 0, 0 }, 1.f, 0 });
     }
     m.removed = { 5, 6 };
     m.wires = { { 0xAA, 1, 2, 0 } };

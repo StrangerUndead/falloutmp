@@ -138,11 +138,11 @@ Store ≈ 40 AVs × 16 B per actor. Report ≤ 2 Hz × ≤ 40 B. Server handling
 - `G-manual`: two players; one takes fall damage and cripples a leg, the other sees the limp and health bar; reconnect keeps values.
 
 ## 7. Tasks
-- [ ] **F08-T01** `Fo4ActorValueStore` (base/perm/temp/damage, AVIF flag clamping, EDID-resolved catalogue via REF-005) behind the FO4 GameProfile — L — Depends: SRV-010, REF-005, ESPM-016 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/Fo4ActorValueStore.{h,cpp}, game_profile/fallout4/*; unit/Fo4ActorValuesTest.cpp
+- [ ] **F08-T01** `Fo4ActorValueStore` (base/perm/temp/damage, AVIF flag clamping, EDID-resolved catalogue via REF-005) behind the FO4 GameProfile — L — Depends: SRV-010, REF-005, ESPM-016 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/fo4/Fo4ActorValueStore.{h,cpp}, game_profile/fallout4/*; unit/Fo4ActorValuesTest.cpp
   - Accept: get/set/mod/damage/restore semantics match §2; all clamping cases tested.
 - [ ] **F08-T02** Derived values: max HP, max AP, carry weight, RadHealthMax, effective resistances (AV + armor from F05/SRV-022), recompute on SPECIAL/level/perk/effect/equipment change — M — Depends: F08-T01, SRV-022 — Verify: L-unit
   - Accept: formula tables in §6 pass; GMSTs read by EDID, not hard-coded.
-- [ ] **F08-T03** `ChangeValuesAv` message (C++ struct + TS mirror), `kind`/`mode` enums, owner and public subset encoders (SRV-011) — S — Depends: NET-002, SRV-011 — Verify: L-unit — Files: skymp5-server/cpp/messages/ChangeValuesAvMessage.h, Messages.h; falloutmp-client/src/services/messages/changeValuesAvMessage.ts
+- [ ] **F08-T03** `ChangeValuesAv` message (C++ struct + TS mirror), `kind`/`mode` enums, owner and public subset encoders (SRV-011) — S — Depends: NET-002, SRV-011 — Verify: L-unit — Files: falloutmp-server/cpp/messages/ChangeValuesAvMessage.h, Messages.h; falloutmp-client/src/services/messages/changeValuesAvMessage.ts
   - Accept: binary + JSON round trip; typical delta ≤ 32 B.
 - [ ] **F08-T04** `CreateActorFo4` AV map (owner vs public) and deferred channel 3 (merge-by-AV) — S — Depends: F08-T03, NET-003 — Verify: L-unit
   - Accept: late-joiner tests for both audiences.
@@ -163,7 +163,7 @@ Store ≈ 40 AVs × 16 B per actor. Report ≤ 2 Hz × ≤ 40 B. Server handling
 - [ ] **F08-T12** Server-stamped health % in the F01 relay; public subset to neighbours — S — Depends: F08-T04, F01-T05 — Verify: L-unit
   - Accept: a faked `healthPercentage` from the owner never reaches neighbours.
 - [ ] **F08-T13** Gamemode `actorValues` property, `onActorValueChange`/`onCripple`/`onOverEncumbered`, Papyrus AV natives and `OnCripple`, docs (DOCS-003) — M — Depends: F08-T05, PVM-013 — Verify: L-unit, L-int
-- [ ] **F08-T15** Hosted-NPC AV policy (C1): cause-bounded host decreases/increases for NPC idx, per-second caps, hard clamp at 1 HP / 999 rads, corrections; metrics `av_npc_host_reject_total` — M — Depends: F08-T08, F01-T05, F20-T06 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/ActorValuePolicy.{h,cpp}, unit/ActorValuePolicyTest.cpp
+- [ ] **F08-T15** Hosted-NPC AV policy (C1): cause-bounded host decreases/increases for NPC idx, per-second caps, hard clamp at 1 HP / 999 rads, corrections; metrics `av_npc_host_reject_total` — M — Depends: F08-T08, F01-T05, F20-T06 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/ActorValuePolicy.{h,cpp}, unit/ActorValuePolicyTest.cpp
   - Accept: tests "host reports Health 0 for hosted NPC → clamped to 1 + ChangeValuesAv correction", "host reports Rads 1000 → clamped 999", "fall with velZ history → decrease accepted up to cap", "no cause → rejected".
 - [ ] **F08-T14** `G-self` AV parity check and `G-manual` script — S — Depends: F08-T10 — Verify: G-self, G-manual — Files: docs/falloutmp/test-scripts/F08-actor-values.md
 

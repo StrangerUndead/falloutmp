@@ -226,9 +226,8 @@ bool ConsumeAllowance(uint32_t shooterId, double now)
     return false;
   }
   auto& list = it->second;
-  std::erase_if(list, [now](const Allowance& a) {
-    return a.until < now || a.count <= 0;
-  });
+  std::erase_if(
+    list, [now](const Allowance& a) { return a.until < now || a.count <= 0; });
   if (list.empty()) {
     g_allowances.erase(it);
     return false;
@@ -569,8 +568,7 @@ void OnHit(const RE::TESHitEvent& e)
   if (!weap) {
     return; // spells, hazards, enchantment hits
   }
-  const bool melee =
-    !weap->IsGunWeapon() ||
+  const bool melee = !weap->IsGunWeapon() ||
     (e.usesHitData &&
      flags.any(Flag::kMeleeAttack, Flag::kBash, Flag::kTimedBash));
   uint32_t index = 0;
@@ -578,12 +576,13 @@ void OnHit(const RE::TESHitEvent& e)
     index = std::min<uint32_t>(g_hitsSinceShot.fetch_add(1), 255u);
   }
   // [verify] damageLimb names the BPTD part hit on the human skeleton
-  int limb = e.usesHitData ? ToProtocolLimb(e.hitData.damageLimb.get())
-                           : kLimbTorso;
-  Platform::Get().Emit("projectileHit", Json{ { "localShotId", 0 },
-                                              { "projectileIndex", index },
-                                              { "target", targetId },
-                                              { "limb", limb } });
+  int limb =
+    e.usesHitData ? ToProtocolLimb(e.hitData.damageLimb.get()) : kLimbTorso;
+  Platform::Get().Emit("projectileHit",
+                       Json{ { "localShotId", 0 },
+                             { "projectileIndex", index },
+                             { "target", targetId },
+                             { "limb", limb } });
 }
 
 class HitSink final : public RE::BSTEventSink<RE::TESHitEvent>
@@ -710,7 +709,8 @@ void PlayHitReaction(uint32_t targetId, int limb, float total, bool critical)
   {
     std::lock_guard lock(g_reactMutex);
     auto hit = g_react.engineHitAt.find(targetId);
-    if (hit != g_react.engineHitAt.end() && now - hit->second < kEngineHitSec) {
+    if (hit != g_react.engineHitAt.end() &&
+        now - hit->second < kEngineHitSec) {
       return; // the engine showed this hit already
     }
     setId = g_react.impactSetId;
@@ -736,8 +736,8 @@ void PlayHitReaction(uint32_t targetId, int limb, float total, bool critical)
   // [verify] the pick ray from the limb node finds flesh (blood) or the
   // surface behind the puppet (exit splatter)
   papyrus::CallMethod(target, "ObjectReference", "PlayImpactEffect", nullptr,
-                      set, std::string(LimbNode(limb)), pick.x, pick.y,
-                      pick.z, 512.f, false, false);
+                      set, std::string(LimbNode(limb)), pick.x, pick.y, pick.z,
+                      512.f, false, false);
 }
 
 // --- Every frame ---

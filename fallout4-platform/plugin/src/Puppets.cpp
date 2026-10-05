@@ -169,8 +169,7 @@ void InstallHooks()
   installed = true;
   REL::Relocation<std::uintptr_t> vtbl{ RE::VTABLE::Actor[0] };
   ActorUpdate::original = vtbl.write_vfunc(0xCF, ActorUpdate::Thunk);
-  ActorUpdateNoAI::original =
-    vtbl.write_vfunc(0xD0, ActorUpdateNoAI::Thunk);
+  ActorUpdateNoAI::original = vtbl.write_vfunc(0xD0, ActorUpdateNoAI::Thunk);
   ActorCheckValidTarget::original =
     vtbl.write_vfunc(0xF4, ActorCheckValidTarget::Thunk);
   ActorKillImpl::original = vtbl.write_vfunc(0x117, ActorKillImpl::Thunk);

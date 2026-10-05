@@ -29,8 +29,7 @@ public:
     std::function<void(const std::string& json, bool reliable)> send;
     std::function<void(const std::string& host, int port)> connect;
     std::function<void()> disconnect;
-    std::function<void(const std::string& level, const std::string& text)>
-      log;
+    std::function<void(const std::string& level, const std::string& text)> log;
   };
 
   explicit JsHost(Callbacks callbacks);

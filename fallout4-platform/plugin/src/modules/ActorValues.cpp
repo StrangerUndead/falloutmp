@@ -2,7 +2,7 @@
 // setHealthFraction, killActor (falloutPlatform.ts ActorValueNatives).
 //
 // Actor values are server-owned. The ids are ActorValueInfo form ids
-// (codes.ts Av, skymp5-server fo4/ActorValues.h: Health 0x2D4 ...), written
+// (codes.ts Av, falloutmp-server fo4/ActorValues.h: Health 0x2D4 ...), written
 // through the actor's ActorValueOwner like Papyrus SetValue / DamageValue /
 // RestoreValue: current = base + permanent + temporary + damage.
 //
@@ -27,9 +27,9 @@
 #include <F4SE/F4SE.h>
 #include <RE/Fallout.h>
 
+#include "CombatGuard.h"
 #include "GameUtil.h"
 #include "Modules.h"
-#include "CombatGuard.h"
 #include "Papyrus.h"
 #include "Platform.h"
 #include "Puppets.h"
@@ -362,8 +362,7 @@ void Kill(Platform& p, uint32_t actorId, uint32_t killerId)
 void OnFrame()
 {
   // Forget puppets that are gone, then rebuild the clamp set
-  std::erase_if(g_killed,
-                [](uint32_t id) { return !puppets::IsPuppet(id); });
+  std::erase_if(g_killed, [](uint32_t id) { return !puppets::IsPuppet(id); });
   {
     std::lock_guard lock(g_guardMutex);
     g_guarded.clear();
@@ -419,8 +418,8 @@ void InstallActorValues(Platform& p)
     return nullptr;
   });
   p.RegisterNative("killActor", [&p](const Json& a) -> Json {
-    uint32_t killer = a.size() > 1 && a[1].is_number() ? a[1].get<uint32_t>()
-                                                       : 0;
+    uint32_t killer =
+      a.size() > 1 && a[1].is_number() ? a[1].get<uint32_t>() : 0;
     Kill(p, a.at(0).get<uint32_t>(), killer);
     return nullptr;
   });

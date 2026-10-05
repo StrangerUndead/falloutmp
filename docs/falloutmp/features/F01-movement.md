@@ -128,7 +128,7 @@ Hosts send `UpdateMovementFo4` for hosted NPCs, with the same validation. Hostin
 - `G-manual`: two players walk, run, sprint, sneak, jump, swim and enter PA. Each scenario is checked in 1st and 3rd person on both sides; no rubber-banding at RTT 100 ms.
 
 ## 7. Tasks
-- [ ] **F01-T01** Define `UpdateMovementFo4` (C++ struct + TS interface), register for FO4 — S — Depends: NET-002 — Verify: L-unit — Files: skymp5-server/cpp/messages/UpdateMovementFo4Message.h, Messages.h; falloutmp-client/src/services/messages/
+- [ ] **F01-T01** Define `UpdateMovementFo4` (C++ struct + TS interface), register for FO4 — S — Depends: NET-002 — Verify: L-unit — Files: falloutmp-server/cpp/messages/UpdateMovementFo4Message.h, Messages.h; falloutmp-client/src/services/messages/
   - Accept: binary and JSON round trip, ≤ 64 B binary.
 - [ ] **F01-T02** Platform natives `getMovementState`, `getAimState`, `setActorTransform` — M — Depends: PLAT-030 — Verify: W-ci, G-self — Files: fallout4-platform/.../MovementApi.cpp
   - Accept: the self-test reads velocity while walking and teleports an NPC smoothly without physics jitter.

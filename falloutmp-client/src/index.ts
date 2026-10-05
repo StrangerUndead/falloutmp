@@ -28,7 +28,7 @@ export * from "./services/services/progressionService";
 export * from "./services/services/requestResultService";
 export * from "./services/services/workshopService";
 export * from "./services/services/worldTimeWeatherService";
-export * from "./integration/skympClientBridge";
+export * from "./integration/clientBridge";
 export * from "./runtime/worldSession";
 export * from "./runtime/nativePlatform";
 export * from "./runtime/upstreamMessages";

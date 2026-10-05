@@ -50,8 +50,9 @@ TEST_CASE("Fo4Inventory stacks by identity and merges ammo to min",
   REQUIRE(inv.CountBase(k10mm) == 4);
 
   // Mod order does not matter for identity
-  REQUIRE(ItemKey{ k10mm }.WithMods({ kModScope, kModMount }).SameStack(
-    ItemKey{ k10mm }.WithMods({ kModMount, kModScope })));
+  REQUIRE(ItemKey{ k10mm }
+            .WithMods({ kModScope, kModMount })
+            .SameStack(ItemKey{ k10mm }.WithMods({ kModMount, kModScope })));
   REQUIRE(ItemKey{ k10mm }.WithMods({ kModScope }).InstanceHash() !=
           ItemKey{ k10mm }.InstanceHash());
 
@@ -69,8 +70,7 @@ TEST_CASE("Fo4Inventory stacks by identity and merges ammo to min",
   REQUIRE(inv.CountBase(k10mm) == 1);
 }
 
-TEST_CASE("Fo4Inventory JSON round trip tolerates a bad entry",
-          "[fo4][F04]")
+TEST_CASE("Fo4Inventory JSON round trip tolerates a bad entry", "[fo4][F04]")
 {
   Fo4Inventory inv;
   ItemKey k = ItemKey{ k10mm }.WithMods({ kModMagLarge, kModMount });
@@ -104,7 +104,8 @@ TEST_CASE("OmodStatResolver applies SET, MUL+ADD and ADD", "[fo4][F16]")
   REQUIRE(modded.value == Catch::Approx(73.f));
   REQUIRE(modded.hasScope);
 
-  auto caliber = r.ResolveWeapon(ItemKey{ k10mm }.WithMods({ kModReceiver45 }));
+  auto caliber =
+    r.ResolveWeapon(ItemKey{ k10mm }.WithMods({ kModReceiver45 }));
   REQUIRE(caliber.ammoId == kAmmo45);
 
   auto slots = r.GetAttachSlots(ItemKey{ k10mm }.WithMods({ kModMount }));
@@ -117,8 +118,7 @@ TEST_CASE("OmodStatResolver applies SET, MUL+ADD and ADD", "[fo4][F16]")
   REQUIRE(armor.health == 450.f);
 }
 
-TEST_CASE("CollectMods follows includes once and ignores cycles",
-          "[fo4][F16]")
+TEST_CASE("CollectMods follows includes once and ignores cycles", "[fo4][F16]")
 {
   World w;
   ObjectModData a;
@@ -220,10 +220,11 @@ TEST_CASE("CraftingService validates bench, perks and components "
   Fo4Inventory mats;
   mats.AddSimple(kSteelScrap, 4);
   mats.AddSimple(kScrewScrap, 2);
-  REQUIRE(cs.Craft(mats, kRecipeHardened, 1, Bench(kWorkbenchWeapons, 0))
-            .error == CraftError::MissingPerk);
-  auto modCraft = cs.Craft(mats, kRecipeHardened, 1,
-                           Bench(kWorkbenchWeapons, 1));
+  REQUIRE(
+    cs.Craft(mats, kRecipeHardened, 1, Bench(kWorkbenchWeapons, 0)).error ==
+    CraftError::MissingPerk);
+  auto modCraft =
+    cs.Craft(mats, kRecipeHardened, 1, Bench(kWorkbenchWeapons, 1));
   REQUIRE(modCraft.Ok());
   REQUIRE(mats.CountBase(kLooseHardened) == 1);
   REQUIRE(mats.CountBase(kSteelScrap) == 0);
@@ -255,8 +256,8 @@ TEST_CASE("ScrapService scraps junk and modded weapons", "[fo4][F15]")
   auto preview = ss.PreviewEquipmentYield(gun, ctx);
   // base recipe 8 steel * 0.5 scalar * 0.5 yield = 2; hardened 4*0.5=2,
   // screws 2*0.5=1
-  REQUIRE(preview == std::vector<ComponentCount>{ { kSteel, 4 },
-                                                  { kScrew, 1 } });
+  REQUIRE(preview ==
+          std::vector<ComponentCount>{ { kSteel, 4 }, { kScrew, 1 } });
   uint32_t steelBefore = inv.CountBase(kSteelScrap);
   auto sr = ss.ScrapEquipment(inv, gun, ctx);
   REQUIRE(sr.Ok());
@@ -340,9 +341,9 @@ TEST_CASE("ModdingService refuses without perk or components and leaves "
                         Bench(kWorkbenchWeapons, 1));
   REQUIRE(r.error == CraftError::MissingComponents);
   REQUIRE(inv == before);
-  REQUIRE(ms.AttachMod(inv, ItemKey{ k10mm }, kModMagLarge,
-                       Bench(kWorkbenchChem, 1))
-            .error == CraftError::WrongWorkbench);
+  REQUIRE(
+    ms.AttachMod(inv, ItemKey{ k10mm }, kModMagLarge, Bench(kWorkbenchChem, 1))
+      .error == CraftError::WrongWorkbench);
   REQUIRE(ms.AttachMod(inv, ItemKey{ kWrench }, kModMagLarge,
                        Bench(kWorkbenchWeapons, 1))
             .error == CraftError::NotModifiable);

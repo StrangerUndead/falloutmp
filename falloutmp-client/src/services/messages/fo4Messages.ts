@@ -1,4 +1,4 @@
-// TypeScript mirror of skymp5-server/cpp/messages/Fo4Messages.h.
+// TypeScript mirror of falloutmp-server/cpp/messages/Fo4Messages.h.
 //
 // The server's JSON reader rejects a message with a missing field, so
 // requests must always be built with buildMessage(), which starts from the

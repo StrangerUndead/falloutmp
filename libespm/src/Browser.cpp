@@ -28,9 +28,8 @@ namespace {
 // Record types indexed for the Fallout 4 data source (types that are small
 // in number and looked up by scanning). Skyrim plugins have none or few of
 // these, so the cost is negligible there.
-constexpr const char* kExtraIndexedTypes[] = { "CMPO", "OMOD", "FURN",
-                                               "PERK", "INNR", "DMGT",
-                                               "AVIF" };
+constexpr const char* kExtraIndexedTypes[] = { "CMPO", "OMOD", "FURN", "PERK",
+                                               "INNR", "DMGT", "AVIF" };
 
 uint32_t TypeKey(const char* t)
 {

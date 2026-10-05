@@ -3,42 +3,23 @@
 #include "TestUtils.hpp"
 #include "WorldState.h"
 #include "game_profile/Fallout4GameProfile.h"
-#include "game_profile/SkyrimGameProfile.h"
 #include <catch2/catch_all.hpp>
 #include <string>
 #include <vector>
 
 TEST_CASE("ParseGameId accepts setting values", "[GameProfile]")
 {
-  REQUIRE(ParseGameId("skyrim") == GameId::Skyrim);
+  REQUIRE(ParseGameId("skyrim") == std::nullopt); // Fallout 4 only
   REQUIRE(ParseGameId("fallout4") == GameId::Fallout4);
   REQUIRE(ParseGameId("fo4") == GameId::Fallout4);
   REQUIRE(ParseGameId("oblivion") == std::nullopt);
   REQUIRE(ParseGameId("") == std::nullopt);
 }
 
-TEST_CASE("Protocol prefixes differ per game", "[GameProfile]")
+TEST_CASE("The protocol prefix is the Fallout 4 one", "[GameProfile]")
 {
-  REQUIRE(GetProtocolPrefix(GameId::Skyrim) == "7_");
   REQUIRE(GetProtocolPrefix(GameId::Fallout4) == "fo4-1_");
-  REQUIRE(GetProtocolPrefix(GameId::Skyrim) !=
-          GetProtocolPrefix(GameId::Fallout4));
-  // The Skyrim prefix must remain the upstream one (byte-identical protocol)
-  REQUIRE(std::string(kMessagingProtocolVersion) == "7_");
-}
-
-TEST_CASE("Skyrim profile keeps the upstream constants", "[GameProfile]")
-{
-  SkyrimGameProfile p;
-  REQUIRE(p.GetGameId() == GameId::Skyrim);
-  REQUIRE(p.GetDefaultLoadOrder().front() == "Skyrim.esm");
-  REQUIRE(p.GetDefaultLoadOrder().size() == 5);
-  REQUIRE(p.GetArchiveExtension() == ".bsa");
-  REQUIRE(p.GetPlayerBaseFormId() == 0x7);
-  REQUIRE(p.GetDefaultWorldspace() == 0x3c);
-  REQUIRE(p.GetBannedCharacterRaceIds().size() == 26);
-  REQUIRE(p.IsItemRecordType("INGR"));
-  REQUIRE_FALSE(p.IsItemRecordType("NOTE"));
+  REQUIRE(std::string(kMessagingProtocolVersion) == "fo4-1_");
 }
 
 TEST_CASE("Fallout 4 profile has Fallout 4 values", "[GameProfile]")
@@ -55,19 +36,17 @@ TEST_CASE("Fallout 4 profile has Fallout 4 values", "[GameProfile]")
   REQUIRE(p.IsItemRecordType("WEAP"));
   REQUIRE_FALSE(p.IsItemRecordType("SCRL"));
   REQUIRE(p.GetSyncedReferenceBaseTypes().count("TERM") == 1);
-  REQUIRE(p.GetActivationReach() < SkyrimGameProfile().GetActivationReach());
+  REQUIRE(p.GetActivationReach() == 300.f);
 }
 
-TEST_CASE("WorldState defaults to Skyrim and can switch profile",
-          "[GameProfile]")
+TEST_CASE("WorldState defaults to Fallout 4", "[GameProfile]")
 {
   WorldState ws;
-  REQUIRE(ws.GetGameProfile().GetGameId() == GameId::Skyrim);
-  REQUIRE(ws.bannedEspmCharacterRaceIds.size() == 26);
+  REQUIRE(ws.GetGameProfile().GetGameId() == GameId::Fallout4);
+  REQUIRE(ws.bannedEspmCharacterRaceIds.empty());
 
   ws.SetGameProfile(CreateGameProfile(GameId::Fallout4));
   REQUIRE(ws.GetGameProfile().GetGameId() == GameId::Fallout4);
-  REQUIRE(ws.bannedEspmCharacterRaceIds.empty());
 
   REQUIRE_THROWS(ws.SetGameProfile(nullptr));
 }

@@ -21,8 +21,9 @@ Bytes BuildPlugin()
   b.AddRecord("AVIF", 0x200).EditorId("Food");
   b.AddRecord("AVIF", 0x201).EditorId("PowerRequired");
 
-  b.AddRecord("GLOB", 0x300).EditorId("ModScrapScalar_Common").AddValue(
-    "FLTV", 0.75f);
+  b.AddRecord("GLOB", 0x300)
+    .EditorId("ModScrapScalar_Common")
+    .AddValue("FLTV", 0.75f);
   b.AddRecord("MISC", 0x401).EditorId("c_Steel_scrap");
   b.AddRecord("CMPO", 0x400)
     .EditorId("c_Steel")
@@ -32,16 +33,33 @@ Bytes BuildPlugin()
     FieldWriter data, cvpa;
     data.Add<int32_t>(10).Add(2.f);
     cvpa.Add<uint32_t>(0x400).Add<uint32_t>(3);
-    b.AddRecord("MISC", 0x410).EditorId("Wrench").Add("DATA", data).Add(
-      "CVPA", cvpa);
+    b.AddRecord("MISC", 0x410)
+      .EditorId("Wrench")
+      .Add("DATA", data)
+      .Add("CVPA", cvpa);
   }
   b.AddRecord("AMMO", 0x500).EditorId("Ammo10mm");
   {
     FieldWriter dnam;
-    dnam.Add<uint32_t>(0x500).Add(1.f).Add(1.f).Add(1.f).Add(0.f).Add(500.f)
-      .Add(0.f).Add(0.f).Add(0.5f).Add<uint32_t>(0).Add<uint32_t>(0)
-      .Add<uint32_t>(0).Add<uint32_t>(0).Add<uint16_t>(12).Add<uint8_t>(9)
-      .Add(0.f).Add(4.f).Add<uint32_t>(50).Add<uint16_t>(18);
+    dnam.Add<uint32_t>(0x500)
+      .Add(1.f)
+      .Add(1.f)
+      .Add(1.f)
+      .Add(0.f)
+      .Add(500.f)
+      .Add(0.f)
+      .Add(0.f)
+      .Add(0.5f)
+      .Add<uint32_t>(0)
+      .Add<uint32_t>(0)
+      .Add<uint32_t>(0)
+      .Add<uint32_t>(0)
+      .Add<uint16_t>(12)
+      .Add<uint8_t>(9)
+      .Add(0.f)
+      .Add(4.f)
+      .Add<uint32_t>(50)
+      .Add<uint16_t>(18);
     b.AddRecord("WEAP", 0x600)
       .EditorId("Pistol10mm")
       .Add("DNAM", dnam)
@@ -49,10 +67,23 @@ Bytes BuildPlugin()
   }
   {
     FieldWriter data;
-    data.Add<uint32_t>(0).Add<uint32_t>(1).Zeros(2).Add<uint32_t>(0x50414557)
-      .Zeros(2).Add<uint32_t>(0x101).Add<uint32_t>(0).Add<uint32_t>(0)
-      .Add<uint8_t>(0).Zeros(3).Add<uint8_t>(2).Zeros(3).Add<uint16_t>(12)
-      .Zeros(2).Add<uint32_t>(6).Add<uint32_t>(0).Add(0.f);
+    data.Add<uint32_t>(0)
+      .Add<uint32_t>(1)
+      .Zeros(2)
+      .Add<uint32_t>(0x50414557)
+      .Zeros(2)
+      .Add<uint32_t>(0x101)
+      .Add<uint32_t>(0)
+      .Add<uint32_t>(0)
+      .Add<uint8_t>(0)
+      .Zeros(3)
+      .Add<uint8_t>(2)
+      .Zeros(3)
+      .Add<uint16_t>(12)
+      .Zeros(2)
+      .Add<uint32_t>(6)
+      .Add<uint32_t>(0)
+      .Add(0.f);
     b.AddRecord("OMOD", 0x700).EditorId("mod_Mag_Large").Add("DATA", data);
   }
   b.AddRecord("PERK", 0x800).EditorId("GunNut01");
@@ -61,9 +92,16 @@ Bytes BuildPlugin()
     fvpa.Add<uint32_t>(0x400).Add<uint32_t>(2);
     // CTDA: op/flags, unknown[3], comparison 1.0, func 448, pad, perk id,
     // second param, run-on, reference, unknown
-    ctda.Add<uint8_t>(0).Zeros(3).Add(1.f).Add<uint16_t>(448).Zeros(2)
-      .Add<uint32_t>(0x800).Add<uint32_t>(0).Add<uint32_t>(0)
-      .Add<int32_t>(0).Add<int32_t>(-1);
+    ctda.Add<uint8_t>(0)
+      .Zeros(3)
+      .Add(1.f)
+      .Add<uint16_t>(448)
+      .Zeros(2)
+      .Add<uint32_t>(0x800)
+      .Add<uint32_t>(0)
+      .Add<uint32_t>(0)
+      .Add<int32_t>(0)
+      .Add<int32_t>(-1);
     b.AddRecord("COBJ", 0x900)
       .EditorId("co_mod_Mag_Large")
       .Add("FVPA", fvpa)
@@ -84,7 +122,9 @@ Bytes BuildPlugin()
       .Keywords({ 0x102 })
       .Add("DATA", data);
   }
-  b.AddRecord("FURN", 0xC00).EditorId("WeaponsBench").Keywords({ 0x100 })
+  b.AddRecord("FURN", 0xC00)
+    .EditorId("WeaponsBench")
+    .Keywords({ 0x100 })
     .AddValue<uint16_t>("WBDT", 2);
   return b.Build();
 }

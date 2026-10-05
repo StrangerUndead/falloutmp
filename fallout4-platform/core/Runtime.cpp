@@ -25,8 +25,9 @@ Runtime::Runtime(Game& game_, Options options_)
       auto bytes = codec.Encode(json);
       net->Send(bytes.data(), bytes.size(), reliable);
     } catch (std::exception& e) {
-      game.Log("error", std::string("Unable to send message: ") + e.what() +
-                 " " + json.substr(0, 200));
+      game.Log("error",
+               std::string("Unable to send message: ") + e.what() + " " +
+                 json.substr(0, 200));
     }
   };
   cb.connect = [this](const std::string& host, int port) {
@@ -58,10 +59,9 @@ void Runtime::Connect(const std::string& host, int port)
   }
   net.reset();
   pendingDisconnect = false;
-  net = std::make_unique<NetClient>(host, static_cast<uint16_t>(port),
-                                    options.protocolPrefix +
-                                      options.serverPassword,
-                                    options.timeoutMs);
+  net = std::make_unique<NetClient>(
+    host, static_cast<uint16_t>(port),
+    options.protocolPrefix + options.serverPassword, options.timeoutMs);
   game.Log("info", "Connecting to " + host + ":" + std::to_string(port));
 }
 
@@ -84,7 +84,8 @@ void Runtime::Tick(double nowMs)
                    std::string("Unable to decode a message: ") + e.what());
         }
       } else {
-        events.push_back({ type, nlohmann::json{ { "error", error } }.dump() });
+        events.push_back(
+          { type, nlohmann::json{ { "error", error } }.dump() });
       }
     });
     for (auto& e : events) {

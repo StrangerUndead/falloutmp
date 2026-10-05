@@ -15,8 +15,8 @@ void TickNow()
 {
   auto& p = Platform::Get();
   double now = p.NowMs();
-  float dt = g_lastTickMs > 0 ? static_cast<float>(now - g_lastTickMs) / 1000.f
-                              : 0.f;
+  float dt =
+    g_lastTickMs > 0 ? static_cast<float>(now - g_lastTickMs) / 1000.f : 0.f;
   g_lastTickMs = now;
   // Natives spawn and move references: not while the world is loading
   // [verify] the permanent task also runs during loading screens

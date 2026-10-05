@@ -132,9 +132,9 @@ Hosts send `WeaponFire`/`WeaponReload`/`HitReport` for hosted NPCs with the same
 - `G-manual`: two players with pistol, combat rifle (auto), combat shotgun, Gauss, laser musket, minigun; each sees the other's fire/reload; hits register at 100 ms RTT.
 
 ## 7. Tasks
-- [ ] **F09-T01** Messages `WeaponFire`, `WeaponReload`, `HitReport` (C++ + TS), quantization helpers — M — Depends: NET-002 — Verify: L-unit — Files: skymp5-server/cpp/messages/{WeaponFireMessage,WeaponReloadMessage,HitReportMessage}.h, Messages.h; falloutmp-client/src/services/messages/
+- [ ] **F09-T01** Messages `WeaponFire`, `WeaponReload`, `HitReport` (C++ + TS), quantization helpers — M — Depends: NET-002 — Verify: L-unit — Files: falloutmp-server/cpp/messages/{WeaponFireMessage,WeaponReloadMessage,HitReportMessage}.h, Messages.h; falloutmp-client/src/services/messages/
   - Accept: round trips; a 3-shot batch ≤ 64 B.
-- [ ] **F09-T02** Weapon instance stats for guns from SRV-022 (capacity, ammo, projectiles, automatic, min interval, reload time, ranges, power) — M — Depends: SRV-022 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/Fo4WeaponStats.{h,cpp}
+- [ ] **F09-T02** Weapon instance stats for guns from SRV-022 (capacity, ammo, projectiles, automatic, min interval, reload time, ranges, power) — M — Depends: SRV-022 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/fo4/Fo4WeaponStats.{h,cpp}
   - Accept: synthetic WEAP + OMOD fixtures give the expected stats.
 - [ ] **F09-T03** Server ammo/magazine model (`ammoLoaded` extra, atomic decrement, reload) + `WeaponReload` handler and corrections — M — Depends: F09-T01, F09-T02, F04 — Verify: L-unit — Files: fo4/Fo4GunState.{h,cpp}, ActionListener.cpp
   - Accept: §6 ammo/reload cases pass; persistence round trip.

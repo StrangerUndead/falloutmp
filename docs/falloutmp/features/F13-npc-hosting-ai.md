@@ -214,21 +214,21 @@ This spec *is* the NPC path. Creatures use the same model with per-race graph de
 - `G-manual`: two players fight a raider group and a radscorpion; drop the host's connection mid-fight; both players see the same legendary enemy mutate.
 
 ## 7. Tasks
-- [ ] **F13-T01** FO4 NPC spawn policy (GameProfile table, settings, categories of §4.6) — M — Depends: REF-012, ESPM-006 — Verify: L-unit, L-fixture — Files: skymp5-server/cpp/server_guest_lib/game_profile/fallout4/NpcSpawnPolicy.{h,cpp}, WorldState.cpp; unit/NpcSpawnPolicyTest.cpp
+- [ ] **F13-T01** FO4 NPC spawn policy (GameProfile table, settings, categories of §4.6) — M — Depends: REF-012, ESPM-006 — Verify: L-unit, L-fixture — Files: falloutmp-server/cpp/server_guest_lib/game_profile/fallout4/NpcSpawnPolicy.{h,cpp}, WorldState.cpp; unit/NpcSpawnPolicyTest.cpp
   - Accept: each category row has a passing test; the Skyrim filters are unchanged (`~[espm]` green).
 - [ ] **F13-T02** Load starts-dead actors as dead, lootable MpActors — S — Depends: F13-T01, F12-T03 — Verify: L-unit — Files: WorldState.cpp, MpActor.cpp
-- [ ] **F13-T03** Leveled identity: per-flag chain (with F14), `npcLevel` rule, legendary roll; persistence; snapshot fields — M — Depends: F14, F13-T01 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/NpcIdentity.{h,cpp}, MpChangeForms.{h,cpp}
+- [ ] **F13-T03** Leveled identity: per-flag chain (with F14), `npcLevel` rule, legendary roll; persistence; snapshot fields — M — Depends: F14, F13-T01 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/fo4/NpcIdentity.{h,cpp}, MpChangeForms.{h,cpp}
   - Accept: the same ACHR gives an identical snapshot across restart; reroll only on cell reset.
 - [ ] **F13-T04** Platform: runtime NPC from a per-flag chain with a server level (PLAT-070 extension); per-actor suppression toggle (PLAT-071) — L — Depends: PLAT-070, PLAT-071 — Verify: G-self — Files: fallout4-platform/src/platform_fo4/NpcApi.cpp
-- [ ] **F13-T05** `NpcHostingService`: readiness, candidates, threat score, hysteresis, revocation, budget cap, metrics — M — Depends: F11 (attribution), F13-T06 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/NpcHostingService.{h,cpp}, ActionListener.cpp (`OnHostAttempt` FO4 path)
+- [ ] **F13-T05** `NpcHostingService`: readiness, candidates, threat score, hysteresis, revocation, budget cap, metrics — M — Depends: F11 (attribution), F13-T06 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/fo4/NpcHostingService.{h,cpp}, ActionListener.cpp (`OnHostAttempt` FO4 path)
   - Accept: §6 election cases pass; `npc_host_changes_total` metric present.
-- [ ] **F13-T06** `NpcAiState` (111) message both directions + host validation + storage — M — Depends: NET-002 — Verify: L-unit — Files: skymp5-server/cpp/messages/NpcAiStateMessage.h, Messages.h; falloutmp-client/src/services/messages/npcAiStateMessage.ts
+- [ ] **F13-T06** `NpcAiState` (111) message both directions + host validation + storage — M — Depends: NET-002 — Verify: L-unit — Files: falloutmp-server/cpp/messages/NpcAiStateMessage.h, Messages.h; falloutmp-client/src/services/messages/npcAiStateMessage.ts
 - [ ] **F13-T07** Migration re-seed (AV snapshot I13, effects, `NpcAiState` S→C) — S — Depends: F13-T05, F08-T08 — Verify: L-unit
 - [ ] **F13-T08** Client hosting service: readiness, HostStart/Stop toggling, AI-state capture via event sinks, re-seed apply — L — Depends: F13-T04, F13-T06, PLAT-040 — Verify: L-ts, G-manual — Files: falloutmp-client/src/services/services/npcHostingService.ts, falloutmp-client/src/view/formView.ts
-- [ ] **F13-T09** Hostility: faction model, per-player ledger (SRV-060), crime reports, runtime MP hostility factions (server push + platform natives) — L — Depends: SRV-060, F25-T01, F13-T06 — Verify: L-unit, G-self — Files: skymp5-server/cpp/server_guest_lib/fo4/HostilityService.{h,cpp}; fallout4-platform/src/platform_fo4/FactionApi.cpp
-- [ ] **F13-T10** Creature special states (burrow, shell, overheat) rules + F11 untargetable hook + burrow cap — M — Depends: F13-T06, F02-T10 — Verify: L-unit, G-manual — Files: skymp5-server/cpp/server_guest_lib/game_profile/fallout4/npcSpecialStates.json
+- [ ] **F13-T09** Hostility: faction model, per-player ledger (SRV-060), crime reports, runtime MP hostility factions (server push + platform natives) — L — Depends: SRV-060, F25-T01, F13-T06 — Verify: L-unit, G-self — Files: falloutmp-server/cpp/server_guest_lib/fo4/HostilityService.{h,cpp}; fallout4-platform/src/platform_fo4/FactionApi.cpp
+- [ ] **F13-T10** Creature special states (burrow, shell, overheat) rules + F11 untargetable hook + burrow cap — M — Depends: F13-T06, F02-T10 — Verify: L-unit, G-manual — Files: falloutmp-server/cpp/server_guest_lib/game_profile/fallout4/npcSpecialStates.json
 - [ ] **F13-T11** Legendary mutation hook in the damage pipeline (F11) + effect (SRV-020) + event — S — Depends: F13-T03, F20-T02 — Verify: L-unit
-- [ ] **F13-T12** Gamemode/Papyrus surface (§4.9), docs — M — Depends: F13-T05, F13-T09 — Verify: L-int — Files: skymp5-server/ts typings, script_classes/PapyrusActor.cpp
+- [ ] **F13-T12** Gamemode/Papyrus surface (§4.9), docs — M — Depends: F13-T05, F13-T09 — Verify: L-int — Files: falloutmp-server/ts typings, script_classes/PapyrusActor.cpp
 - [ ] **F13-T13** Load test: 600 hosted NPCs / 300 spread bots and 64 hot-spot bots (QA-020 targets); election CPU and host bandwidth within §4.11 — M — Depends: F13-T05, QA-020 — Verify: L-int
 - [ ] **F13-T14** `G-manual` script (raider camp, radscorpion, host drop, legendary) — S — Depends: F13-T08 — Verify: G-manual — Files: docs/falloutmp/test-scripts/F13-npc-hosting.md
 

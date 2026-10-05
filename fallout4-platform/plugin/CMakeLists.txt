@@ -22,7 +22,7 @@ if(MSVC)
 endif()
 
 get_filename_component(REPO "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
-set(SRV "${REPO}/skymp5-server/cpp")
+set(SRV "${REPO}/falloutmp-server/cpp")
 
 find_package(spdlog CONFIG REQUIRED)
 find_package(simdjson CONFIG REQUIRED)

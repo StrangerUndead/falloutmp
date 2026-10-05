@@ -8,12 +8,13 @@ The package is engine-free. Every game call goes through the `FalloutPlatform` i
 
 | Path | What it holds |
 |---|---|
-| `src/services/messages/` | Mirrors of `skymp5-server/cpp/messages/MsgType.h` and `Fo4Messages.h`, plus the server enums and error texts |
+| `src/services/messages/` | Mirrors of `falloutmp-server/cpp/messages/MsgType.h` and `Fo4Messages.h`, plus the server enums and error texts |
 | `src/core/` | Typed event bus, message router, nonce request tracker, item-stack helpers |
 | `src/platform/falloutPlatform.ts` | The native API contract and the player-side capture events |
 | `src/services/services/` | One service per system (see below) |
 | `src/falloutMpClient.ts` | Composition root: wires the services, platform events and lifecycle |
-| `src/integration/skympClientBridge.ts` | Hooks into the forked skymp5-client networking |
+| `src/runtime/` | The game-side runtime: session, native platform, entry point (`main.ts`) |
+| `src/integration/clientBridge.ts` | Maps the core actor messages (CreateActor, hosting) to the client |
 | `test/` | Node tests with `fakePlatform.ts`, plus the C++/TS protocol parity test |
 
 ## Services
@@ -48,17 +49,8 @@ The protocol parity test reads the C++ headers from the repository. Run it from 
 
 ## Using it in the game client
 
-The forked skymp5-client networking service routes the Fallout 4 message range before its own dispatch chain:
-
-```ts
-const client = new FalloutMpClient(falloutPlatform, new EmitterTransport(controller.emitter));
-const bridge = new SkympClientBridge(client);
-// in networkingService, before the MsgType if/else chain:
-if (bridge.handleIncoming(msgAny)) break;
-```
-
-The world view calls `bridge.onCreateActor`, `onDestroyActor` and `client.onActorStreamedIn` as actors stream. Upstream `HostStart`/`HostStop` go to `bridge.onHostStart`/`onHostStop`. The client then sends movement, shots and value changes for those NPCs. On disconnect, `bridge.onConnectionLost()` fails every pending request with `Disconnected` and clears the mirrored state.
+`npm run bundle` builds `build/falloutmp-client.js`, the script the F4SE plugin (`fallout4-platform/plugin`) loads. Its entry point is `src/runtime/main.ts`: `WorldSession` connects, logs in, routes messages through `ClientBridge` and `FalloutMpClient`, and recreates other players as puppets.
 
 ## What needs the game to verify
 
-Everything here is tested against the fake platform only. The natives in `falloutPlatform.ts` still have to be implemented in the F4SE plugin and checked in game. That covers the power armor sequence, the workshop menu hooks and the minigame menus. See `docs/falloutmp/STATUS.md`.
+Everything here is tested against the fake platform only. The plugin implements the natives in `falloutPlatform.ts`; they still have to be checked in game. That covers the power armor sequence, the workshop menu hooks and the minigame menus. See `docs/falloutmp/STATUS.md`.

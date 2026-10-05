@@ -1,6 +1,6 @@
+#include "fo4/Fo4Server.h"
 #include "Fo4Messages.h"
 #include "Fo4TestData.h"
-#include "fo4/Fo4Server.h"
 #include <catch2/catch_all.hpp>
 #include <limits>
 #include <nlohmann/json.hpp>
@@ -293,8 +293,8 @@ TEST_CASE("Fo4Server: shots, hits, damage, kill XP and party sharing",
   REQUIRE(relay["seq"] == 1);
   // The shooter's own shot id comes back to the shooter only
   REQUIRE(relay["clientShotId"] == 77);
-  REQUIRE(w.host.LastToNeighbours(kAlice, MsgType::WeaponFire)
-            ["clientShotId"] == 0);
+  REQUIRE(
+    w.host.LastToNeighbours(kAlice, MsgType::WeaponFire)["clientShotId"] == 0);
   REQUIRE(w.host.SentToNeighbours(kAlice, MsgType::WeaponFire));
   REQUIRE(alice.equippedWeapon->ammoLoaded == 11);
 
@@ -324,8 +324,7 @@ TEST_CASE("Fo4Server: shots, hits, damage, kill XP and party sharing",
   REQUIRE(bob.avs.GetCurrent(Av::Health) == bobHp);
 }
 
-TEST_CASE("Fo4Server: workshop build flow over messages",
-          "[fo4][Fo4Server]")
+TEST_CASE("Fo4Server: workshop build flow over messages", "[fo4][Fo4Server]")
 {
   ServerWorld w;
   WorkshopObjectData wall;
@@ -386,8 +385,7 @@ TEST_CASE("Fo4Server: progression, consumables, locks and persistence",
   create.special = { 4, 4, 4, 4, 4, 4, 4 };
   w.server->OnMessage(kAlice, MsgType::ProgressionRequest, create);
   REQUIRE(w.host.Last(kAlice, MsgType::RequestResult)["ok"] == true);
-  REQUIRE(w.host.Last(kAlice, MsgType::ProgressionUpdate)["created"] ==
-          true);
+  REQUIRE(w.host.Last(kAlice, MsgType::ProgressionUpdate)["created"] == true);
 
   // Stimpak heals over time on the server
   constexpr FormId kHeal = 0xE1;
@@ -561,10 +559,10 @@ TEST_CASE("Fo4Server: map discovery, fast travel and the clock",
           "[fo4][Fo4Server][F25][F26]")
 {
   ServerWorld w;
-  w.server->Map().AddMarker({ 0xAA01, { 5000, 0, 0 }, 0x3c, "Red Rocket",
-                              0, true, false });
-  w.server->Map().AddMarker({ 0xAA02, { 900, 0, 0 }, 0x3c, "Sanctuary", 12,
-                              true, false });
+  w.server->Map().AddMarker(
+    { 0xAA01, { 5000, 0, 0 }, 0x3c, "Red Rocket", 0, true, false });
+  w.server->Map().AddMarker(
+    { 0xAA02, { 900, 0, 0 }, 0x3c, "Sanctuary", 12, true, false });
   auto& a = w.server->Actor(kAlice);
 
   FastTravelRequestMessage ft;
@@ -749,8 +747,8 @@ TEST_CASE("Fo4Server: gamemode events observe and can block actions",
   w.server->OnMessage(kAlice, MsgType::PowerArmorTransition, enter);
   REQUIRE(w.host.Last(kAlice, MsgType::PowerArmorTransition)["error"] ==
           "Vetoed");
-  REQUIRE(w.host.events.back().second == nlohmann::json::array(
-                                           { kAlice, kFrameRef }));
+  REQUIRE(w.host.events.back().second ==
+          nlohmann::json::array({ kAlice, kFrameRef }));
 
   // Consumables blocked
   alice.inventory.AddSimple(kStimpak, 1);
@@ -1062,9 +1060,8 @@ TEST_CASE("Fo4Server: appearance is validated, relayed, streamed and saved",
   m.data.isFemale = false;
   w.server->OnMessage(kAlice, MsgType::UpdateAppearanceFo4, m);
   REQUIRE_FALSE(w.host.SentToNeighbours(kAlice, MsgType::UpdateAppearanceFo4));
-  REQUIRE(w.host.Last(kAlice, MsgType::UpdateAppearanceFo4)["data"]
-                                                          ["isFemale"] ==
-          true);
+  REQUIRE(w.host.Last(
+            kAlice, MsgType::UpdateAppearanceFo4)["data"]["isFemale"] == true);
 
   // Bad numbers are rejected
   m.rev = 2;
@@ -1094,9 +1091,9 @@ TEST_CASE("Fo4Server: appearance is validated, relayed, streamed and saved",
   ServerWorld w2;
   w2.server->LoadActor(kAlice, saved);
   w2.server->OnStreamIn(kBob, kAlice);
-  REQUIRE(w2.host.Last(kBob, MsgType::UpdateAppearanceFo4)["data"]
-                                                           ["tints"][0]
-                                                           ["value"] == 50);
+  REQUIRE(w2.host.Last(
+            kBob, MsgType::UpdateAppearanceFo4)["data"]["tints"][0]["value"] ==
+          50);
 }
 
 TEST_CASE("Fo4Server: animation events and variables are relayed with limits",
@@ -1115,8 +1112,9 @@ TEST_CASE("Fo4Server: animation events and variables are relayed with limits",
   UpdateGraphVariablesMessage v;
   v.values = { { "Speed", 0, 250.f }, { "Direction", 0, 0.25f } };
   w.server->OnMessage(kAlice, MsgType::UpdateGraphVariables, v);
-  REQUIRE(w.host.LastToNeighbours(kAlice, MsgType::UpdateGraphVariables)
-            ["values"][0]["name"] == "Speed");
+  REQUIRE(w.host.LastToNeighbours(
+            kAlice, MsgType::UpdateGraphVariables)["values"][0]["name"] ==
+          "Speed");
 
   // Not someone else's actor
   w.host.sent.clear();
@@ -1142,5 +1140,6 @@ TEST_CASE("Fo4Server: animation events and variables are relayed with limits",
   w.host.sent.clear();
   v.values[0].value = std::numeric_limits<float>::infinity();
   w.server->OnMessage(kAlice, MsgType::UpdateGraphVariables, v);
-  REQUIRE_FALSE(w.host.SentToNeighbours(kAlice, MsgType::UpdateGraphVariables));
+  REQUIRE_FALSE(
+    w.host.SentToNeighbours(kAlice, MsgType::UpdateGraphVariables));
 }

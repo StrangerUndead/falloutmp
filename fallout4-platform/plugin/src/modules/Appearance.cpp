@@ -42,7 +42,7 @@ constexpr double kLoadTimeoutMs = 10000;
 constexpr uint64_t kReclaimFrames = 120;
 
 // TESNPC change flags (prior-art §5.1 B3)
-constexpr uint32_t kChangeFace = 0x800;   // head data, parts, skin colour, tints
+constexpr uint32_t kChangeFace = 0x800; // head data, parts, skin colour, tints
 constexpr uint32_t kChangeMorphs = 0x4000; // weights and morphs
 constexpr uint32_t kChangeRace = 0x2000000;
 
@@ -319,7 +319,8 @@ std::optional<bool> Begin(Platform& p, Job& job, int& rebuilds)
   if (isPlayer) {
     // The player's face belongs in its save. Puppets' runtime NPCs get no
     // change flags so they stay out of saves.
-    npc->AddChange(kChangeFace | kChangeMorphs | (raceChanged ? kChangeRace : 0));
+    npc->AddChange(kChangeFace | kChangeMorphs |
+                   (raceChanged ? kChangeRace : 0));
     // The actor-side tint array the face compositor reads (FO4_Wrld:
     // "two tint arrays"). [verify] it is a separate array on 1.11.
     auto pc = RE::PlayerCharacter::GetSingleton();
@@ -467,8 +468,8 @@ void OpenLooksMenu(Platform& p, std::int32_t mode)
   // [verify] uiMode 0 without spouse references works outside MQ101
   // (F03 §8; else the client falls back to 1).
   RE::TESObjectREFR* const none = nullptr;
-  papyrus::CallStatic("Game", "ShowRaceMenu", nullptr, none, mode, none,
-                      none, none);
+  papyrus::CallStatic("Game", "ShowRaceMenu", nullptr, none, mode, none, none,
+                      none);
 }
 
 void CloseLooksMenu()

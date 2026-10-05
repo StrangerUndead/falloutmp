@@ -31,7 +31,7 @@ Main web sources: Fallout Wiki (fandom) pages read through the MediaWiki API (`h
 
 | # | Decision | Why |
 |---|---|---|
-| D1 | **Damage is always computed on the server** with a new `Fo4DamageFormula : IDamageFormula` implementing FO4's damage-vs-resistance curve, per-damage-type resolution, body-part multipliers, crits, sneak, perks, difficulty. Clients never apply damage to remote actors (ghosts are immortal/harmless as in SkyMP). | Same standard as SkyMP's `TES5DamageFormula` path [src: skymp5-server/cpp/server_guest_lib/ActionListener.cpp:1387] but FO4-correct. |
+| D1 | **Damage is always computed on the server** with a new `Fo4DamageFormula : IDamageFormula` implementing FO4's damage-vs-resistance curve, per-damage-type resolution, body-part multipliers, crits, sneak, perks, difficulty. Clients never apply damage to remote actors (ghosts are immortal/harmless as in SkyMP). | Same standard as SkyMP's `TES5DamageFormula` path [src: falloutmp-server/cpp/server_guest_lib/ActionListener.cpp:1387] but FO4-correct. |
 | D2 | **Shooter-detected hits, server-validated with lag compensation** ("SkyMP-plus"): every shot is announced (`WeaponFire`), every hit references a shot id (`CombatHit`), the server rewinds the target using a movement-history ring buffer and checks geometry, rate, ammo, range and cone. Validation level is a server setting (`off/basic/rewind`). | SkyMP trusts OnHit with cell/distance/cooldown checks only and has the reach check commented out [src: ActionListener.cpp:1049-1075, 1315-1334]. Guns need more. Quality target: rewind ≤ 250 ms, false-reject < 2 % at 150 ms RTT [00-vision-scope.md §7]. |
 | D3 | **Ammo and magazines are server state**; shots are batched; the server sends `AmmoSync` only on mismatch (no per-shot inventory pushes). | Avoids the inventory race SkyMP already patches for crossbows [src: skymp5-client/src/services/services/playerBowShotService.ts:104-107]. |
 | D4 | **Generic actor-value store keyed by AVIF form id** (base + permanent/temporary/damage modifiers, mirroring FO4's `ActorValueStorage`) replaces the Skyrim `ActorValues` struct in the FO4 GameProfile; `ChangeValues` gets an AV-map variant. | FO4 has ~130 hardcoded AVs plus ESM-defined ones [src: clf4 include/RE/A/ActorValue.h:57-197; A/ActorValueStorage.h; A/ACTOR_VALUE_MODIFIER.h]. |
@@ -50,7 +50,7 @@ Main web sources: Fallout Wiki (fandom) pages read through the MediaWiki API (`h
 
 | Area | Code | Behaviour to keep / change |
 |---|---|---|
-| Hit message | `HitMessage::Data{aggressor,isBashAttack,isHitBlocked,isPowerAttack,isSneakAttack,projectile,source,target}` [src: skymp5-server/cpp/messages/HitMessage.h:17-40] | Too thin for FO4 (no limb, shot id, position, damage-type data). Add `CombatHit` (§19). |
+| Hit message | `HitMessage::Data{aggressor,isBashAttack,isHitBlocked,isPowerAttack,isSneakAttack,projectile,source,target}` [src: falloutmp-server/cpp/messages/HitMessage.h:17-40] | Too thin for FO4 (no limb, shot id, position, damage-type data). Add `CombatHit` (§19). |
 | Hit validation | `ActionListener::OnHit` — aggressor is self or a hosted NPC (`worldState.hosters`), same cell/world, ≤ 4096 u unless bow, aggressor alive, weapon equipped or unarmed (`0x1f4`) [src: ActionListener.cpp:1006-1112] | Keep all of these; FO4 unarmed id must come from the profile (`0x1f4` is Skyrim's). |
 | Attack cooldown | `CanHit`: `t ≥ 1.1/speed − 1.1/speed·(speed≤0.75 ? .45 : .3)` from WEAP speed [src: ActionListener.cpp:975-990]; splash window 0.1 s / max 4 targets [src: ActionListener.cpp:1269-1299] | Reuse for melee; guns use shot accounting instead. |
 | Block | `ShouldBeBlocked`: target facing aggressor within 1 rad; requires `IsBlockActive` (from `blockStart`/`blockStop` anim events and movement `isBlocking`) [src: ActionListener.cpp:992-1003, 1340-1385; AnimationSystem.cpp:12-33] | Reuse for FO4 melee block. |
@@ -711,7 +711,7 @@ Explosion damage resolved by every client that simulates it; mines trigger on lo
 
 > **Plan note (main session):** Message names and fields here are research proposals. The **authoritative IDs are in [01-sync-standard.md §6](../01-sync-standard.md)**. IDs 34–63 are reserved for upstream SkyMP; FO4 twins use 64–79 and new FO4 messages use 80–122. Map proposals onto that registry; do not use IDs proposed here.
 
-SkyMP stops at `MsgType::CreateActor = 33` [src: skymp5-server/cpp/messages/MsgType.h:41]. Proposed FO4 additions (numbering is a suggestion; every message needs binary + JSON serialisation and a unit test per plan §4 conventions; bump the protocol prefix, e.g. `fo4-1_`).
+SkyMP stops at `MsgType::CreateActor = 33` [src: falloutmp-server/cpp/messages/MsgType.h:41]. Proposed FO4 additions (numbering is a suggestion; every message needs binary + JSON serialisation and a unit test per plan §4 conventions; bump the protocol prefix, e.g. `fo4-1_`).
 
 | Id | Name | Dir | Fields | Reliability / rate | Audience | Validation | Sections |
 |---|---|---|---|---|---|---|---|
@@ -833,7 +833,7 @@ Suggested build order: AV store → effect system → PerkEngine/CTDA → moveme
 
 ## 21. Sources
 
-**Code (this repo):** `skymp5-server/cpp/server_guest_lib/ActionListener.cpp`, `formulas/*`, `CropRegeneration.cpp`, `ActorValues.h`, `MpActor.cpp`, `MpChangeForms.h`, `AnimationSystem.cpp`, `MovementValidation.cpp`, `Primitive.h`, `MpObjectReference.cpp`, `gamemode_events/*`, `skymp5-server/cpp/messages/*`, `skymp5-client/src/services/services/{hitService,deathService,playerBowShotService}.ts`, `unit/HitTest.cpp`; survey `docs/FALLOUT4_PORT_RESEARCH.md` §2, §4.4, §4.7.
+**Code (this repo):** `falloutmp-server/cpp/server_guest_lib/ActionListener.cpp`, `formulas/*`, `CropRegeneration.cpp`, `ActorValues.h`, `MpActor.cpp`, `MpChangeForms.h`, `AnimationSystem.cpp`, `MovementValidation.cpp`, `Primitive.h`, `MpObjectReference.cpp`, `gamemode_events/*`, `falloutmp-server/cpp/messages/*`, `skymp5-client/src/services/services/{hitService,deathService,playerBowShotService}.ts`, `unit/HitTest.cpp`; survey `docs/FALLOUT4_PORT_RESEARCH.md` §2, §4.4, §4.7.
 
 **External code:** ianpatt/f4se @6f6a7ca (`scripts/vanilla/{Actor,ObjectReference,ScriptObject,Game,Weapon,Perk,Potion,Furniture,CompanionActorScript,FollowersScript,DogmeatActorScript,CommonPropertiesScript}.psc`, `scripts/modified/{Actor,Game,ObjectMod,InstanceData,Perk}.psc`); libxse/commonlibf4 @7c8c6f8 (`include/RE/**`); TES5Edit dev-4.1.6 `Core/wbDefinitionsFO4.pas`; ThePie88/FO4_Wrld @4200f32 (`README.md`, `fw_native/src/hooks/pa_pipeline_trace.h`).
 

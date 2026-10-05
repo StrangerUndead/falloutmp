@@ -15,7 +15,7 @@
 
 Follow the upstream style seen in `git log`:
 - `feat(<component>): …`, `fix(<component>): …`, `internal: …`, `docs: …`, `chore(<area>): …`
-- Components: `libespm`, `papyrus-vm`, `skymp5-server`, `fallout4-platform`, `falloutmp-client`, `falloutmp-front`, `build`, `ci`, `plan`.
+- Components: `libespm`, `papyrus-vm`, `falloutmp-server`, `fallout4-platform`, `falloutmp-client`, `falloutmp-front`, `build`, `ci`, `plan`.
 
 Rules:
 - One logical change per commit. Plan updates (STATUS.md, task checkboxes) go in the same commit as the code they describe.

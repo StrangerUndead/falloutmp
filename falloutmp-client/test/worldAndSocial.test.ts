@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { PartyOp } from "../src/services/messages/codes";
 import { PartyActionMessage } from "../src/services/messages/fo4Messages";
 import { Fo4MsgType } from "../src/services/messages/msgType";
-import { SkympClientBridge, EmitterTransport } from "../src/integration/skympClientBridge";
+import { ClientBridge, EmitterTransport } from "../src/integration/clientBridge";
 import { FalloutMpClient } from "../src/falloutMpClient";
 import { FakePlatform, key, kPlayerProfile, kPlayerServerId, makeClient } from "./fakePlatform";
 import { lastSent, reply } from "./helpers";
@@ -149,11 +149,11 @@ test("a throwing handler doesn't break the message loop", () => {
   assert.equal(h.client.inventory.count(1), 1);
 });
 
-test("the skymp bridge routes messages and sendMessage events", () => {
+test("the client bridge routes messages and sendMessage events", () => {
   const emitted: { message: { t: number }; reliability: string }[] = [];
   const platform = new FakePlatform();
   const client = new FalloutMpClient(platform, new EmitterTransport({ emit: (_e, p) => emitted.push(p) }));
-  const bridge = new SkympClientBridge(client);
+  const bridge = new ClientBridge(client);
   bridge.onCreateActor({ idx: 5, isMe: true, refrId: kPlayerServerId, profileId: 3 });
   assert.equal(client.ctx.session.localActorId, kPlayerServerId);
   assert.ok(bridge.handleIncoming({ t: Fo4MsgType.MapDiscovery, full: true, markers: [] } as never));

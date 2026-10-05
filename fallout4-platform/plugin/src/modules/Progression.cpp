@@ -87,8 +87,9 @@ void ChangePerk(Platform& p, uint32_t perkId, bool add)
   auto player = RE::PlayerCharacter::GetSingleton();
   auto perk = game::Form<RE::BGSPerk>(perkId);
   if (!player || !perk) {
-    p.Log("warn", std::format("{} of unknown perk {:X}",
-                              add ? "addPerk" : "removePerk", perkId));
+    p.Log("warn",
+          std::format("{} of unknown perk {:X}",
+                      add ? "addPerk" : "removePerk", perkId));
     return;
   }
   if (add) {

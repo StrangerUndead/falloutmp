@@ -1,10 +1,10 @@
 # FalloutMP
 
-FalloutMP is an open-source multiplayer framework for Fallout 4. It is built on [SkyMP](https://github.com/skyrim-multiplayer/skymp), the Skyrim multiplayer mod. It keeps SkyMP's server, networking, persistence and gamemode scripting, and adds a Fallout 4 game layer on top.
+FalloutMP is an open-source multiplayer framework for Fallout 4: a server, a game client (an F4SE plugin) and a gamemode API. Its server engine, networking, persistence and scripting started as a fork of [SkyMP](https://github.com/skyrim-multiplayer/skymp), the Skyrim multiplayer mod; the Skyrim parts have been removed and everything game-specific is Fallout 4.
 
 The target is a fully player-run wasteland. There are no NPC characters and no game factions. Traders, landlords, settlement owners and governments are all real players.
 
-> **Status: first test build.** The server runs on real Fallout 4 data. A first game client exists: it connects, logs in, puts you at your server position and shows other players moving. It hasn't been tested in the game yet, and most systems (inventory, combat, workshops) aren't connected to the game. Details are in [docs/falloutmp/STATUS.md](docs/falloutmp/STATUS.md).
+> **Status: first test build.** The server runs on real Fallout 4 data. The game client connects every system to the game (movement, animation, appearance, inventory, combat, power armor, workshops, locks, map, time and weather) but hasn't been tested in the game yet. Details are in [docs/falloutmp/STATUS.md](docs/falloutmp/STATUS.md).
 
 ## Contents
 
@@ -24,7 +24,7 @@ The target is a fully player-run wasteland. There are no NPC characters and no g
 
 | Area | State |
 |---|---|
-| Game selection (`"game": "fallout4"`), Fallout 4 protocol and message registry | Done |
+| Fallout 4 protocol and message registry | Done |
 | Reading Fallout 4 plugins: weapons, armor, ammo, junk, components, recipes, mods, furniture, leveled lists, containers, NPCs, outfits, placed references | Done, tested with synthetic plugins |
 | Inventory with weapon and armor mods, condition, loaded ammo and stolen items | Done |
 | Crafting, auto-scrapping of junk, scrapping, weapon and armor modding at workbenches | Done |
@@ -42,16 +42,14 @@ The target is a fully player-run wasteland. There are no NPC characters and no g
 | Gamemode API `mp.fo4.*` and `mp.onFo4...` events | Done |
 | TypeScript client services for all of the above (`falloutmp-client`) | Done, tested against a fake game |
 | Game client core: connection, login, message codec, JavaScript host (`fallout4-platform/core`) | Done; two headless clients join a test server and see each other move |
-| F4SE plugin (`fallout4-platform/plugin`): player position, teleport, other players as puppets | **First slice written**, built by CI, not tested in game yet |
+| F4SE plugin (`fallout4-platform/plugin`): every system above, other players as puppets, a diagnostics probe | Written, built by CI, **not tested in game yet** |
 | Rent, player shops, raid windows | Not started; design under discussion |
-
-Skyrim still works. A server without `"game"`, or with `"game": "skyrim"`, runs SkyMP as before.
 
 ## 2. Design decisions
 
 These choices are current and recorded in [STATUS.md](docs/falloutmp/STATUS.md):
 
-- **Player-run world.** There are no NPC characters or game factions. NPCs stay off with SkyMP's `"npcEnabled": false`. If NPCs are ever turned on, human NPCs are still blocked by default (`fo4.npc.humanNpcs: false`).
+- **Player-run world.** There are no NPC characters or game factions. NPCs stay off with `"npcEnabled": false`. If NPCs are ever turned on, human NPCs are still blocked by default (`fo4.npc.humanNpcs: false`).
 - **Server authority.** The server decides inventory, crafting, damage, locks, trades and ownership. Clients send requests, and the game changes only when the server answers.
 - **Speed limits off.** Movement isn't checked against speeds until real speeds are measured in game (`fo4.movement.enforceSpeed: false`). The server still drops out-of-order packets, ignores dead players, and corrects cell changes that didn't go through the server.
 - **Ownership.** Settlement claims and permissions exist. City rent and wasteland ownership rules are still being decided.
@@ -60,21 +58,22 @@ These choices are current and recorded in [STATUS.md](docs/falloutmp/STATUS.md):
 
 | Path | What it is |
 |---|---|
-| `skymp5-server/` | The server: C++ core (`cpp/`) and the Node.js wrapper and gamemode API (`ts/`) |
-| `skymp5-server/cpp/server_guest_lib/fo4/` | The Fallout 4 game layer: every system in section 1 |
-| `skymp5-server/cpp/server_guest_lib/game_profile/` | Skyrim and Fallout 4 game profiles |
-| `skymp5-server/cpp/messages/Fo4Messages.h` | Fallout 4 network messages (ids 64–120) |
-| `skymp5-server/ts/fo4.ts` | The typed `mp.fo4` gamemode API |
+| `falloutmp-server/` | The server: C++ core (`cpp/`) and the Node.js wrapper and gamemode API (`ts/`) |
+| `falloutmp-server/cpp/server_guest_lib/fo4/` | The Fallout 4 game layer: every system in section 1 |
+| `falloutmp-server/cpp/server_guest_lib/game_profile/` | The Fallout 4 game profile (constants the server engine needs) |
+| `falloutmp-server/cpp/messages/Fo4Messages.h` | Fallout 4 network messages (ids 64–120) |
+| `falloutmp-server/ts/fo4.ts` | The typed `mp.fo4` gamemode API |
 | `libespm/` | Plugin reader; Fallout 4 records live in `src/fo4/` |
-| `falloutmp-client/` | TypeScript client services and the `falloutPlatform` native API contract |
+| `papyrus-vm/` | The server's Papyrus virtual machine |
+| `falloutmp-client/` | The client script: session and sync services in TypeScript, and the `falloutPlatform` native API contract |
+| `fallout4-platform/` | The game side: client core (network, codec, QuickJS), the F4SE plugin, the headless test bot |
 | `unit/` | C++ unit tests (Catch2) |
 | `docs/falloutmp/` | The FalloutMP plan, feature specs, guides and status |
-| `skymp5-client/`, `skymp5-front/`, `skyrim-platform/` | Upstream SkyMP client parts (Skyrim) |
 | `tools/` | Helper scripts, including the vcpkg download workaround |
 
 ## 4. Building
 
-The server and the tests build on Linux and Windows. The game-side parts need Windows and MSVC.
+The server and the tests build on Linux and Windows. The F4SE plugin needs Windows and MSVC.
 
 ### 4.1 Requirements
 
@@ -137,7 +136,7 @@ cmake ..
 cmake --build . --config Release
 ```
 
-Alternatively, open `build/skymp.sln` in Visual Studio. You don't need Skyrim installed; Skyrim-specific tests are skipped.
+Alternatively, open `build/falloutmp.sln` in Visual Studio.
 
 Everything the build produces goes to `build/dist/`. The server is in `build/dist/server/`.
 
@@ -147,12 +146,12 @@ C++ tests, from the build directory:
 
 ```sh
 cd build
-./unit/unit "~[espm]"        # everything that doesn't need game data
+./unit/unit                  # every test
 ./unit/unit "[Fo4Server]"    # one area, by tag
 ctest --verbose              # the full CTest run
 ```
 
-Tests tagged `[espm]` need Skyrim's data files and are skipped without them. All Fallout 4 tests use synthetic plugins built in memory, so no Bethesda files are needed.
+The tests use synthetic plugins built in memory, so no Bethesda files are needed.
 
 Client tests:
 
@@ -167,7 +166,7 @@ The client tests include a parity test that reads the C++ message headers. It fa
 Server TypeScript typecheck:
 
 ```sh
-cd skymp5-server
+cd falloutmp-server
 yarn install
 npx tsc --noEmit -p .
 ```
@@ -206,17 +205,17 @@ Edit `build/dist/server/server-settings.json`:
 }
 ```
 
-- **`game`** selects the game. Skyrim and Fallout 4 clients can't join each other's servers.
+- **`game`** is `"fallout4"` (the default and the only value).
 - **`fo4`** tunes every Fallout 4 rule: power armor, workshops, locks, combat, damage, PvP, progression, containers, map, movement and NPCs. Every key is optional.
 - **Validation.** A wrong type stops the server with the setting's full path. Unknown keys, such as typos, are logged as warnings.
 
-The full list with defaults is in [guides/server-admin.md](docs/falloutmp/guides/server-admin.md). SkyMP's own settings, such as `ip`, `master` and database options, are in [docs_server_configuration_reference.md](docs/docs_server_configuration_reference.md).
+The full list with defaults is in [guides/server-admin.md](docs/falloutmp/guides/server-admin.md). The engine settings, such as `ip`, `master` and database options, are in [docs_server_configuration_reference.md](docs/docs_server_configuration_reference.md).
 
 ### 6.3 Start it
 
 ```sh
 cd build/dist/server
-node dist_back/skymp5-server.js
+node dist_back/falloutmp-server.js
 ```
 
 On startup, the log should show these lines:
@@ -230,14 +229,14 @@ Fallout 4 world state file is 'world/fo4-world.json'
 
 | What | Where | When |
 |---|---|---|
-| Characters: inventory, values, level, perks, effects, equipment, map | SkyMP's database, in each character's `fo4State` field | Every 30 s and on disconnect |
+| Characters: inventory, values, level, perks, effects, equipment, map | The server database, in each character's `fo4State` field | Every 30 s and on disconnect |
 | World: settlements, power armor frames, locks, parties, containers, clock, weather | The `fo4.worldStatePath` file | Every 30 s and on shutdown |
 
-The world file is written to a temporary file and then renamed, so a crash can't leave it half-written. Back it up together with the SkyMP database.
+The world file is written to a temporary file and then renamed, so a crash can't leave it half-written. Back it up together with the server database.
 
 ## 7. Writing a gamemode
 
-Gamemodes are JavaScript or TypeScript files loaded by the server, as in SkyMP. On a Fallout 4 server they also get `mp.fo4`:
+Gamemodes are JavaScript or TypeScript files loaded by the server. The Fallout 4 API is `mp.fo4`:
 
 ```ts
 // A stimpak on every respawn, if the player has none
@@ -264,7 +263,7 @@ The client has three parts:
 | `fallout4-platform/core/` | C++: the network connection, the message codec and a QuickJS engine that runs the script | Windows and Linux |
 | `fallout4-platform/plugin/` | The F4SE plugin `FalloutMP.dll`: connects the core to the game through CommonLibF4 | Windows, Fallout 4 1.11.x |
 
-**Getting the plugin.** The workflow *FalloutMP client (Windows)* (`.github/workflows/falloutmp-client-windows.yml`) builds it on every push that touches the client. Download the `FalloutMP-client` artifact from the run's page. Installation steps for players are in [fallout4-platform/plugin/INSTALL.txt](fallout4-platform/plugin/INSTALL.txt).
+**Getting the plugin.** The workflow *FalloutMP client (Windows)* (`.github/workflows/falloutmp-client-windows.yml`) builds it on every push that touches the client. The workflow *FalloutMP server (Linux)* builds the server, runs every test and uploads the server package. Download the `FalloutMP-client` artifact from the run's page. Installation steps for players are in [fallout4-platform/plugin/INSTALL.txt](fallout4-platform/plugin/INSTALL.txt).
 
 **Building it yourself on Windows** (Visual Studio 2022, CMake 3.24+):
 
@@ -291,7 +290,7 @@ fallout4-platform/tools/fmp_e2e.sh build
 
 ### 8.1 Client services
 
-`falloutmp-client/` holds the client-side sync services: inventory, equipment, actor values, progression, effects, power armor, settlements, crafting, movement, combat, barter, locks, parties, map, and time and weather. It talks to the game only through the `FalloutPlatform` interface in `src/platform/falloutPlatform.ts`. That interface is the full list of natives the future F4SE plugin must implement.
+`falloutmp-client/` holds the client-side sync services: inventory, equipment, actor values, progression, effects, power armor, settlements, crafting, movement, combat, barter, locks, parties, map, and time and weather. It talks to the game only through the `FalloutPlatform` interface in `src/platform/falloutPlatform.ts`. That interface is the full list of natives the F4SE plugin implements.
 
 ```sh
 cd falloutmp-client
@@ -300,7 +299,7 @@ npm run typecheck
 npm test
 ```
 
-How it plugs into the SkyMP client, and what still needs the game, is in [falloutmp-client/README.md](falloutmp-client/README.md).
+How it is put together, and what still needs the game, is in [falloutmp-client/README.md](falloutmp-client/README.md).
 
 ## 9. Documentation
 
@@ -313,23 +312,23 @@ How it plugs into the SkyMP client, and what still needs the game, is in [fallou
 | [guides/gamemode-api.md](docs/falloutmp/guides/gamemode-api.md) | `mp.fo4` functions and events |
 | [guides/implementation.md](docs/falloutmp/guides/implementation.md) | How the code is put together and how to extend it |
 | [docs/falloutmp/features/](docs/falloutmp/features/) | One spec per game system |
-| [docs/](docs/) | Upstream SkyMP documentation |
+| [docs/](docs/) | Server engine reference (configuration, scripting, database drivers) |
 
 ## 10. Contributing
 
 1. Read [docs/falloutmp/README.md](docs/falloutmp/README.md) and [STATUS.md](docs/falloutmp/STATUS.md).
-2. Work on a branch, and keep Skyrim behaviour and its tests green.
+2. Work on a branch, and keep the tests green.
 3. Add tests with every change. C++ tests go in `unit/`, client tests in `falloutmp-client/test/`.
 4. New network messages follow the checklist in [guides/implementation.md](docs/falloutmp/guides/implementation.md) §6. The parity test enforces it.
 5. Update STATUS.md when you finish something.
 
-Upstream SkyMP's contribution rules are in [CONTRIBUTING.md](CONTRIBUTING.md).
+Code style and review rules are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-The most useful help right now is anyone who can build and test on Windows with Fallout 4 installed, to start the F4SE plugin.
+The most useful help right now is testing the client in Fallout 4 and sending the probe file and logs (see [INSTALL.txt](fallout4-platform/plugin/INSTALL.txt)).
 
 ## 11. Licenses and credits
 
-- FalloutMP is a fork of SkyMP and keeps its licenses. Most components are under GPLv3 or AGPLv3. Each subproject has its own license file; for example, `skymp5-server` is AGPL-3.0 and `falloutmp-client` is GPL-3.0-only. Read [TERMS.md](TERMS.md); in short, publish the source of your forks.
+- FalloutMP is a fork of SkyMP and keeps its licenses. Most components are under GPLv3 or AGPLv3. Each subproject has its own license file; for example, `falloutmp-server` is AGPL-3.0 and `falloutmp-client` is GPL-3.0-only. Read [TERMS.md](TERMS.md); in short, publish the source of your forks.
 - Third-party code licenses are in [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES).
 - Fallout 4 is © Bethesda Softworks. This project ships no Bethesda game files and needs a legal copy of the game.
 - Thanks to the [SkyMP](https://github.com/skyrim-multiplayer/skymp) team, whose work this builds on.

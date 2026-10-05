@@ -170,8 +170,8 @@ There is nothing new to persist: detection is transient, and effects persist thr
 - `G-manual`: player A sneaks around raiders hosted by player B; A's meter matches the raiders' behaviour; a sneak-attack crit lands; a Stealth Boy makes A translucent to B and ignored by raiders.
 
 ## 7. Tasks
-- [ ] **F29-T01** `DetectionState` (106) message + client mirror — S — Depends: NET-002 — Verify: L-unit — Files: skymp5-server/cpp/messages/DetectionStateMessage.h, Messages.h; falloutmp-client/src/services/messages/detectionStateMessage.ts
-- [ ] **F29-T02** `StealthService`: ingest `NpcAiState.detections` (F13), per-pair history, aggregation and send policy — M — Depends: F13-T06, F29-T01 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/StealthService.{h,cpp}; unit/StealthTest.cpp
+- [ ] **F29-T01** `DetectionState` (106) message + client mirror — S — Depends: NET-002 — Verify: L-unit — Files: falloutmp-server/cpp/messages/DetectionStateMessage.h, Messages.h; falloutmp-client/src/services/messages/detectionStateMessage.ts
+- [ ] **F29-T02** `StealthService`: ingest `NpcAiState.detections` (F13), per-pair history, aggregation and send policy — M — Depends: F13-T06, F29-T01 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/fo4/StealthService.{h,cpp}; unit/StealthTest.cpp
 - [ ] **F29-T03** Approximation model + plausibility cap + anomaly metric + F13 election penalty — M — Depends: F29-T02, F01-T05, F13-T05 — Verify: L-unit
 - [ ] **F29-T04** (M8, with F11; the rest of F29 is 1.x) `IsSneakAttackValid` for F11 (NPC and PvP rules), replacing the client flag (I9) — S — Depends: F29-T02, F11, F10-T04 — Verify: L-unit
 - [ ] **F29-T05** Invisibility/Chameleon rules with F20; puppet visuals and host AV application — M — Depends: F20-T02, F08 — Verify: L-unit, G-manual
@@ -179,7 +179,7 @@ There is nothing new to persist: detection is transient, and effects persist thr
 - [ ] **F29-T07** Owner meter override (HUD hook or overlay fallback) + `SetNotShowOnStealthMeter` on puppets — M — Depends: F29-T01, PLAT-060 — Verify: G-self — Files: falloutmp-client/src/services/services/stealthMeterService.ts
 - [ ] **F29-T08** Gamemode/Papyrus surface and PvP settings (§4.9) — S — Depends: F29-T04 — Verify: L-int
 - [ ] **F29-T09** `G-manual` script and sign-off; fit approximation constants from collected host reports — S — Depends: F29-T06, F29-T07 — Verify: G-manual — Files: docs/falloutmp/test-scripts/F29-stealth.md
-- [ ] **F29-T10** Pickpocketing (owned here because FO4 pickpocketing is a sneak interaction): `PickpocketAttempt` (119) request → server computes success from the sneak/detection state, the perk entry points (SRV-021) and item weight/value, moves the item atomically (F04, F06 rules), and flags crime via `NpcAiState` (111) on failure. Players can only be pickpocketed when the gamemode allows it (setting `pvp.pickpocket`, default off) — M — Depends: F29-T04, F06-T01, SRV-021 — Verify: L-unit, G-manual — Files: skymp5-server/cpp/server_guest_lib/PickpocketService.{h,cpp}, falloutmp-client/src/services/services/pickpocketService.ts
+- [ ] **F29-T10** Pickpocketing (owned here because FO4 pickpocketing is a sneak interaction): `PickpocketAttempt` (119) request → server computes success from the sneak/detection state, the perk entry points (SRV-021) and item weight/value, moves the item atomically (F04, F06 rules), and flags crime via `NpcAiState` (111) on failure. Players can only be pickpocketed when the gamemode allows it (setting `pvp.pickpocket`, default off) — M — Depends: F29-T04, F06-T01, SRV-021 — Verify: L-unit, G-manual — Files: falloutmp-server/cpp/server_guest_lib/PickpocketService.{h,cpp}, falloutmp-client/src/services/services/pickpocketService.ts
   - Accept: unit tests cover success, failure (crime flag, hostility), reject when not sneaking or out of reach (with correction), and the gamemode veto.
 
 ## 8. Open questions & risks

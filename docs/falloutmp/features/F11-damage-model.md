@@ -129,7 +129,7 @@ NPC targets and NPC aggressors use the same function. NPC perks come from NPC_ `
 - `G-manual`: player vs raider with pistol, shotgun, power attack, sneak attack; crippled legs visible to both players.
 
 ## 7. Tasks
-- [ ] **F11-T01** `HitContext`, damage-type table from DMGT, `Fo4DamageFormula` steps 1–8 with the FO4 profile factory (REF-006) — L — Depends: REF-006, SRV-022, F08-T02 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/formulas/Fo4DamageFormula.{h,cpp}, fo4/HitContext.h, fo4/Fo4DamageTypes.{h,cpp}; unit/Fo4DamageFormulaTest.cpp
+- [ ] **F11-T01** `HitContext`, damage-type table from DMGT, `Fo4DamageFormula` steps 1–8 with the FO4 profile factory (REF-006) — L — Depends: REF-006, SRV-022, F08-T02 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/formulas/Fo4DamageFormula.{h,cpp}, fo4/HitContext.h, fo4/Fo4DamageTypes.{h,cpp}; unit/Fo4DamageFormulaTest.cpp
   - Accept: all curve, shotgun, difficulty and multiplier vectors pass.
 - [ ] **F11-T02** Perk entry-point integration (damage entries of §2) via SRV-021, with per-actor caching — M — Depends: F11-T01, SRV-021 — Verify: L-unit
   - Accept: Ninja/Rifleman/Big Leagues fixtures; priority ordering test.
@@ -137,7 +137,7 @@ NPC targets and NPC aggressors use the same function. NPC perks come from NPC_ `
 - [ ] **F11-T04** Limb damage, crippling, `crippledMask`, `OnCripple`, BPTD tables — M — Depends: F11-T01, F08-T01, ESPM-009 — Verify: L-unit, D-real
 - [ ] **F11-T05** DoTs and radiation damage via SRV-020 effects (poison, bleed, fire/cryo/electric spells, rad poisoning → Rads) — M — Depends: F11-T01, F20-T02 — Verify: L-unit
 - [ ] **F11-T06** Legendary weapon effects table (OMOD/ENCH handlers) and the post-damage call into the F13-T11 mutation hook — M — Depends: F11-T02, F13-T11 — Verify: L-unit
-- [ ] **F11-T07** `DamageApplied` message (full/fx variants), coalescing per tick, damage ledger — M — Depends: NET-002, F11-T01 — Verify: L-unit — Files: skymp5-server/cpp/messages/DamageAppliedMessage.h; falloutmp-client/src/services/messages/damageAppliedMessage.ts
+- [ ] **F11-T07** `DamageApplied` message (full/fx variants), coalescing per tick, damage ledger — M — Depends: NET-002, F11-T01 — Verify: L-unit — Files: falloutmp-server/cpp/messages/DamageAppliedMessage.h; falloutmp-client/src/services/messages/damageAppliedMessage.ts
   - Accept: round trip; pellet coalescing test; audience test (fx only for kill/dismember/crit).
 - [ ] **F11-T08** PvP/difficulty settings and gamemode `onHit`/`onDamage`, decorator chain kept — S — Depends: F11-T01, SRV-002 — Verify: L-unit, L-int
 - [ ] **F11-T09** FO4 `OnHit` (9 args, registration-gated) on the server VM — S — Depends: PVM-007, F11-T07 — Verify: L-unit

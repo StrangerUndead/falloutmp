@@ -62,8 +62,9 @@ TEST_CASE("DetectGame recognizes Fallout 4 and Skyrim plugins",
     REQUIRE(info.game == espm::Game::Fallout4);
     REQUIRE(info.masters == std::vector<std::string>{ "Fallout4.esm" });
   }
-  REQUIRE(espm::DetectGame(nullptr, *std::make_unique<espm::CompressedFieldsCache>()).game ==
-          espm::Game::Unknown);
+  REQUIRE(
+    espm::DetectGame(nullptr, *std::make_unique<espm::CompressedFieldsCache>())
+      .game == espm::Game::Unknown);
 }
 
 TEST_CASE("RequireSingleGame refuses mixed load orders", "[libespm][fo4]")
@@ -83,31 +84,32 @@ TEST_CASE("fo4::WEAP reads DNAM, CRDT, DAMA and keywords", "[libespm][fo4]")
 {
   PluginBuilder b;
   FieldWriter dnam;
-  dnam.Add<uint32_t>(0x1F66B)  // ammo .10mm
-    .Add(1.0f)                 // speed
-    .Add(1.25f)                // reload speed
-    .Add(1.0f)                 // reach
-    .Add(0.f)                  // min range
-    .Add(1024.f)               // max range
-    .Add(0.f)                  // attack delay
-    .Add(0.f)                  // unused
-    .Add(0.5f)                 // out of range mult
-    .Add<uint32_t>(0)          // on hit
-    .Add<uint32_t>(0x2C2)      // skill
-    .Add<uint32_t>(0)          // resist
+  dnam
+    .Add<uint32_t>(0x1F66B) // ammo .10mm
+    .Add(1.0f)              // speed
+    .Add(1.25f)             // reload speed
+    .Add(1.0f)              // reach
+    .Add(0.f)               // min range
+    .Add(1024.f)            // max range
+    .Add(0.f)               // attack delay
+    .Add(0.f)               // unused
+    .Add(0.5f)              // out of range mult
+    .Add<uint32_t>(0)       // on hit
+    .Add<uint32_t>(0x2C2)   // skill
+    .Add<uint32_t>(0)       // resist
     .Add<uint32_t>(espm::fo4::WEAP::kAutomatic)
-    .Add<uint16_t>(12)         // capacity
-    .Add<uint8_t>(9)           // Gun
-    .Add(0.f)                  // secondary damage
-    .Add(4.2f)                 // weight
-    .Add<uint32_t>(53)         // value
-    .Add<uint16_t>(18)         // base damage
-    .Add<uint32_t>(0)          // sound level
-    .Zeros(32)                 // sounds
-    .Add<uint8_t>(5)           // accuracy bonus
+    .Add<uint16_t>(12) // capacity
+    .Add<uint8_t>(9)   // Gun
+    .Add(0.f)          // secondary damage
+    .Add(4.2f)         // weight
+    .Add<uint32_t>(53) // value
+    .Add<uint16_t>(18) // base damage
+    .Add<uint32_t>(0)  // sound level
+    .Zeros(32)         // sounds
+    .Add<uint8_t>(5)   // accuracy bonus
     .Add(0.3f)
     .Zeros(2)
-    .Add(25.f)                 // AP cost
+    .Add(25.f) // AP cost
     .Add(0.f)
     .Add(0.f)
     .Add<uint32_t>(0)
@@ -223,7 +225,10 @@ TEST_CASE("fo4::MISC components, CMPO scrap item, COBJ recipe",
   FieldWriter miscData;
   miscData.Add<int32_t>(5).Add(1.5f);
   FieldWriter cvpa;
-  cvpa.Add<uint32_t>(0x1FA8C).Add<uint32_t>(3).Add<uint32_t>(0x106D98).Add<uint32_t>(1);
+  cvpa.Add<uint32_t>(0x1FA8C)
+    .Add<uint32_t>(3)
+    .Add<uint32_t>(0x106D98)
+    .Add<uint32_t>(1);
   b.AddRecord("MISC", 0x40)
     .EditorId("Junk_Wrench")
     .Add("DATA", miscData)
@@ -274,21 +279,42 @@ TEST_CASE("fo4::OMOD reads includes and 24-byte properties", "[libespm][fo4]")
 {
   PluginBuilder b;
   FieldWriter data;
-  data.Add<uint32_t>(1)                       // include count
-    .Add<uint32_t>(2)                         // property count
-    .Add<uint8_t>(0).Add<uint8_t>(0)          // unknown bools
-    .Add<uint32_t>(0x50414557)                // 'WEAP'
-    .Add<uint8_t>(0).Add<uint8_t>(0)          // max rank, level tier offset
-    .Add<uint32_t>(0x1A)                      // attach point keyword
-    .Add<uint32_t>(1).Add<uint32_t>(0x1B)     // attach parent slots
-    .Add<uint32_t>(0)                         // items
-    .Add<uint32_t>(0x60).Add<uint8_t>(0).Add<uint8_t>(1).Add<uint8_t>(0)
+  data
+    .Add<uint32_t>(1) // include count
+    .Add<uint32_t>(2) // property count
+    .Add<uint8_t>(0)
+    .Add<uint8_t>(0)           // unknown bools
+    .Add<uint32_t>(0x50414557) // 'WEAP'
+    .Add<uint8_t>(0)
+    .Add<uint8_t>(0)     // max rank, level tier offset
+    .Add<uint32_t>(0x1A) // attach point keyword
+    .Add<uint32_t>(1)
+    .Add<uint32_t>(0x1B) // attach parent slots
+    .Add<uint32_t>(0)    // items
+    .Add<uint32_t>(0x60)
+    .Add<uint8_t>(0)
+    .Add<uint8_t>(1)
+    .Add<uint8_t>(0)
     // property 1: AmmoCapacity (12) int ADD 6
-    .Add<uint8_t>(0).Zeros(3).Add<uint8_t>(2).Zeros(3).Add<uint16_t>(12)
-    .Zeros(2).Add<uint32_t>(6).Add<uint32_t>(0).Add(0.f)
+    .Add<uint8_t>(0)
+    .Zeros(3)
+    .Add<uint8_t>(2)
+    .Zeros(3)
+    .Add<uint16_t>(12)
+    .Zeros(2)
+    .Add<uint32_t>(6)
+    .Add<uint32_t>(0)
+    .Add(0.f)
     // property 2: Speed (0) float MUL+ADD 0.25
-    .Add<uint8_t>(1).Zeros(3).Add<uint8_t>(1).Zeros(3).Add<uint16_t>(0)
-    .Zeros(2).Add(0.25f).Add<uint32_t>(0).Add(0.f);
+    .Add<uint8_t>(1)
+    .Zeros(3)
+    .Add<uint8_t>(1)
+    .Zeros(3)
+    .Add<uint16_t>(0)
+    .Zeros(2)
+    .Add(0.25f)
+    .Add<uint32_t>(0)
+    .Add(0.f);
 
   b.AddRecord("OMOD", 0x61)
     .EditorId("mod_10mm_Mag_Large")
@@ -322,8 +348,14 @@ TEST_CASE("fo4::OMOD with a lying property count stays in bounds",
 {
   PluginBuilder b;
   FieldWriter data;
-  data.Add<uint32_t>(0).Add<uint32_t>(1000).Zeros(2).Add<uint32_t>(0).Zeros(
-    2).Add<uint32_t>(0).Add<uint32_t>(0).Add<uint32_t>(0);
+  data.Add<uint32_t>(0)
+    .Add<uint32_t>(1000)
+    .Zeros(2)
+    .Add<uint32_t>(0)
+    .Zeros(2)
+    .Add<uint32_t>(0)
+    .Add<uint32_t>(0)
+    .Add<uint32_t>(0);
   b.AddRecord("OMOD", 0x70).Add("DATA", data);
   ParsedPlugin p(b);
   auto d = p.Get<espm::fo4::OMOD>(0x70);
@@ -341,8 +373,9 @@ TEST_CASE("fo4::FURN workbench and power armor flags, GLOB, ALCH, PRPS",
   auto& frame = b.AddRecord("FURN", 0x81).EditorId("PowerArmorFurniture");
   frame.flags = espm::fo4::FURN::kPowerArmorRecordFlag;
 
-  b.AddRecord("GLOB", 0x90).EditorId("TimeScale").AddValue<uint8_t>("FNAM",
-                                                                    'f')
+  b.AddRecord("GLOB", 0x90)
+    .EditorId("TimeScale")
+    .AddValue<uint8_t>("FNAM", 'f')
     .AddValue("FLTV", 20.f);
 
   FieldWriter enit;
@@ -408,8 +441,9 @@ TEST_CASE("fo4::NPC_ reads ACBS, factions, templates, loadout; OTFT items",
 {
   PluginBuilder b;
   FieldWriter acbs;
-  acbs.Add<uint32_t>(espm::fo4::NPC_::kFlagPcLevelMult |
-                     espm::fo4::NPC_::kFlagEssential)
+  acbs
+    .Add<uint32_t>(espm::fo4::NPC_::kFlagPcLevelMult |
+                   espm::fo4::NPC_::kFlagEssential)
     .Add<int16_t>(-5)
     .Add<uint16_t>(1500) // level mult 1.5
     .Add<uint16_t>(3)
@@ -427,7 +461,10 @@ TEST_CASE("fo4::NPC_ reads ACBS, factions, templates, loadout; OTFT items",
   FieldWriter cnto;
   cnto.Add<uint32_t>(0x4822C).Add<int32_t>(1);
   FieldWriter dnam;
-  dnam.Add<uint16_t>(120).Add<uint16_t>(80).Add<uint16_t>(0).Add<uint8_t>(0)
+  dnam.Add<uint16_t>(120)
+    .Add<uint16_t>(80)
+    .Add<uint16_t>(0)
+    .Add<uint8_t>(0)
     .Zeros(1);
   b.AddRecord("NPC_", 0x100)
     .EditorId("RaiderTemplate")

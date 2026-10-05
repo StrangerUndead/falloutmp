@@ -174,15 +174,15 @@ Companions *are* hosted NPCs. Their hits, movement and actions use F13's host-va
 - `G-manual`: two players, each with a companion; command, trade, revive the other's companion, load door follow.
 
 ## 7. Tasks
-- [ ] **F21-T01** Messages `CompanionCommand` (102) and `CompanionState` (112), `companionOwner` property — S — Depends: NET-002 — Verify: L-unit — Files: skymp5-server/cpp/messages/{CompanionCommandMessage,CompanionStateMessage}.h, Messages.h; falloutmp-client/src/services/messages/
-- [ ] **F21-T02** `CompanionService`: catalogue, recruit/dismiss, instancing, limits, persistence fields — M — Depends: F21-T01, F13-T01 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/CompanionService.{h,cpp}, MpChangeForms.{h,cpp}, game_profile/fallout4/companions.json; unit/CompanionTest.cpp
+- [ ] **F21-T01** Messages `CompanionCommand` (102) and `CompanionState` (112), `companionOwner` property — S — Depends: NET-002 — Verify: L-unit — Files: falloutmp-server/cpp/messages/{CompanionCommandMessage,CompanionStateMessage}.h, Messages.h; falloutmp-client/src/services/messages/
+- [ ] **F21-T02** `CompanionService`: catalogue, recruit/dismiss, instancing, limits, persistence fields — M — Depends: F21-T01, F13-T01 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/fo4/CompanionService.{h,cpp}, MpChangeForms.{h,cpp}, game_profile/fallout4/companions.json; unit/CompanionTest.cpp
 - [ ] **F21-T03** Owner-forced hosting in `NpcHostingService`; cell-follow teleports; offline disable — S — Depends: F13-T05, F21-T02 — Verify: L-unit
 - [ ] **F21-T04** Command validation and forwarding (`pendingCommand`), Retrieve via F06 — M — Depends: F21-T02, F06, F07 — Verify: L-unit
 - [ ] **F21-T05** Client: command-mode capture/cancel, follow package + command execution on the host, nameplate owner tag — L — Depends: F21-T01, PLAT-040, PLAT-073, F13-T08 — Verify: G-self, G-manual — Files: falloutmp-client/src/services/services/companionService.ts, fallout4-platform/src/platform_fo4/CompanionApi.cpp
-- [ ] **F21-T06** `AffinityService` + reaction tables from VMAD (ESPM-004) + passive gain + perk grant — M — Depends: F21-T02, F19-T09, ESPM-004 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/AffinityService.{h,cpp}
+- [ ] **F21-T06** `AffinityService` + reaction tables from VMAD (ESPM-004) + passive gain + perk grant — M — Depends: F21-T02, F19-T09, ESPM-004 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/fo4/AffinityService.{h,cpp}
 - [ ] **F21-T07** Trade and equip on companions (F06/F05 rules, owner-only) — S — Depends: F21-T04, F05, F06 — Verify: L-unit
 - [ ] **F21-T08** Essential/downed/get-up/revive integration (F12, F20) — S — Depends: F21-T02, F12, F20-T01 — Verify: L-unit
-- [ ] **F21-T09** Gamemode/Papyrus surface (§4.9); default-gamemode recruitment rules — M — Depends: F21-T04 — Verify: L-int — Files: falloutmp-gamemode/src/systems/companions.ts, skymp5-server/ts typings
+- [ ] **F21-T09** Gamemode/Papyrus surface (§4.9); default-gamemode recruitment rules — M — Depends: F21-T04 — Verify: L-int — Files: falloutmp-gamemode/src/systems/companions.ts, falloutmp-server/ts typings
 - [ ] **F21-T10** `G-manual` script and sign-off — S — Depends: F21-T05 — Verify: G-manual — Files: docs/falloutmp/test-scripts/F21-companions.md
 
 ## 8. Open questions & risks

@@ -1,6 +1,6 @@
+#include "fo4/Fo4WorldBootstrap.h"
 #include "PluginBuilder.h"
 #include "fo4/EspmFo4DataSource.h"
-#include "fo4/Fo4WorldBootstrap.h"
 #include "libespm/Browser.h"
 #include "libespm/Combiner.h"
 #include "libespm/fo4/Fo4Records.h"
@@ -35,8 +35,9 @@ Record& Refr(PluginBuilder& b, uint32_t id, uint32_t base,
 {
   FieldWriter data;
   data.Add(pos[0]).Add(pos[1]).Add(pos[2]).Add(0.f).Add(0.f).Add(0.f);
-  return b.AddRecord("REFR", id).AddValue<uint32_t>("NAME", base).Add("DATA",
-                                                                    data);
+  return b.AddRecord("REFR", id)
+    .AddValue<uint32_t>("NAME", base)
+    .Add("DATA", data);
 }
 }
 
@@ -49,16 +50,20 @@ TEST_CASE("World bootstrap registers frames, workshops, areas and locks",
   {
     FieldWriter data;
     data.Add<int32_t>(100).Add(10.f).Add<uint32_t>(450);
-    b.AddRecord("ARMO", 0x20).EditorId("T45Torso").Keywords({ 0x10 }).Add(
-      "DATA", data);
+    b.AddRecord("ARMO", 0x20)
+      .EditorId("T45Torso")
+      .Keywords({ 0x10 })
+      .Add("DATA", data);
   }
   b.AddRecord("AMMO", 0x75FE4).EditorId("AmmoFusionCore");
   {
     FieldWriter cnto1, cnto2;
     cnto1.Add<uint32_t>(0x20).Add<int32_t>(1);
     cnto2.Add<uint32_t>(0x75FE4).Add<int32_t>(1);
-    auto& frame = b.AddRecord("FURN", 0x30).EditorId("PowerArmorFurniture")
-                    .Add("CNTO", cnto1).Add("CNTO", cnto2);
+    auto& frame = b.AddRecord("FURN", 0x30)
+                    .EditorId("PowerArmorFurniture")
+                    .Add("CNTO", cnto1)
+                    .Add("CNTO", cnto2);
     frame.flags = espm::fo4::FURN::kPowerArmorRecordFlag;
   }
   b.AddRecord("FURN", 0x31).EditorId("WorkshopWorkbench");

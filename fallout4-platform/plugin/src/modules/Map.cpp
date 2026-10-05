@@ -36,8 +36,7 @@ constexpr std::uint8_t kCanTravelTo = 0x02;
 std::uint8_t* MarkerFlags(RE::TESObjectREFR* ref)
 {
   auto data = ref ? ref->GetMapMarkerData() : nullptr;
-  return data ? reinterpret_cast<std::uint8_t*>(data) + kFlagsOffset
-              : nullptr;
+  return data ? reinterpret_cast<std::uint8_t*>(data) + kFlagsOffset : nullptr;
 }
 
 void SetMapMarker(Platform& p, uint32_t id, bool visible, bool canTravelTo)

@@ -1,7 +1,7 @@
 #pragma once
 // F03 appearance record and the TESNPC face block it maps to.
 //
-// The record is fo4msg::AppearanceFo4 (skymp5-server/cpp/messages/
+// The record is fo4msg::AppearanceFo4 (falloutmp-server/cpp/messages/
 // Fo4Messages.h) / AppearanceFo4 (falloutmp-client/src/services/messages/
 // fo4Messages.ts); JSON field names and types match both. Form ids are
 // runtime (load-order resolved) ids, the same on server and client.
@@ -43,10 +43,11 @@ struct FaceRegion
 
 struct Tint
 {
-  uint16_t tintIndex = 0;  // template entry uniqueID (TETI index)
-  uint8_t dataType = 0;    // BGSCharacterTint::EntryType: 0 mask, 1 palette, 2 texture
-  uint8_t value = 0;       // intensity 0..100 (0 = off)
-  uint32_t rgba = 0;       // palette colour
+  uint16_t tintIndex = 0; // template entry uniqueID (TETI index)
+  uint8_t dataType =
+    0; // BGSCharacterTint::EntryType: 0 mask, 1 palette, 2 texture
+  uint8_t value = 0;               // intensity 0..100 (0 = off)
+  uint32_t rgba = 0;               // palette colour
   int16_t templateColorIndex = -1; // palette swatch id, -1 = none
 };
 
@@ -57,7 +58,7 @@ struct Appearance
   uint32_t hairColorId = 0;
   uint32_t facialHairColorId = 0;
   uint32_t headTextureSetId = 0;
-  std::vector<uint32_t> headPartIds; // sorted
+  std::vector<uint32_t> headPartIds;            // sorted
   std::array<float, 3> bodyMorph = { 0, 0, 0 }; // thin, muscular, large
   std::vector<float> morphRegions;
   std::vector<MorphSlider> morphSliders; // sorted by key

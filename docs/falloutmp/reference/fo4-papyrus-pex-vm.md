@@ -8,7 +8,7 @@
 
 | Tag | Meaning |
 |---|---|
-| `[src: path:line]` | Read in source. Paths starting `papyrus-vm/`, `skymp5-server/`, `skyrim-platform/`, `unit/`, `libespm/`, `overlay_ports/` are in this repo. Other paths are in the scratchpad clones listed below. |
+| `[src: path:line]` | Read in source. Paths starting `papyrus-vm/`, `falloutmp-server/`, `skyrim-platform/`, `unit/`, `libespm/`, `overlay_ports/` are in this repo. Other paths are in the scratchpad clones listed below. |
 | `[caprica-run]` | Checked by compiling FO4 test scripts with a Linux build of Caprica (Styyx1/Caprica `500be9c`, a portability fork of Orvid/Caprica). The bytes were dumped with a small independent reader written from this spec. See §1.12. |
 | `[ck-pex]` | Checked against real Creation-Kit-compiled **Skyrim** PEX files in `unit/papyrus_test_files/pex/*.pex`. |
 | `[web: URL]` | External documentation. The FO4 CK wiki pages were fetched as wikitext via `https://falloutck.uesp.net/w/api.php?action=parse&page=<Title>&prop=wikitext`. |
@@ -636,7 +636,7 @@ The VM picks a function in this order:
   - **ActiveMagicEffect** scripts on the actor, which receive Actor events.
   - `[web: falloutck ReferenceAlias/RefCollectionAlias/ActiveMagicEffect Script; src: f4se/scripts/vanilla/RefCollectionAlias.psc:293-309]`
 - Timers and registered single-shot events (OnTimer, OnHit, distance, LOS) go **only** to the registering script.
-- The server's current `WorldState::SendPapyrusEvent` sends to all scripts on the object. It must add the FO4 gates: OnHit and OnMagicEffectApply need a registration, and OnItemAdded/Removed need a filter. It must also relay remote events after the local dispatch `[src: skymp5-server/cpp/server_guest_lib/WorldState.cpp:802-836]`.
+- The server's current `WorldState::SendPapyrusEvent` sends to all scripts on the object. It must add the FO4 gates: OnHit and OnMagicEffectApply need a registration, and OnItemAdded/Removed need a filter. It must also relay remote events after the local dispatch `[src: falloutmp-server/cpp/server_guest_lib/WorldState.cpp:802-836]`.
 
 ### 4.5 VMAD (FO4 v6) and property initialisation, including structs
 
@@ -667,7 +667,7 @@ Property: wstring name; u8 type; u8 flags (1 Edited, 3 Removed); value by type:
 5. A struct property that is absent from VMAD stays None.
 
 **Name mapping**
-- Store the value in the backing variable `::<Prop>_var`, as the server already does `[src: skymp5-server/cpp/server_guest_lib/ScriptVariablesHolder.cpp:118-143]`.
+- Store the value in the backing variable `::<Prop>_var`, as the server already does `[src: falloutmp-server/cpp/server_guest_lib/ScriptVariablesHolder.cpp:118-143]`.
 - The VMAD lists the attached script's properties, including inherited ones. The variable holder must therefore cover the **whole inheritance chain** (§6.6).
 
 **Game warnings to mirror:** "X does not have a property named Y", "read-only", "type mismatch … property skipped" `[web: falloutck Papyrus Runtime Errors]`.
@@ -959,7 +959,7 @@ Guiding rule: **one library, two games**. Parse both formats. The executor treat
 
 - Add `enum class Endian { Big, Little } endian;` and make `Read16/32/64` endian-aware. Add `ReadFloat` (bit-cast from u32) and `ReadI32`. Replace the byte-by-byte `ifstream::get` loop with a bulk read.
 - `FillHeader`: detect the magic as LE first (§1.1). Validate major, minor and gameID (§1.2). Throw `std::runtime_error` with the path on mismatch.
-- `FillSource`: store the raw string in a new `PexScript::sourceFileName`. **Set `PexScript::source` from `objectTable[0].NameIndex` after parsing.** This gives the object name, e.g. `PexVm:Sender`, because FO4 headers contain absolute paths `[caprica-run]`. Skyrim is unaffected: the name equals the file stem `[ck-pex]`. `GetSourcePexName()` is used for script identity in `IGameObject::HasScript`, `MpForm`, CallParent and casts `[src: papyrus-vm/src/papyrus-vm-lib/IGameObject.cpp:7; ActivePexInstance.cpp:141-149,313-316,1076; skymp5-server/cpp/server_guest_lib/MpForm.cpp:65-68]`.
+- `FillSource`: store the raw string in a new `PexScript::sourceFileName`. **Set `PexScript::source` from `objectTable[0].NameIndex` after parsing.** This gives the object name, e.g. `PexVm:Sender`, because FO4 headers contain absolute paths `[caprica-run]`. Skyrim is unaffected: the name equals the file stem `[ck-pex]`. `GetSourcePexName()` is used for script identity in `IGameObject::HasScript`, `MpForm`, CallParent and casts `[src: papyrus-vm/src/papyrus-vm-lib/IGameObject.cpp:7; ActivePexInstance.cpp:141-149,313-316,1076; falloutmp-server/cpp/server_guest_lib/MpForm.cpp:65-68]`.
 - `FillDebugInfo`: honour the `hasDebugInfo == 0` early exit. For LE files read the property groups and struct orders into new `DebugInfo::propertyGroups` / `structOrders`.
 - `FillObject`: after the docstring, `if (fo4) object.isConst = Read8_bit()`. After `autoStateName`, `if (fo4) FillStructTable(object.structs)`. Reject gameID 4 (guards).
 - `FillVariable`: after the value, `if (fo4) var.isConst = Read8_bit()`.
@@ -1047,15 +1047,15 @@ Guiding rule: **one library, two games**. Parse both formats. The executor treat
 
 ### 6.6 Server glue (outside papyrus-vm, but needed)
 
-- **`skymp5-server/.../script_storages/DirectoryScriptStorage.cpp` and `ScriptStorageUtils.cpp`:**
+- **`falloutmp-server/.../script_storages/DirectoryScriptStorage.cpp` and `ScriptStorageUtils.cpp`:**
   - Use `recursive_directory_iterator`.
   - The script name is the path relative to `scripts/` with separators turned into `:` and the `.pex` extension dropped (`MyMod/Quests/Q.pex` → `MyMod:Quests:Q`).
   - `GetScriptPex("A:B")` opens `A/B.pex`, replacing `:` with the OS separator. Match case-insensitively; on Linux resolve case by scanning the directory.
-  - Today the listing is flat and keyed by file stem `[src: skymp5-server/cpp/server_guest_lib/script_storages/ScriptStorageUtils.cpp:31-48; DirectoryScriptStorage.cpp:15-43]`.
+  - Today the listing is flat and keyed by file stem `[src: falloutmp-server/cpp/server_guest_lib/script_storages/ScriptStorageUtils.cpp:31-48; DirectoryScriptStorage.cpp:15-43]`.
 - **`BsaArchiveScriptStorage`:** FO4 uses BA2 (`BTDX`, GNRL). Strip `scripts\` and apply the same namespace mapping.
 - **`AssetsScriptStorage` / `standard_scripts`:** an FO4 set compiled with the FO4 compiler — `ScriptObject`, `Form`, `ObjectReference`, `Actor`, `Quest`, `Utility`, `Debug`, … taken from `f4se/scripts/vanilla`.
 - **`ScriptVariablesHolder`:**
-  - `FillNormalVariables` over every PEX in the inheritance chain. Today it only covers the first PEX, which breaks the CK's parent `::X_var` reads `[src: skymp5-server/cpp/server_guest_lib/ScriptVariablesHolder.cpp:105-158]`.
+  - `FillNormalVariables` over every PEX in the inheritance chain. Today it only covers the first PEX, which breaks the CK's parent `::X_var` reads `[src: falloutmp-server/cpp/server_guest_lib/ScriptVariablesHolder.cpp:105-158]`.
   - Set `objectType` on script variables.
   - Fall back to the parent's auto state when the child has none.
   - Add VMAD types 6, 7, 16 and 17 and struct initialisation (§4.5).

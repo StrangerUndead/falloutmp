@@ -128,12 +128,12 @@ Death/respawn are rare events: one `DeathStateContainerFo4` (≤ 400 B with AV m
 - `G-manual`: PvP kill, respawn, loot the death bag; companion downed and revived by another player; dismember seen identically on two clients.
 
 ## 7. Tasks
-- [ ] **F12-T01** FO4 death pipeline in `MpActor` (life-state machine alive/bleedout/downed/dead, kill reasons, ledger hand-off to F19 kill XP) — M — Depends: F08-T01, F11-T07 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/MpActor.{h,cpp}, fo4/Fo4LifeState.{h,cpp}; unit/Fo4DeathTest.cpp
+- [ ] **F12-T01** FO4 death pipeline in `MpActor` (life-state machine alive/bleedout/downed/dead, kill reasons, ledger hand-off to F19 kill XP) — M — Depends: F08-T01, F11-T07 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/MpActor.{h,cpp}, fo4/Fo4LifeState.{h,cpp}; unit/Fo4DeathTest.cpp
 - [ ] **F12-T02** Client HP funnel clamp + deferred-kill guard for the local player and hosted NPCs — L — Depends: PLAT-002, PLAT-040 — Verify: W-ci, G-self — Files: fallout4-platform/src/.../hooks/HealthFunnelHook.cpp
   - Accept: the self-test survives 10× lethal engine damage at 1 HP until the server kills.
 - [ ] **F12-T03** `isDead`/`lifeState` `UpdateProperty` to all listeners on death and respawn (I14), client long-id routing via CLI-031 — S — Depends: F12-T01, CLI-031 — Verify: L-unit, L-ts
   - Accept: neighbour receives `isDead=true` without any movement packet.
-- [ ] **F12-T04** `DeathStateContainerFo4` message (C++ + TS) with the F08 AV map — S — Depends: NET-002, F08-T03 — Verify: L-unit — Files: skymp5-server/cpp/messages/DeathStateContainerFo4Message.h; falloutmp-client/src/services/messages/
+- [ ] **F12-T04** `DeathStateContainerFo4` message (C++ + TS) with the F08 AV map — S — Depends: NET-002, F08-T03 — Verify: L-unit — Files: falloutmp-server/cpp/messages/DeathStateContainerFo4Message.h; falloutmp-client/src/services/messages/
 - [ ] **F12-T05** Player respawn: spawn points/delay (existing fields), AV restore, `respawn.clearRads`/`clearEffects`, and the client respawn prototype (`Resurrect` vs template reload, `death.respawnMode`) — M — Depends: F12-T04, F00-T04, F20 (effects) — Verify: L-unit, G-self
   - Accept: unit tests pass; prototype result recorded in STATUS.md and this spec updated.
 - [ ] **F12-T06** Essential/protected NPCs and bleedout recovery — S — Depends: F12-T01, ESPM-006 — Verify: L-unit

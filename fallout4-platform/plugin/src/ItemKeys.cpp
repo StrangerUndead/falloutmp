@@ -94,8 +94,7 @@ bool IsPlayerOwner(uint32_t owner)
     owner == kPlayerFaction;
 }
 
-void ShowMessage(const RE::TESBoundObject* object, uint32_t count,
-                 bool added)
+void ShowMessage(const RE::TESBoundObject* object, uint32_t count, bool added)
 {
   if (!object) {
     return;
@@ -123,9 +122,8 @@ RE::BSTSmartPointer<RE::ExtraDataList> BuildExtra(RE::TESBoundObject* object,
     }
     mods.push_back(mod);
   }
-  RE::TESForm* owner = key.stolenFrom
-    ? RE::TESForm::GetFormByID(key.stolenFrom)
-    : nullptr;
+  RE::TESForm* owner =
+    key.stolenFrom ? RE::TESForm::GetFormByID(key.stolenFrom) : nullptr;
   bool health = key.condition != kConditionFull;
   if (mods.empty() && !owner && !health) {
     return {};
@@ -291,8 +289,7 @@ bool SameStack(const Key& a, const Key& b)
 
 bool IsPlain(const Key& k)
 {
-  return k.mods.empty() && k.condition == kConditionFull &&
-    k.stolenFrom == 0;
+  return k.mods.empty() && k.condition == kConditionFull && k.stolenFrom == 0;
 }
 
 Key KeyOf(const RE::TESBoundObject* object, const RE::ExtraDataList* extra)
@@ -415,7 +412,8 @@ std::optional<Instance> Find(RE::TESObjectREFR* ref, const Key& key,
     }
     uint32_t index = 0;
     for (auto s = item.stackData.get(); s; s = s->nextStack.get(), ++index) {
-      if (s->count == 0 || !SameStack(KeyOf(item.object, s->extra.get()), key)) {
+      if (s->count == 0 ||
+          !SameStack(KeyOf(item.object, s->extra.get()), key)) {
         continue;
       }
       Instance inst;

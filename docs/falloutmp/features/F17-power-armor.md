@@ -241,10 +241,10 @@ At 0, auto-swap the next core from the actor inventory, vanilla style. The deple
 - `G-manual`: two players: enter, walk, sprint, jetpack, exit; the other player sees the frame vanish/reappear; mod at a station; core runs dry; disconnect in PA.
 
 ## 7. Tasks
-- [ ] **F17-T01** Messages `PowerArmorTransition` (87) and `PowerArmorState` (88), snapshot payload — S — Depends: NET-002 — Verify: L-unit — Files: skymp5-server/cpp/messages/{PowerArmorTransitionMessage,PowerArmorStateMessage}.h, Messages.h; falloutmp-client/src/services/messages/
-- [ ] **F17-T02** `PowerArmorService`: enter/exit/ack/rollback, validation order, atomic transfers, corrections, ownership/stealing — L — Depends: F17-T01, F04, F05, F07-T04 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/PowerArmorService.{h,cpp}, MpChangeForms.{h,cpp}; unit/PowerArmorTest.cpp
+- [ ] **F17-T01** Messages `PowerArmorTransition` (87) and `PowerArmorState` (88), snapshot payload — S — Depends: NET-002 — Verify: L-unit — Files: falloutmp-server/cpp/messages/{PowerArmorTransitionMessage,PowerArmorStateMessage}.h, Messages.h; falloutmp-client/src/services/messages/
+- [ ] **F17-T02** `PowerArmorService`: enter/exit/ack/rollback, validation order, atomic transfers, corrections, ownership/stealing — L — Depends: F17-T01, F04, F05, F07-T04 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/fo4/PowerArmorService.{h,cpp}, MpChangeForms.{h,cpp}; unit/PowerArmorTest.cpp
   - Accept: all §6 enter/exit cases pass.
-- [ ] **F17-T03** Core drain model, auto swap, unpowered state (F01 speed table + F08 AP gate), GameProfile rates — M — Depends: F17-T02, F01-T05, F08, SRV-021 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/PowerArmorDrain.{h,cpp}, game_profile/fallout4/pa_drain.json
+- [ ] **F17-T03** Core drain model, auto swap, unpowered state (F01 speed table + F08 AP gate), GameProfile rates — M — Depends: F17-T02, F01-T05, F08, SRV-021 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/fo4/PowerArmorDrain.{h,cpp}, game_profile/fallout4/pa_drain.json
 - [ ] **F17-T04** Piece damage, break and core-eject hooks with F11/F10 — M — Depends: F17-T02, F11 — Verify: L-unit
 - [ ] **F17-T05** Frame persistence, frames as containers (F06 rules), abandon/reset with F14 — M — Depends: F17-T02, F06 — Verify: L-unit
 - [ ] **F17-T06** Disconnect/death/restart handling — S — Depends: F17-T02, F12 — Verify: L-unit
@@ -255,7 +255,7 @@ At 0, auto-swap the next core from the actor inventory, vanilla style. The deple
 - [ ] **F17-T10** Jetpack: capability check, movement flag, AP + drain, F01 vertical allowance — S — Depends: F17-T03, F01-T07 — Verify: L-unit, G-manual
 - [ ] **F17-T11** Station integration: frame as the `ModItem` target (F16), repair/paint/attach rules, station proximity — M — Depends: F17-T05, F16 — Verify: L-unit
 - [ ] **F17-T12** NPC PA: linked frames at spawn, death drop, companion enter via host — M — Depends: F17-T02, F13-T03, F21 — Verify: L-unit, G-manual
-- [ ] **F17-T13** Gamemode/Papyrus surface and docs (§4.9) — S — Depends: F17-T02 — Verify: L-int — Files: skymp5-server/ts typings, script_classes/PapyrusActor.cpp
+- [ ] **F17-T13** Gamemode/Papyrus surface and docs (§4.9) — S — Depends: F17-T02 — Verify: L-int — Files: falloutmp-server/ts typings, script_classes/PapyrusActor.cpp
 - [ ] **F17-T14** Drain-rate calibration (R8) and `G-manual` script — S — Depends: F17-T08 — Verify: G-self, G-manual — Files: docs/falloutmp/test-scripts/F17-power-armor.md
 
 ## 8. Open questions & risks

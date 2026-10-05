@@ -88,8 +88,8 @@ None beyond F31 nameplates and FRONT-006 UI.
 - `G-manual`: party UI, markers, PvP flag flow.
 
 ## 7. Tasks
-- [ ] **F32-T01** Party record + `PartyAction` (120) message, C++ struct + TS mirror, registration, round trip — S — Depends: NET-002, SRV-060 — Verify: L-unit — Files: skymp5-server/cpp/messages/PartyActionMessage.h, falloutmp-client/src/services/messages/partyActionMessage.ts
-- [ ] **F32-T02** `PartyService`: lifecycle ops, invitations, leader rules, size cap, persistence, properties `partyId`/`pvpFlag` — M — Depends: F32-T01 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/PartyService.{h,cpp}, unit/PartyServiceTest.cpp
+- [ ] **F32-T01** Party record + `PartyAction` (120) message, C++ struct + TS mirror, registration, round trip — S — Depends: NET-002, SRV-060 — Verify: L-unit — Files: falloutmp-server/cpp/messages/PartyActionMessage.h, falloutmp-client/src/services/messages/partyActionMessage.ts
+- [ ] **F32-T02** `PartyService`: lifecycle ops, invitations, leader rules, size cap, persistence, properties `partyId`/`pvpFlag` — M — Depends: F32-T01 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/PartyService.{h,cpp}, unit/PartyServiceTest.cpp
   - Accept: all §6 unit cases pass; state restored after restart.
 - [ ] **F32-T03** PvP rules: flag with cooldown and combat tag, zones (settings + gamemode polygons via `geo`), friendly-fire setting consumed by F11 step 0 and F10 — M — Depends: F32-T02, F11-T02 — Verify: L-unit, L-int
 - [ ] **F32-T04** Hostility integration: party-aware `IsHostile` in F13 and companion hostility in F21; matrix push via `NpcAiState` — S — Depends: F32-T02, F13-T05 — Verify: L-unit

@@ -125,8 +125,9 @@ public:
     tes4.flags = tes4Flags;
     tes4.formVersion = formVersion;
     FieldWriter hedrW;
-    hedrW.Add(hedr).Add(static_cast<int32_t>(records.size())).Add(
-      static_cast<uint32_t>(0x800));
+    hedrW.Add(hedr)
+      .Add(static_cast<int32_t>(records.size()))
+      .Add(static_cast<uint32_t>(0x800));
     tes4.Add("HEDR", hedrW);
     for (auto& m : masters) {
       tes4.AddString("MAST", m);

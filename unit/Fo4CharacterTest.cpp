@@ -229,7 +229,9 @@ TEST_CASE("Character creation and perk purchase rules", "[fo4][F19]")
   REQUIRE(avs.GetCurrent(Av::Health) == avs.GetMax(Av::Health));
 
   std::map<std::string, PerkChartEntry> chart;
-  chart["GunNut"] = { "Gun Nut", Av::Intelligence, 3,
+  chart["GunNut"] = { "Gun Nut",
+                      Av::Intelligence,
+                      3,
                       { { 0x4D9B1, 1 }, { 0x4D9B2, 13 }, { 0x4D9B3, 25 } } };
   chart["Rifleman"] = { "Rifleman", Av::Perception, 6, { { 0x4A0D1, 1 } } };
 

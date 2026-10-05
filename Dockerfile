@@ -1,6 +1,6 @@
 # Image used as runtime base for a game server.
 # Contains a minimal subset of stuff needed for running (and debugging, if needed) the server.
-FROM ubuntu:25.10 AS skymp-runtime-base
+FROM ubuntu:25.10 AS falloutmp-runtime-base
 
 # Prevent apt-get from asking us about timezone
 # London is not always UTC+0:00
@@ -14,12 +14,12 @@ RUN \
   && apt-get install -y nodejs gdb \
   && rm -rf /var/lib/apt/lists/*
 
-RUN useradd -m skymp
+RUN useradd -m falloutmp
 
 
-# This is the base image for building SkyMP source.
+# This is the base image for building FalloutMP.
 # It contains everything that should be installed on the system.
-FROM skymp-runtime-base AS skymp-build-base
+FROM falloutmp-runtime-base AS falloutmp-build-base
 
 # TODO: update clang
 RUN \
@@ -61,7 +61,7 @@ RUN ln -s /usr/bin/clang-20 /usr/bin/clang \
 # Intermediate image to build
 # TODO: copy less stuff
 # TODO: build huge deps separately
-FROM skymp-build-base AS skymp-vcpkg-deps-builder
+FROM falloutmp-build-base AS falloutmp-vcpkg-deps-builder
 ARG VCPKG_URL
 ARG VCPKG_COMMIT
 
@@ -69,15 +69,15 @@ ARG VCPKG_COMMIT
 WORKDIR /src
 
 # 2. Copy files and set ownership of the copied files
-COPY --chown=skymp:skymp . .
+COPY --chown=falloutmp:falloutmp . .
 
 # 3. Explicitly fix ownership of the /src directory itself
-# This ensures skymp can create new folders (like 'vcpkg') inside it
+# This ensures falloutmp can create new folders (like 'vcpkg') inside it
 USER root
-RUN chown skymp:skymp /src
+RUN chown falloutmp:falloutmp /src
 
 # 4. Now switch to the non-root user
-USER skymp
+USER falloutmp
 
 # 5. Run the build commands
 RUN git clone "$VCPKG_URL" vcpkg \
@@ -90,7 +90,7 @@ RUN git clone "$VCPKG_URL" vcpkg \
 # Image that runs in CI. It contains vcpkg cache to speedup the build.
 # Sadly, the builtin NuGet cache doesn't work on Linux, see:
 # https://github.com/microsoft/vcpkg/issues/19038
-FROM skymp-build-base AS skymp-vcpkg-deps
+FROM falloutmp-build-base AS falloutmp-vcpkg-deps
 
-COPY --from=skymp-vcpkg-deps-builder --chown=skymp:skymp \
-  /home/skymp/.cache/vcpkg /home/skymp/.cache/vcpkg
+COPY --from=falloutmp-vcpkg-deps-builder --chown=falloutmp:falloutmp \
+  /home/falloutmp/.cache/vcpkg /home/falloutmp/.cache/vcpkg

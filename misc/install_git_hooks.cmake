@@ -44,15 +44,15 @@ if(NOT YARN_BIN_RESULT EQUAL 0)
 endif()
 
 string(STRIP "${YARN_GLOBAL_BIN}" YARN_GLOBAL_BIN)
-set(SKYMP_LINTER_BIN "${YARN_GLOBAL_BIN}/skymp-linter")
+set(LINTER_BIN "${YARN_GLOBAL_BIN}/skymp-linter")
 
-if(NOT EXISTS ${SKYMP_LINTER_BIN})
-    message(FATAL_ERROR "skymp-linter binary not found at ${SKYMP_LINTER_BIN}")
+if(NOT EXISTS ${LINTER_BIN})
+    message(FATAL_ERROR "skymp-linter binary not found at ${LINTER_BIN}")
 endif()
 
-message(STATUS "Installing pre-commit hook via ${SKYMP_LINTER_BIN}")
+message(STATUS "Installing pre-commit hook via ${LINTER_BIN}")
 execute_process(
-    COMMAND ${SKYMP_LINTER_BIN} --install-hook
+    COMMAND ${LINTER_BIN} --install-hook
     WORKING_DIRECTORY ${REPO_ROOT}
     RESULT_VARIABLE HOOK_RESULT
     OUTPUT_VARIABLE HOOK_STDOUT

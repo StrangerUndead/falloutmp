@@ -141,7 +141,7 @@ Melee hit ≤ 15 µs. Explosion resolution O(actors in 3×3 grid) ≤ 50 µs. `E
 - [ ] **F10-T04** Reach check with rewound positions (I9) and derived sneak flag — M — Depends: F10-T01, F01-T05, F29 (detection) — Verify: L-unit
   - Accept: §6 reach cases pass; reach/power/sneak flags are never taken from the client.
 - [ ] **F10-T05** Stagger/knockdown decision (weapon/explosion stagger vs armor rating, perk entries) into `DamageApplied`; client `applyStagger`/`pushActorAway` — M — Depends: F11-T07 — Verify: L-unit, G-self
-- [ ] **F10-T06** `ExplosionEvent` message + `ExplosiveRegistry` (spawn/detonate validation, trajectory model, fuse, dud) — M — Depends: NET-002, F09-T04 — Verify: L-unit — Files: skymp5-server/cpp/messages/ExplosionEventMessage.h, fo4/ExplosiveRegistry.{h,cpp}
+- [ ] **F10-T06** `ExplosionEvent` message + `ExplosiveRegistry` (spawn/detonate validation, trajectory model, fuse, dud) — M — Depends: NET-002, F09-T04 — Verify: L-unit — Files: falloutmp-server/cpp/messages/ExplosionEventMessage.h, fo4/ExplosiveRegistry.{h,cpp}
 - [ ] **F10-T07** Server area damage (rewound positions, falloff, MIRV/cluster, HAZD placed objects as server hazard refs) — M — Depends: F10-T06, F11-T01, SRV-020 — Verify: L-unit
 - [ ] **F10-T08** Mines: placed mine refs, arming, server proximity primitives, owner/Sneak rules, disarm via `Activate` — M — Depends: F10-T06, F07-T04, F06 — Verify: L-unit
 - [ ] **F10-T09** Traps module: data table of vanilla trap types (by keyword/script name), trigger primitives, firing effects, `trapState` persistence, F14 reset — L — Depends: F10-T07, F14 (cell reset), SRV-080 — Verify: L-unit, D-real

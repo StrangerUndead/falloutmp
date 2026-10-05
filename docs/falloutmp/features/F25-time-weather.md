@@ -4,7 +4,7 @@
 |---|---|
 | Tier | T0 (server clock + globals), T1 (weather, radstorms, rest policy), T2 (per-region weather, rest votes) |
 | Target level | L3 (SkyMP L2: client-side UTC clock, no weather; SkyMP-plus fixes I18) |
-| SkyMP analogue | `TimeService` sets GameHour/Day/Month/Year/TimeScale globals from the UTC wall clock every 2 s; server `GetCurrentGameTime` = days since 1 Jan of the real year; no weather sync. SkyMP level L2 — code: `skymp5-client/src/services/services/timeService.ts:24-53`, `skymp5-server/cpp/server_guest_lib/script_classes/PapyrusUtility.cpp:49-79` |
+| SkyMP analogue | `TimeService` sets GameHour/Day/Month/Year/TimeScale globals from the UTC wall clock every 2 s; server `GetCurrentGameTime` = days since 1 Jan of the real year; no weather sync. SkyMP level L2 — code: `skymp5-client/src/services/services/timeService.ts:24-53`, `falloutmp-server/cpp/server_guest_lib/script_classes/PapyrusUtility.cpp:49-79` |
 | Milestone | M6 (server clock SRV-070, needed by SRV-080 and PVM-008), M9 (globals sync, weather, radstorms, rest), M12 (per-region weather) |
 | Workstreams | SRV, CLI, PLAT, ESPM, NET, PVM, GM |
 | Depends on | SRV-070, PLAT-086, ESPM-010 (WTHR), PVM-008, NET-002, F08 (Rads AV), F20 (effects pipeline, SRV-020), F07 (bed occupancy) |
@@ -220,16 +220,16 @@ Rules:
 - `D-real`: GLOB EDIDs and defaults; UNAM spells of the radstorm weathers; the Far Harbor fog mechanism.
 
 ## 7. Tasks
-- [ ] **F25-T01** Server clock service (implements SRV-070, fixes I18): `WorldClockService`, `time.*` settings, ADR-010 `worldClock` record, `mp.getWorldClock/setWorldClock` — M — Depends: REF-020, REF-021 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/WorldClock.{h,cpp} (new), WorldState.{h,cpp}, skymp5-server/cpp/addon/ScampServer.cpp, skymp5-server/ts/settings.ts, unit/WorldClockTest.cpp
+- [ ] **F25-T01** Server clock service (implements SRV-070, fixes I18): `WorldClockService`, `time.*` settings, ADR-010 `worldClock` record, `mp.getWorldClock/setWorldClock` — M — Depends: REF-020, REF-021 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/WorldClock.{h,cpp} (new), WorldState.{h,cpp}, falloutmp-server/cpp/addon/ScampServer.cpp, falloutmp-server/ts/settings.ts, unit/WorldClockTest.cpp
   - Accept: the `[WorldClock]` cases pass. The clock survives a restart. SRV-080 and PVM-008 can read `NowGameDays()`.
   - Note (prior-art §3.5.1): even with F28's no-pause policy, some menus and loading screens freeze local game time. The client must re-apply the latest server clock on every resume (menu close, load end), not only on server ticks. Add a client unit test (L-ts) for that resume path.
-- [ ] **F25-T02** Papyrus time natives on the server clock (`GetCurrentGameTime`, `WaitGameTime`, `GameTimeToString`, `PassTime` policy, virtual globals 0x35–0x3A) — S — Depends: F25-T01, PVM-013 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/script_classes/PapyrusUtility.cpp, PapyrusGame.cpp, unit/PapyrusUtilityTest.cpp
+- [ ] **F25-T02** Papyrus time natives on the server clock (`GetCurrentGameTime`, `WaitGameTime`, `GameTimeToString`, `PassTime` policy, virtual globals 0x35–0x3A) — S — Depends: F25-T01, PVM-013 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/script_classes/PapyrusUtility.cpp, PapyrusGame.cpp, unit/PapyrusUtilityTest.cpp
   - Accept: `WaitGameTime(1)` at timescale 20 waits 180 s. The Skyrim profile behaviour is unchanged (gated by GameProfile).
 - [ ] **F25-T03** ESPM CLMT and REGN records plus WTHR UNAM views; GameProfile climate table per worldspace — M — Depends: ESPM-005, ESPM-010, ESPM-002 — Verify: L-fixture, D-real — Files: libespm/include/libespm/{CLMT,REGN}.h (new), libespm/src/, unit/Fo4ClimateRecordsTest.cpp
   - Accept: fixture weather lists and chances parse. D-real lists the Commonwealth climate and the radstorm weathers' UNAM spells.
-- [ ] **F25-T04** (M6: the clock message is needed before M9 so clients can show server time and run timers) `WorldTimeWeather` (105) and `RestAction` (113) messages + client mirrors — S — Depends: NET-002 — Verify: L-unit — Files: skymp5-server/cpp/messages/{WorldTimeWeatherMessage,RestActionMessage}.h, Messages.h, falloutmp-client/src/services/messages/
+- [ ] **F25-T04** (M6: the clock message is needed before M9 so clients can show server time and run timers) `WorldTimeWeather` (105) and `RestAction` (113) messages + client mirrors — S — Depends: NET-002 — Verify: L-unit — Files: falloutmp-server/cpp/messages/{WorldTimeWeatherMessage,RestActionMessage}.h, Messages.h, falloutmp-client/src/services/messages/
   - Accept: binary and JSON round trips. `WorldTimeWeather` ≤ 48 B.
-- [ ] **F25-T05** `WeatherService`: per-worldspace slots, seeded roll, transitions, forced weather, `onWeatherChange`, `mp.getWeather/setWeather/releaseWeather`, audience, persistence — M — Depends: F25-T01, F25-T03, F25-T04 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/WeatherService.{h,cpp} (new), unit/WeatherServiceTest.cpp
+- [ ] **F25-T05** `WeatherService`: per-worldspace slots, seeded roll, transitions, forced weather, `onWeatherChange`, `mp.getWeather/setWeather/releaseWeather`, audience, persistence — M — Depends: F25-T01, F25-T03, F25-T04 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/WeatherService.{h,cpp} (new), unit/WeatherServiceTest.cpp
   - Accept: the `[Weather]` cases pass, including the late-joiner snapshot and a worldspace change.
 - [ ] **F25-T06** Platform natives (PLAT-086: Calendar write, Sky force/reset, SetActive wrapper), global-id verification, weather-spell neutralization — M — Depends: PLAT-086, PLAT-031 — Verify: W-ci, G-self — Files: fallout4-platform/src/.../TimeWeatherApi.cpp, Definitions.txt
   - Accept: the self-test sets 03:00 and 15:00 and the sky follows. A forced radstorm causes no local Rads change.
@@ -237,7 +237,7 @@ Rules:
   - Accept: two clients differ by ≤ 30 game seconds after 1 h, and their weather matches.
 - [ ] **F25-T08** Radstorm and weather radiation on the server (UNAM spell magnitude → F20 `RadiationService` environmental source), exterior check, `onRadstormExposure`; Far Harbor fog per the D-real finding — M — Depends: F25-T05, F20-T06 — Verify: L-unit, G-manual
   - Accept: the `[Radstorm]` cases pass. In game, rads rise only outdoors during a radstorm.
-- [ ] **F25-T09** Rest policy: `disabled` (SetInChargen; SleepWaitMenu/SitWaitMenu closed, with CLI-021) and `benefitsOnly` (`RestService`, validation, effects, Papyrus sleep/wait events, client widget) — M — Depends: F25-T01, F25-T04, F07-T05, F20 — Verify: L-unit, G-manual — Files: skymp5-server/cpp/server_guest_lib/RestService.{h,cpp} (new), falloutmp-client/src/services/services/restService.ts, unit/RestServiceTest.cpp
+- [ ] **F25-T09** Rest policy: `disabled` (SetInChargen; SleepWaitMenu/SitWaitMenu closed, with CLI-021) and `benefitsOnly` (`RestService`, validation, effects, Papyrus sleep/wait events, client widget) — M — Depends: F25-T01, F25-T04, F07-T05, F20 — Verify: L-unit, G-manual — Files: falloutmp-server/cpp/server_guest_lib/RestService.{h,cpp} (new), falloutmp-client/src/services/services/restService.ts, unit/RestServiceTest.cpp
   - Accept: the `[Rest]` cases pass. In `disabled` mode the wait key does nothing.
 - [ ] **F25-T10** (T2) Per-region weather slots (REGN areas, e.g. the Glowing Sea), with region resolved from the server position — M — Depends: F25-T05, F25-T03 — Verify: L-unit, G-manual
   - Accept: a player inside the Glowing Sea region sees its weather while the rest of the Commonwealth is clear.

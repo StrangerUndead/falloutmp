@@ -64,8 +64,8 @@ TEST_CASE("Fo4 settings: misspelt keys are reported, bad values rejected",
   REQUIRE(r.unknownKeys.size() == 2);
   REQUIRE(std::find(r.unknownKeys.begin(), r.unknownKeys.end(),
                     "fo4.workshop.maxObjcts") != r.unknownKeys.end());
-  REQUIRE(std::find(r.unknownKeys.begin(), r.unknownKeys.end(),
-                    "fo4.pvpp") != r.unknownKeys.end());
+  REQUIRE(std::find(r.unknownKeys.begin(), r.unknownKeys.end(), "fo4.pvpp") !=
+          r.unknownKeys.end());
 
   auto bad = [](const char* text) {
     return ParseFo4Settings(nlohmann::json::parse(text));
@@ -102,8 +102,7 @@ TEST_CASE("Fo4 settings: human NPCs are off by default", "[fo4][Fo4Settings]")
   auto more = ParseFo4Settings(nlohmann::json::parse(
     R"({ "npc": { "blockedRaces": ["HumanRace", "GhoulRace"] } })"));
   REQUIRE(more.blockedNpcRaces.size() == 2);
-  REQUIRE_THROWS_WITH(
-    ParseFo4Settings(
-      nlohmann::json::parse(R"({ "npc": { "blockedRaces": [1] } })")),
-    Catch::Matchers::ContainsSubstring("array of strings"));
+  REQUIRE_THROWS_WITH(ParseFo4Settings(nlohmann::json::parse(
+                        R"({ "npc": { "blockedRaces": [1] } })")),
+                      Catch::Matchers::ContainsSubstring("array of strings"));
 }

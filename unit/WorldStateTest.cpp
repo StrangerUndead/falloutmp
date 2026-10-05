@@ -4,6 +4,8 @@
 #include "MpForm.h"
 #include "MsgType.h"
 #include "PartOne.h"
+#include "libespm/Loader.h"
+#include "script_storages/DirectoryScriptStorage.h"
 #include <catch2/catch_all.hpp>
 #include <nlohmann/json.hpp>
 
@@ -143,11 +145,14 @@ TEST_CASE("Load ChangeForm of modified object with changed baseType",
   //   abcd)"));
 }
 
-extern PartOne& GetPartOne();
-
 TEST_CASE("Loads VirtualMachine with all scripts", "[WorldState]")
 {
-  auto& p = GetPartOne();
+  static espm::Loader g_emptyLoader(std::filesystem::current_path(),
+                                    std::vector<std::filesystem::path>{});
+  PartOne p;
+  p.worldState.AttachScriptStorage(
+    std::make_shared<DirectoryScriptStorage>(TEST_PEX_DIR));
+  p.AttachEspm(&g_emptyLoader);
   p.worldState.GetPapyrusVm();
 }
 
@@ -158,4 +163,12 @@ TEST_CASE("HasEspmFile is working correctly", "[WorldState]")
   REQUIRE(worldState.HasEspmFile("file1"));
   REQUIRE(worldState.HasEspmFile("file2"));
   REQUIRE_FALSE(worldState.HasEspmFile("BlowSkyrimModIndustry.exe"));
+}
+
+TEST_CASE("A missing scripts directory means no custom scripts",
+          "[WorldState]")
+{
+  // A fresh server has no data/scripts folder; it must still start
+  DirectoryScriptStorage storage("this/directory/does/not/exist");
+  REQUIRE(storage.ListScripts(false).empty());
 }

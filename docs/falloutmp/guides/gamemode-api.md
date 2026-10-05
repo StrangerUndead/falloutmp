@@ -1,6 +1,6 @@
 # Gamemode API for Fallout 4: `mp.fo4`
 
-On a Fallout 4 server, gamemode scripts get `mp.fo4` in addition to everything SkyMP's `mp` offers. It is a typed wrapper (`skymp5-server/ts/fo4.ts`) over one native call, `fo4Call(command, argsJson)`. The command table lives in `skymp5-server/cpp/server_guest_lib/fo4/Fo4GamemodeApi.cpp`.
+On a Fallout 4 server, gamemode scripts get `mp.fo4` in addition to everything SkyMP's `mp` offers. It is a typed wrapper (`falloutmp-server/ts/fo4.ts`) over one native call, `fo4Call(command, argsJson)`. The command table lives in `falloutmp-server/cpp/server_guest_lib/fo4/Fo4GamemodeApi.cpp`.
 
 ## Conventions
 

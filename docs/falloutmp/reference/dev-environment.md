@@ -167,7 +167,7 @@ cmake --build . --target unit            # no-op: 1.6 s
 ./unit/unit "Name of a test case"        # exact name; add -s for passing-assertion output
 ./unit/unit "~[espm]" --reporter compact # quick list of failures
 ctest -R test_unit --output-on-failure
-cmake --build . --target skymp5-server   # N-API addon + TS -> build/dist/server
+cmake --build . --target falloutmp-server   # N-API addon + TS -> build/dist/server
 ```
 
 - Linking dominates incremental builds. Untested speed-ups: `-DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=lld` (lld 18 is installed), or `-DCMAKE_BUILD_TYPE=Release` for smaller binaries.
@@ -348,7 +348,7 @@ jobs:
    4. Perform the listed steps.
    5. Quit.
 4. **Report back** in a GitHub issue using an "In-game test report" template, which the main session can read with the GitHub MCP tools. Include: the checklist ID and commit SHA, pass/fail per step, `FalloutPlatform.log`, `f4se.log`, the self-test JSON and the Buffout 4 crash log if any. Screenshots are optional. Keep raw logs as attachments; Claude parses the JSON.
-5. **Multiplayer checks**: the server runs on Linux from `build/dist/server` (`node dist_back/skymp5-server.js`), or in a cloud session if networking allows. Two clients are needed for sync tests, so schedule those as explicit human sessions with a script, for example: "both players at the Sanctuary bridge; player A walks 10 m; B confirms the position within 2 s".
+5. **Multiplayer checks**: the server runs on Linux from `build/dist/server` (`node dist_back/falloutmp-server.js`), or in a cloud session if networking allows. Two clients are needed for sync tests, so schedule those as explicit human sessions with a script, for example: "both players at the Sanctuary bridge; player A walks 10 m; B confirms the position within 2 s".
 
 ## 10. Appendix
 

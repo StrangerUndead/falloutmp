@@ -4,7 +4,7 @@
 |---|---|
 | Tier | T1 (weapons/armor workbench, PA station mods and paint with F17). Robot mods are T2 (F21) |
 | Target level | L4 |
-| SkyMP analogue | None. Skyrim tempering is explicitly excluded from crafting (`skymp5-server/cpp/server_guest_lib/CraftService.cpp:84-93`), and `Inventory::ExtraData` has no OMOD list (`Inventory.h:31-97`). SkyMP level L0; the nearest pattern is equipment re-apply with extra data (`skymp5-client/src/sync/equipment.ts`) |
+| SkyMP analogue | None. Skyrim tempering is explicitly excluded from crafting (`falloutmp-server/cpp/server_guest_lib/CraftService.cpp:84-93`), and `Inventory::ExtraData` has no OMOD list (`Inventory.h:31-97`). SkyMP level L0; the nearest pattern is equipment re-apply with extra data (`skymp5-client/src/sync/equipment.ts`) |
 | Milestone | M9 (weapons/armor benches); PA station parts with F17 in M10 |
 | Workstreams | SRV, ESPM, CLI, PLAT, NET, GM, PVM |
 | Depends on | F04 (`ItemKey` with `omods`), F05 (equipment re-apply with OMOD instances), F15 (`ComponentLedger`, `RecipeIndex`, `RequestResult`, nonce cache), F07 (occupancy), F19 (perks), F17 (PA station), SRV-021, SRV-022, ESPM-007, ESPM-008, PLAT-080, PLAT-081, PLAT-084 |
@@ -162,11 +162,11 @@ Every failure sends `RequestResult{ok=false}` + `SetInventoryFo4` to the owner. 
 - `G-manual`: two players; A swaps a scope and paints PA, B watches in 1st and 3rd person; A reconnects and B rejoins late.
 
 ## 7. Tasks
-- [ ] **F16-T01** `ModCatalogue` (root slots, OMOD by attach point, parent slots, `LNAM` map, mod COBJs) — M — Depends: ESPM-007, ESPM-008, F15-T02 — Verify: L-unit, L-fixture — Files: skymp5-server/cpp/server_guest_lib/fo4/modding/ModCatalogue.{h,cpp}
+- [ ] **F16-T01** `ModCatalogue` (root slots, OMOD by attach point, parent slots, `LNAM` map, mod COBJs) — M — Depends: ESPM-007, ESPM-008, F15-T02 — Verify: L-unit, L-fixture — Files: falloutmp-server/cpp/server_guest_lib/fo4/modding/ModCatalogue.{h,cpp}
   - Accept: the fixture weapon lists its slot tree; loose-mod lookups both directions.
 - [ ] **F16-T02** `ModOpValidator` (pure: base + omods + ops → new omods | error), legendary and required-slot rules — M — Depends: F16-T01 — Verify: L-unit — Files: fo4/modding/ModOpValidator.{h,cpp}
   - Accept: every validator case in §6 passes; output is canonical (sorted by attachIdx, id).
-- [ ] **F16-T03** `ModItem` (85) message + TS mirror — S — Depends: NET-002, F15-T01 — Verify: L-unit, L-ts — Files: skymp5-server/cpp/messages/ModItemMessage.h, Messages.h; falloutmp-client/src/services/messages/
+- [ ] **F16-T03** `ModItem` (85) message + TS mirror — S — Depends: NET-002, F15-T01 — Verify: L-unit, L-ts — Files: falloutmp-server/cpp/messages/ModItemMessage.h, Messages.h; falloutmp-client/src/services/messages/
 - [ ] **F16-T04** `ModService`: occupancy, bench type, build/loose-mod sources via `ComponentLedger`, returns, rename, atomic commit, `RequestResult` + corrections, `onModItem` — M — Depends: F16-T02, F16-T03, F15-T03, F15-T04, F04, NET-007 — Verify: L-unit — Files: fo4/modding/ModService.{h,cpp}, ActionListener.cpp, gamemode_events/ModItemEvent.{h,cpp}
   - Accept: all §6 service cases pass.
 - [ ] **F16-T05** Worn-instance update: `equipment` rewrite, `UpdateEquipmentFo4` broadcast, instance-hash invalidation, F09 magazine reconciliation hook — S — Depends: F16-T04, F05, SRV-022 — Verify: L-unit
@@ -176,7 +176,7 @@ Every failure sends `RequestResult{ok=false}` + `SetInventoryFo4` to the owner. 
 - [ ] **F16-T08** PA station modding/paint: target `paFrame`, piece instances in the frame inventory, `PowerArmorState` broadcast (with F17) — M — Depends: F16-T04, F17, PLAT-084 — Verify: L-unit, G-manual
 - [ ] **F16-T09** Platform ExamineMenu/PowerArmorModMenu capture (`modConfirm`), name read native; pre-commit cancel if RE allows — M — Depends: F15-T09, PLAT-080, PLAT-081 — Verify: W-ci, G-self — Files: fallout4-platform/src/.../WorkbenchApi.cpp
 - [ ] **F16-T10** Client `modService.ts`: capture, send, reconcile, HUD errors — M — Depends: F16-T03, F16-T09, CLI-050 — Verify: L-ts, G-manual — Files: falloutmp-client/src/services/services/modService.ts
-- [ ] **F16-T11** Server Papyrus OMOD natives + `OnPlayerModArmorWeapon` — S — Depends: PVM-014, F16-T02 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/script_classes/{PapyrusObjectReference.cpp,PapyrusObjectMod.cpp}
+- [ ] **F16-T11** Server Papyrus OMOD natives + `OnPlayerModArmorWeapon` — S — Depends: PVM-014, F16-T02 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/script_classes/{PapyrusObjectReference.cpp,PapyrusObjectMod.cpp}
 - [ ] **F16-T12** `G-manual` modding scenario script and sign-off — S — Depends: F16-T10, F05 — Verify: G-manual — Files: docs/falloutmp/test-scripts/F16-modding.md
 - [ ] **F16-T13** (T2) Robot workbench mods (`target = robot`, actor OMODs `actorOmods` in `CreateActorFo4` props) — M — Depends: F21, F15-T12 — Verify: L-unit, G-manual
 

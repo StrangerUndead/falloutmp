@@ -52,26 +52,10 @@ TEST_CASE("PartOne routes Fallout 4 messages to the Fallout 4 layer",
   p.GetFo4()->SaveAll();
   auto& actor = p.worldState.GetFormAt<MpActor>(0xff000000);
   INFO("fields: " << actor.GetDynamicFields().GetAsJson().dump());
-  auto dump =
-    actor.GetDynamicFields().GetValueDump(fo4::Fo4PartOneGlue::kActorStateField);
+  auto dump = actor.GetDynamicFields().GetValueDump(
+    fo4::Fo4PartOneGlue::kActorStateField);
   REQUIRE(dump != "null");
   REQUIRE(nlohmann::json::parse(dump)["inventory"]["entries"].size() == 1);
 
-  DoDisconnect(p, 0);
-}
-
-TEST_CASE("Skyrim servers drop Fallout 4 messages", "[fo4][Fo4PartOne]")
-{
-  PartOne p;
-  DoConnect(p, 0);
-  p.CreateActor(0xff000000, { 0, 0, 0 }, 0, 0x3c, 1);
-  p.SetUserActor(0, 0xff000000);
-  p.Messages().clear();
-  REQUIRE(p.GetFo4() == nullptr);
-  DoMessage(p, 0,
-            nlohmann::json{ { "t", MsgType::UseItem },
-                            { "nonce", 1 },
-                            { "baseId", 0x23736 } });
-  REQUIRE(MessagesOfType(p, MsgType::RequestResult, 0).empty());
   DoDisconnect(p, 0);
 }

@@ -1,4 +1,4 @@
-// Mirror of the Fallout 4 range of skymp5-server/cpp/messages/MsgType.h.
+// Mirror of the Fallout 4 range of falloutmp-server/cpp/messages/MsgType.h.
 // test/protocolParity.test.ts fails if a value drifts from the C++ enum.
 export enum Fo4MsgType {
   CreateActorFo4 = 64,

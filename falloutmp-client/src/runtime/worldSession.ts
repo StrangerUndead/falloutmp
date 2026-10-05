@@ -6,7 +6,7 @@
 // index. The session keeps both: idx -> form id, and form id -> the local
 // reference (a puppet, or the world reference itself).
 import { FalloutMpClient, FalloutMpClientOptions } from "../falloutMpClient";
-import { longToNormal } from "../integration/skympClientBridge";
+import { longToNormal } from "../integration/clientBridge";
 import { ClientConfig, FalloutPlatform, FormId, PuppetSpawn, RefResolver } from "../platform/falloutPlatform";
 import { isFallout4MsgType } from "../services/messages/msgType";
 import {

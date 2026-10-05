@@ -69,7 +69,7 @@ If omitted, `/metrics` is not available.
 
 ## port
 
-This port would be used by player clients to connect to your server. At the current version of Skyrim Multiplayer servers use multiple ports and different protocols to manage different sorts of packets. See [Server Ports Usage](docs_server_ports_usage.md) page to learn more.
+This port would be used by player clients to connect to your server. The server uses multiple ports and different protocols to manage different sorts of packets. See [Server Ports Usage](docs_server_ports_usage.md) page to learn more.
 
 ```json5
 {
@@ -81,7 +81,7 @@ This port would be used by player clients to connect to your server. At the curr
 
 ## maxPlayers
 
-Sets player limit of the server. Visible in launcher and on skymp.io.
+Sets player limit of the server.
 
 ```json5
 {
@@ -94,7 +94,7 @@ Sets player limit of the server. Visible in launcher and on skymp.io.
 ## dataDir
 
 Contains relative or absolute path to a "data" directory which contains:
-* vanilla Skyrim master files (Skyrim.esm, Update.esm, etc)
+* the game master file (`Fallout4.esm`)
 * plugin files (mods in .esp format)
 * compiled Papyrus scripts in .pex format
 
@@ -114,7 +114,7 @@ At this moment, the server uses this directory for non-vanilla needs too:
 
 ## loadOrder
 
-A list of relative or absolute paths to .esp/.esm files which would be loaded by the server during startup in the same order as Skyrim SE loads them.
+A list of relative or absolute paths to .esp/.esm files which would be loaded by the server during startup in the same order as the game loads them. The default is `["Fallout4.esm"]`.
 
 Relative paths are searched in `${dataDir}` directory.
 
@@ -124,11 +124,7 @@ Absolute paths work but aren't accessible via `uiPort`. External tooling wouldn'
 {
   // ...
   "loadOrder": [
-    "Skyrim.esm",
-    "Update.esm",
-    "Dawnguard.esm",
-    "HearthFires.esm",
-    "Dragonborn.esm"
+    "Fallout4.esm"
   ]
   // ...
 }
@@ -136,7 +132,7 @@ Absolute paths work but aren't accessible via `uiPort`. External tooling wouldn'
 
 ## archives
 
-Specify BSA archives that will be loaded by the server.
+Specify archives that will be loaded by the server.
 
 At this moment, used only for compiled Papyrus scripts.
 
@@ -146,7 +142,7 @@ Relative/absolute paths work similar to esp/esm.
 {
   // ...
   "archives": [
-    "Skyrim - Misc.bsa"
+    "Fallout4 - Misc.ba2"
   ]
   // ...
 }
@@ -167,7 +163,7 @@ The language, the translation of which will be obtained from the string files lo
 ## offlineMode
 
 The boolean variable shows is server in "offline mode" or not (the server allows clients to connect with any profile id they choose).
-Users need to specify `"profileId"` in their `skymp5-settings.txt`.
+Players set their `"profile-id"` in `Data/F4SE/Plugins/FalloutMP.json` (the client generates one on first start).
 
 ```json5
 {
@@ -191,7 +187,7 @@ Name of a database driver which would be used to store server data. `file` by de
 
 ## reloot
 
-A time before a game object restores its original state in milliseconds. Unlike Skyrim SE, Skyrim Multiplayer doesn't have a built-in Cell Reset mechanism. The server resets every object in the world every hour instead. With this option, you can change this time interval for every kind of game object. `"CONT"`, for example, means "Container" - chests, barrels, etc. See "record types" on [UESP](https://en.uesp.net/wiki/Skyrim_Mod:Mod_File_Format).
+A time before a game object restores its original state in milliseconds. Unlike the single-player game, the server has no built-in Cell Reset mechanism. The server resets every object in the world every hour instead. With this option, you can change this time interval for every kind of game object. `"CONT"`, for example, means "Container" - chests, barrels, etc. See "record types" on [UESP](https://en.uesp.net/wiki/Fallout4:Mod_File_Format).
 
 ```json5
 {
@@ -215,7 +211,7 @@ A time before a game object restores its original state in milliseconds. Unlike 
 ```
 
 ## forbiddenReloot
-The option that allows you to forbid reloot for a specific item or a group of items based on its/their espm record type. Take a look at [UESP](https://en.uesp.net/wiki/Skyrim_Mod:Mod_File_Format).
+The option that allows you to forbid reloot for a specific item or a group of items based on its/their espm record type. Take a look at [UESP](https://en.uesp.net/wiki/Fallout4:Mod_File_Format).
 
 
 ```json5
@@ -294,55 +290,6 @@ Enable console commands for all, useful for testing.
 }
 ```
 
-## sweetPieMinimumPlayersToStart
-
-The minimal amount of players to begin deathmatch. This setting is sweetpie only and does not affect vanilla server. Default is 5.
-
-```json5
-{
-  // ...
-  "sweetPieMinimumPlayersToStart": 5
-  // ...
-}
-```
-
-## sweetPieAllowCheats
-
-Prevents the gamemode from disabling cheats. This setting is sweetpie only and does not affect vanilla server. Default is false.
-
-```json5
-{
-  // ...
-  "sweetPieAllowCheats": true
-  // ...
-}
-```
-
-## sweetPieChatSettings
-
-Allows tuning settings related to in-game chat, such as message visibility radius.
-
-```json5
-{
-  // ...
-  "sweetPieChatSettings": {
-    // Hearing distance in units. If player A says something and player B is farther away, they won't see that message.
-    "hearingRadiusNormal": 123,
-  },
-  // ...
-}
-```
-
-## sweetPieCommandEnabled
-
-Enables or disables `/new2024` command that teleports player to SweetPie hall.
-
-```json5
-  // ...
-  "sweetPieCommandEnabled": true
-  // ...
-```
-
 ## npcEnabled
 
 Enables npc loading. Default is false.
@@ -370,38 +317,15 @@ how they should be spawned: in interior or exterior. By default all the npcs are
       "spawnInInterior": true,
       "spawnInExterior": false
     },
-    "Skyrim.esm": {
+    "Fallout4.esm": {
       "spawnInInterior": true,
       "spawnInExterior": false
     },
-    "Dawnguard.esm": {
+    "MyMod.esp": {
       "spawnInInterior": false,
       "spawnInExterior": true
-    },
-    "DragonBorn.esm": {
-      "spawnInInterior": true,
-      "spawnInExterior": true
-    },
+    }
   },
-  // ...
-}
-```
-
-## weaponStaminaModifiers
-
-This setting is only available with game mod file "SweetPie.esp".
-This option allows you to flexibly adjust stamina forfeits of players' attacks using keywords set in the Creation Kit.
-In case this field is not provided, some default, yet hardcoded, values are in use.
-
-```json5
-{
-  // ...
-  "weaponStaminaModifiers": {
-    "WeapTypeDagger": 4.0,
-    "WeapTypeShortSword": 5.0,
-    "WeapTypeSword": 6.0,
-    // ...
-  }
   // ...
 }
 ```

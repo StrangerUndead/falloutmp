@@ -1,5 +1,5 @@
-// The upstream SkyMP messages a Fallout 4 client handles
-// (skymp5-server/cpp/messages/MsgType.h). Field names are the JSON the
+// The core server messages (shared with the server engine) the client handles
+// (falloutmp-server/cpp/messages/MsgType.h). Field names are the JSON the
 // native codec produces from the binary messages.
 import { Vec3 } from "../services/messages/fo4Messages";
 
@@ -53,6 +53,6 @@ export interface CustomPacketMessage {
 export function loginPacket(profileId: number): CustomPacketMessage {
   return {
     t: UpstreamMsgType.CustomPacket,
-    contentJsonDump: JSON.stringify({ customPacketType: "loginWithSkympIo", gameData: { profileId } }),
+    contentJsonDump: JSON.stringify({ customPacketType: "loginWithProfileId", gameData: { profileId } }),
   };
 }

@@ -1,7 +1,7 @@
 # Fallout 4 animation sync: reference and recommendation for FalloutMP
 
 > Audience: the Claude Code session (or human) that will implement animation/locomotion sync in the
-> FalloutMP fork (`fallout4-platform` + `falloutmp-client` + the game-pluggable `skymp5-server`).
+> FalloutMP fork (`fallout4-platform` + `falloutmp-client` + the game-pluggable `falloutmp-server`).
 > Companion to the broad survey `docs/FALLOUT4_PORT_RESEARCH.md`.
 >
 > Provenance tags: **[src: path:line]** = read in code (external repos pinned below);
@@ -141,7 +141,7 @@ moves and `staggerStart` are blanked on remote actors **[src: services/deathServ
 
 `ActionListener::OnUpdateAnimation` relays the raw message to neighbours (`SendToNeighbours`, which also checks
 NPC-host ownership), then, for the sender's own actor only, runs `AnimationSystem::Process` and stores
-`SetLastAnimEvent` **[src: skymp5-server/cpp/server_guest_lib/ActionListener.cpp:39-80, 186-207]**. The last event is
+`SetLastAnimEvent` **[src: falloutmp-server/cpp/server_guest_lib/ActionListener.cpp:39-80, 186-207]**. The last event is
 sent to newly visible clients in `CreateActor.animation` **[src: PartOne.cpp:802]**. `AnimationSystem` maps
 **event names to stamina effects**: `blockStart/blockStop` always; with `SweetPie.esp` also `attackStart*`,
 `AttackStartH2H*`, `JumpStandingStart` (10), `JumpDirectionalStart` (15), `bowAttackStart`, `attackRelease`,
@@ -810,7 +810,7 @@ skeletons.
 14. `deathService.ts`, `hitService.ts`, new `weaponFireService.ts` (explicit fire/projectile messages, STR pattern).
 15. Port `animDebugService.ts` overlay; add a graph-variable inspector.
 
-**skymp5-server (GameProfile = fallout4)**
+**falloutmp-server (GameProfile = fallout4)**
 
 16. Messages: extend `UpdateAnimationMessage`/`AnimationData` or add `UpdateActionsMessage` and an anim-state block
     in `UpdateMovementMessage`; add `animState` + `actionReplay` to `CreateActorMessage`.

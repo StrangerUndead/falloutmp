@@ -109,7 +109,7 @@ Candidate systems noted but not specced (see features/README.md): physics grab, 
 
 | Metric | Target | How measured |
 |---|---|---|
-| Concurrent players per server | **SkyMP parity = ~1,000** (SkyMP's compile-time cap is `MAX_PLAYERS=1000`, `skymp5-server/cpp/CMakeLists.txt:46`; production SkyMP servers have run 1,000+ players). Staged: 64 at the M8 alpha, 300 at the M11 beta, **1,000 at 1.0**. FO4 actors cost more per client, so the server-side budget (interest management, relay cost, tick) is engineered for 1,000 from M1, and the client is budgeted for ~40 visible actors | Bot load tests (`QA-020`, `QA-022`) at each stage |
+| Concurrent players per server | **SkyMP parity = ~1,000** (SkyMP's compile-time cap is `MAX_PLAYERS=1000`, `falloutmp-server/cpp/CMakeLists.txt:46`; production SkyMP servers have run 1,000+ players). Staged: 64 at the M8 alpha, 300 at the M11 beta, **1,000 at 1.0**. FO4 actors cost more per client, so the server-side budget (interest management, relay cost, tick) is engineered for 1,000 from M1, and the client is budgeted for ~40 visible actors | Bot load tests (`QA-020`, `QA-022`) at each stage |
 | Client frame rate | ≥ 45 FPS at 40 visible remote actors on the reference GPU (GTX 1070-class at 1080p, medium), ≥ 30 FPS at 64 in a hot spot; beyond `client.maxVisibleActors` remotes degrade to nameplate-only (CLI-090) | `G-manual` FPS capture at 20/40/64 actors |
 | Server tick cost | p95 < 10 ms at 1,000 players and 2,000 hosted NPCs spread over the map; p95 < 10 ms with 64 players in one 3×3 grid area (relay hot spot) | Prometheus metrics, load tests |
 | Remote movement smoothness | No visible teleporting at RTT ≤ 150 ms, 2% loss | `G-manual` scenario plus jitter injection |

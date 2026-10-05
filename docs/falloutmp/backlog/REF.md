@@ -8,7 +8,7 @@ Source: [reference/skyrim-coupling-index.md](../reference/skyrim-coupling-index.
   - Accept: without data, `ctest` / `./unit/unit "~[espm]"` is fully green. Upstreamable.
 - [ ] **REF-002** Crash fixes for foreign data (A2): WEAP DATA null checks, CrimeFactionsList null check, noexcept-throw (Effects, GetScriptData), NAVM 4CC, LIGH offsets, Reader opcode bound, LVLO iteration, case-insensitive strings — M — Depends: REF-001 — Verify: L-unit — Files: libespm/src/*, server_guest_lib/*, papyrus-vm/src/papyrus-vm-lib/Reader.cpp
   - Accept: one test per fix. Upstreamable.
-- [ ] **REF-003** GameProfile skeleton (A3): `GameId`, `GameProfile` (GetGameId, DefaultLoadOrder, DefaultWorldspace, ProtocolPrefix), `SkyrimGameProfile`, factory, `WorldState::GetGameProfile()`, `"game"` setting — M — Depends: REF-001 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/game_profile/*, WorldState.*, addon/ScampServer.cpp
+- [ ] **REF-003** GameProfile skeleton (A3): `GameId`, `GameProfile` (GetGameId, DefaultLoadOrder, DefaultWorldspace, ProtocolPrefix), `SkyrimGameProfile`, factory, `WorldState::GetGameProfile()`, `"game"` setting — M — Depends: REF-001 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/game_profile/*, WorldState.*, addon/ScampServer.cpp
   - Accept: `WorldState::GetGameProfile().GetGameId()` returns Skyrim by default and Fallout4 with `"game": "fallout4"`; the full Skyrim suite stays green.
 - [ ] **REF-004** Move well-known IDs and defaults into the profile (A4): 0x14, 0x7, 0xF, 0x1F4, 0x3c, spawn point, banned races, crime list, reloot defaults, reach, vanilla-form threshold computed from the load order — M — Depends: REF-003 — Verify: L-unit
   - Accept: grep finds no `0x14`/`0x3c` literals outside the profiles.
@@ -34,7 +34,7 @@ Source: [reference/skyrim-coupling-index.md](../reference/skyrim-coupling-index.
   - Accept: one commit and one test per fix; each is upstreamable without FalloutMP code.
 - [ ] **REF-020** ChangeForm schema hardening: per-field defensive JSON parsing (one bad key must not drop the form), DB game meta record, additive-field helpers — M — Depends: REF-003 — Verify: L-unit
   - Accept: a ChangeForm with one unknown/corrupt key loads with that key defaulted and a warning; round-trip tests cover every field; the DB meta record exists.
-- [ ] **REF-021** TS server: `game` setting, FO4 start points, settings defaults per game (A14) — S — Depends: REF-003 — Verify: L-unit (`yarn build`) — Files: skymp5-server/ts/settings.ts, systems/spawn.ts
+- [ ] **REF-021** TS server: `game` setting, FO4 start points, settings defaults per game (A14) — S — Depends: REF-003 — Verify: L-unit (`yarn build`) — Files: falloutmp-server/ts/settings.ts, systems/spawn.ts
   - Accept: `yarn build` passes; `settings.ts` exposes `game` and per-game defaults; a `fallout4` config resolves FO4 start points.
 - [ ] **REF-024** Manifest/UI: `.ba2` archive naming in `manifestGen.ts`, UI blocks `.ba2` (A14) — S — Depends: REF-021 — Verify: L-int
   - Accept: `manifestGen.ts` lists `.ba2` archives for FO4 and `.bsa` for Skyrim; UI blocks `.ba2` per the test.

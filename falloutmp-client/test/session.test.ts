@@ -65,7 +65,7 @@ test("connects to the configured server and logs in with the profile id", () => 
   session.onConnected();
   const [login] = conn.ofType(UpstreamMsgType.CustomPacket);
   assert.deepEqual(JSON.parse(login.contentJsonDump), {
-    customPacketType: "loginWithSkympIo",
+    customPacketType: "loginWithProfileId",
     gameData: { profileId: kPlayerProfile },
   });
   assert.equal(conn.sent[0].reliable, true);

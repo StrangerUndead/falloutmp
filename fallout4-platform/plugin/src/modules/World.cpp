@@ -88,8 +88,8 @@ void ShiftDate(RE::Calendar& c, long long days)
   }
   int year = static_cast<int>(c.gameYear->value);
   int month = std::clamp(static_cast<int>(c.gameMonth->value), 0, 11);
-  int day = std::clamp(static_cast<int>(c.gameDay->value), 1,
-                       DaysIn(month, year));
+  int day =
+    std::clamp(static_cast<int>(c.gameDay->value), 1, DaysIn(month, year));
   while (days > 0) {
     const int left = DaysIn(month, year) - day;
     if (days <= left) {
@@ -214,7 +214,8 @@ void CheckClock(Platform& p, double now)
   if (driftHours > kMaxDriftHours) {
     WriteClock(days, hour);
     if (driftHours > 1.0) {
-      p.Log("info", std::format("Game clock corrected by {:.1f} h", driftHours));
+      p.Log("info",
+            std::format("Game clock corrected by {:.1f} h", driftHours));
     }
   }
 }

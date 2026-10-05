@@ -220,8 +220,8 @@ public:
     std::string editorId;
     std::string fullName;
     std::optional<uint32_t> fullNameStringId;
-    uint32_t autoCalcValue = 0;   // DATA
-    uint32_t scrapItemId = 0;     // MNAM (MISC "c_Steel" scrap item)
+    uint32_t autoCalcValue = 0;    // DATA
+    uint32_t scrapItemId = 0;      // MNAM (MISC "c_Steel" scrap item)
     uint32_t modScrapScalarId = 0; // GNAM (GLOB)
   };
 
@@ -349,8 +349,8 @@ public:
   {
     std::string editorId;
     std::vector<uint32_t> keywords;
-    std::optional<BenchType> benchType; // WBDT, only on workbenches
-    bool isPowerArmorFurniture = false; // record flag 25: PA frames
+    std::optional<BenchType> benchType;         // WBDT, only on workbenches
+    bool isPowerArmorFurniture = false;         // record flag 25: PA frames
     std::vector<ComponentCount> containerItems; // CNTO (item id, count)
   };
 
@@ -422,8 +422,8 @@ struct LeveledEntry
 struct LeveledListData
 {
   std::string editorId;
-  uint8_t chanceNone = 0;       // LVLD
-  uint8_t flags = 0;            // LVLF
+  uint8_t chanceNone = 0;          // LVLD
+  uint8_t flags = 0;               // LVLF
   uint32_t chanceNoneGlobalId = 0; // LVLG
   std::vector<LeveledEntry> entries;
 
@@ -505,22 +505,22 @@ public:
     std::string editorId;
     uint32_t flags = 0;
     int16_t xpValueOffset = 0;
-    uint16_t level = 1;      // when not kFlagPcLevelMult
-    float levelMult = 1.f;   // when kFlagPcLevelMult
+    uint16_t level = 1;    // when not kFlagPcLevelMult
+    float levelMult = 1.f; // when kFlagPcLevelMult
     uint16_t calcMinLevel = 0;
     uint16_t calcMaxLevel = 0; // 0 = no cap
     uint16_t templateFlags = 0;
     std::vector<Faction> factions;
     uint32_t deathItem = 0;
-    uint32_t defaultTemplate = 0;   // TPLT (LVLN or NPC_)
-    uint32_t legendaryTemplate = 0; // LTPT
-    uint32_t legendaryChance = 0;   // LTPC (GLOB)
+    uint32_t defaultTemplate = 0;                        // TPLT (LVLN or NPC_)
+    uint32_t legendaryTemplate = 0;                      // LTPT
+    uint32_t legendaryChance = 0;                        // LTPC (GLOB)
     std::array<uint32_t, kAspectCount> templateActors{}; // TPTA
     uint32_t race = 0;
     uint32_t classId = 0;
     uint32_t defaultOutfit = 0; // DOFT
     uint32_t combatStyle = 0;
-    uint16_t calculatedHealth = 0; // DNAM
+    uint16_t calculatedHealth = 0;     // DNAM
     std::vector<ComponentCount> items; // CNTO
   };
   Data GetData(CompressedFieldsCache& cache) const noexcept;
@@ -575,9 +575,9 @@ public:
     // XPRM
     std::optional<PrimitiveType> primitiveType;
     std::array<float, 3> primitiveBounds = { 0, 0, 0 }; // half extents
-    std::vector<LinkedRef> linkedRefs; // XLKR
-    uint32_t ownerId = 0;              // XOWN
-    uint32_t persistLocationId = 0;    // XLCN
+    std::vector<LinkedRef> linkedRefs;                  // XLKR
+    uint32_t ownerId = 0;                               // XOWN
+    uint32_t persistLocationId = 0;                     // XLCN
     bool initiallyDisabled = false;
     bool deleted = false;
     // Map marker (XMRK + FNAM flags + FULL + TNAM type)

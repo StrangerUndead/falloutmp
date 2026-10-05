@@ -26,7 +26,6 @@ Principle (ADR-015): everything that can be verified on Linux is verified on Lin
   ```
 - Tag conventions:
   - `[Fxx]` for feature tests;
-  - `[espm]` for anything that needs Skyrim data (auto-skipped without data);
   - `[fo4data]` for anything that needs Fallout 4 data (auto-skipped without data; new switch in `unit/main.cpp`, ESPM-015);
   - existing upstream tags stay as they are.
 - `unit/main.cpp` must detect both data sets independently: `SKYRIM_DATA_DIR` and `FO4_DATA_DIR`.

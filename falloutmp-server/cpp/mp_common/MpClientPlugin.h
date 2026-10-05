@@ -1,0 +1,33 @@
+#pragma once
+#include "GameId.h"
+#include "Networking.h"
+#include <cstdint>
+#include <slikenet/types.h>
+
+namespace MpClientPlugin {
+typedef void (*OnPacket)(int32_t type, const char* rawContent, size_t length,
+                         const char* error, void* state_);
+
+struct State
+{
+  std::shared_ptr<Networking::IClient> cl;
+};
+
+typedef void (*SerializeMessage)(const char* jsonContent,
+                                 SLNet::BitStream& outputBuffer);
+typedef bool (*DeserializeMessage)(const uint8_t* data, size_t length,
+                                   std::string& outJsonContent);
+
+void CreateClient(State& st, const char* targetHostname, uint16_t targetPort);
+// Same as CreateClient, but uses the protocol prefix of the given game
+// (NET-001).
+void CreateClientEx(State& st, const char* targetHostname, uint16_t targetPort,
+                    GameId game);
+void DestroyClient(State& st);
+bool IsConnected(State& st);
+void Tick(State& st, OnPacket onPacket,
+          DeserializeMessage deserializeMessageFn, void* state_);
+void Send(State& st, const char* jsonContent, bool reliable,
+          SerializeMessage serializeMessageFn);
+void SendRaw(State& st, const void* data, size_t size, bool reliable);
+};

@@ -65,7 +65,7 @@ namespace fmp::modules {
 namespace {
 constexpr uint32_t kWorkshopItemKeyword = 0x54BA6; // WorkshopItemKeyword
 constexpr uint32_t kWireTokenBase = 0xFFF00000;    // spawnWire ids
-constexpr int kOpMove = 0;   // WorkshopEditOp
+constexpr int kOpMove = 0;                         // WorkshopEditOp
 constexpr int kOpScrap = 1;
 constexpr int kOpStore = 2;
 constexpr double kEnterDeadlineMs = 8000;
@@ -103,7 +103,7 @@ void RemoveWireRef(RE::TESObjectREFR* wire)
 bool IsActorOrPuppet(RE::TESObjectREFR* ref)
 {
   return !ref || ref->IsPlayerRef() || ref->As<RE::Actor>() ||
-         puppets::IsPuppet(ref->GetFormID());
+    puppets::IsPuppet(ref->GetFormID());
 }
 
 // Stored objects of a workshop (Workshop::ExtraData::deletedItems).
@@ -139,12 +139,12 @@ struct WantEnter
   double nextTryMs = 0;
 };
 
-bool g_engineIn = false;       // any Workshop mode (between start and stop)
-bool g_inWorkshop = false;     // the server-granted one
-uint32_t g_active = 0;         // its workbench
-uint32_t g_perms = 0;          // WorkshopPerm mask (informational)
-bool g_expectStop = false;     // exitWorkshopMode closed it
-int g_suppressStops = 0;       // stops of vanilla starts we cancelled
+bool g_engineIn = false;   // any Workshop mode (between start and stop)
+bool g_inWorkshop = false; // the server-granted one
+uint32_t g_active = 0;     // its workbench
+uint32_t g_perms = 0;      // WorkshopPerm mask (informational)
+bool g_expectStop = false; // exitWorkshopMode closed it
+int g_suppressStops = 0;   // stops of vanilla starts we cancelled
 std::optional<WantEnter> g_want;
 std::unordered_map<uint32_t, uint32_t> g_stored; // snapshot, active bench
 
@@ -161,7 +161,7 @@ struct Spawned
   bool scrapped = false; // scrapped locally in the Workshop menu
 };
 
-std::unordered_map<uint32_t, Spawned> g_objects;        // by client id
+std::unordered_map<uint32_t, Spawned> g_objects; // by client id
 std::unordered_map<uint32_t, uint32_t> g_currentToClient;
 
 uint32_t ClientIdOf(uint32_t local)
@@ -264,8 +264,8 @@ uint32_t SpawnObject(Platform& p, const Json& j)
   s.rotDeg = game::Point(j.at("rot"));
   s.scale = j.value("scale", 1.f);
   if (!Respawn(s)) {
-    p.Log("warn", std::format("spawnWorkshopObject: unable to place {:X}",
-                              s.baseId));
+    p.Log("warn",
+          std::format("spawnWorkshopObject: unable to place {:X}", s.baseId));
     return 0;
   }
   s.clientId = s.current;
@@ -290,10 +290,10 @@ void MoveObject(const uint32_t clientId, const Json& pos, const Json& rot)
     return;
   }
   // Papyrus moves update the 3D and collision of placed statics
-  papyrus::CallMethod(ref, "ObjectReference", "SetPosition", nullptr,
-                      s.pos.x, s.pos.y, s.pos.z);
-  papyrus::CallMethod(ref, "ObjectReference", "SetAngle", nullptr,
-                      s.rotDeg.x, s.rotDeg.y, s.rotDeg.z);
+  papyrus::CallMethod(ref, "ObjectReference", "SetPosition", nullptr, s.pos.x,
+                      s.pos.y, s.pos.z);
+  papyrus::CallMethod(ref, "ObjectReference", "SetAngle", nullptr, s.rotDeg.x,
+                      s.rotDeg.y, s.rotDeg.z);
 }
 
 void DeleteObject(uint32_t clientId)
@@ -331,7 +331,7 @@ struct Wire
 {
   uint32_t a = 0, b = 0; // client ids of the ends
   uint32_t spline = 0;
-  uint32_t current = 0;  // the wire reference once created
+  uint32_t current = 0; // the wire reference once created
   bool inFlight = false;
   int attempts = 0;
   double nextTryMs = 0;
@@ -471,8 +471,9 @@ void TryStartWorkshop(Platform& p)
   }
   double now = p.NowMs();
   if (now > g_want->deadlineMs) {
-    p.Log("warn", std::format("Workshop mode on {:X} did not start",
-                              g_want->workbench));
+    p.Log(
+      "warn",
+      std::format("Workshop mode on {:X} did not start", g_want->workbench));
     // The client leaves build mode (WorkshopService.exitBuildMode)
     p.Emit("workshopMenuClosed", Json{ { "workbench", g_want->workbench } });
     g_want.reset();
@@ -493,8 +494,8 @@ void EnterWorkshopMode(Platform& p, uint32_t workbench, uint32_t perms)
 {
   auto ref = game::Ref(workbench);
   if (IsActorOrPuppet(ref)) {
-    p.Log("warn", std::format("enterWorkshopMode: no workbench {:X}",
-                              workbench));
+    p.Log("warn",
+          std::format("enterWorkshopMode: no workbench {:X}", workbench));
     return;
   }
   g_perms = perms;
@@ -591,8 +592,9 @@ uint32_t CurrentRecipe(const RE::TESForm* base)
       return node->sourceFormListRecipe->GetFormID();
     }
   }
-  auto recipe =
-    base ? RE::BGSConstructibleObject::FindRecipeForCreatedForm(base) : nullptr;
+  auto recipe = base
+    ? RE::BGSConstructibleObject::FindRecipeForCreatedForm(base)
+    : nullptr;
   return recipe ? recipe->GetFormID() : 0;
 }
 
@@ -602,17 +604,16 @@ void Push(Captured c)
   g_captured.push_back(std::move(c));
 }
 
-class ModeSink final
-  : public RE::BSTEventSink<RE::Workshop::WorkshopModeEvent>
+class ModeSink final : public RE::BSTEventSink<RE::Workshop::WorkshopModeEvent>
 {
 public:
   RE::BSEventNotifyControl ProcessEvent(
     const RE::Workshop::WorkshopModeEvent& e,
     RE::BSTEventSource<RE::Workshop::WorkshopModeEvent>*) override
   {
-    Push(Capture(e.start ? Captured::Kind::kModeStart
-                         : Captured::Kind::kModeStop,
-                 e.workshop.get(), nullptr));
+    Push(
+      Capture(e.start ? Captured::Kind::kModeStart : Captured::Kind::kModeStop,
+              e.workshop.get(), nullptr));
     return RE::BSEventNotifyControl::kContinue;
   }
 };
@@ -624,8 +625,8 @@ public:
     const RE::Workshop::ItemPlacedEvent& e,
     RE::BSTEventSource<RE::Workshop::ItemPlacedEvent>*) override
   {
-    auto c = Capture(Captured::Kind::kPlaced, e.workshop.get(),
-                     e.placedItem.get());
+    auto c =
+      Capture(Captured::Kind::kPlaced, e.workshop.get(), e.placedItem.get());
     if (!c.wire && e.placedItem) {
       c.recipe = CurrentRecipe(e.placedItem->GetObjectReference());
     }
@@ -679,9 +680,10 @@ void FlushEdits(Platform& p, EditBatch& b)
 {
   auto emit = [&](int op, Json& list) {
     if (!list.empty()) {
-      p.Emit("workshopEditRequested", Json{ { "workbench", g_active },
-                                            { "op", op },
-                                            { "items", std::move(list) } });
+      p.Emit("workshopEditRequested",
+             Json{ { "workbench", g_active },
+                   { "op", op },
+                   { "items", std::move(list) } });
       list = Json::array();
     }
   };
@@ -798,10 +800,11 @@ void PendingWiresFrame(Platform& p)
     if (linked && it->workshop == g_active && g_inWorkshop) {
       uint32_t a = links->powerLinks[0].formID;
       uint32_t b = links->powerLinks[1].formID;
-      p.Emit("workshopWireRequested", Json{ { "workbench", it->workshop },
-                                            { "a", ClientIdOf(a) },
-                                            { "b", ClientIdOf(b) },
-                                            { "splineBaseId", it->spline } });
+      p.Emit("workshopWireRequested",
+             Json{ { "workbench", it->workshop },
+                   { "a", ClientIdOf(a) },
+                   { "b", ClientIdOf(b) },
+                   { "splineBaseId", it->spline } });
     }
     // The client spawns the confirmed wire (spawnWire)
     RemoveWireRef(wire);
@@ -842,10 +845,10 @@ void CaptureFrame(Platform& p)
           // The transform once the move is done
           auto ref = game::Ref(c.ref);
           RE::NiPoint3 pos = ref ? ref->GetPosition() : c.pos;
-          RE::NiPoint3 rot =
-            ref ? RE::NiPoint3{ ref->data.angle.x, ref->data.angle.y,
-                                ref->data.angle.z }
-                : c.rot;
+          RE::NiPoint3 rot = ref
+            ? RE::NiPoint3{ ref->data.angle.x, ref->data.angle.y,
+                            ref->data.angle.z }
+            : c.rot;
           batch.moves.push_back(EditItem(c.ref, pos, rot));
           // Keep our record in step with the local transform
           if (auto it = g_currentToClient.find(c.ref);
@@ -898,9 +901,10 @@ uint32_t ModInSlot(const items::Key& key, const RE::BGSKeyword* slot)
   }
   for (auto id : key.mods) {
     auto mod = game::Form<RE::BGSMod::Attachment::Mod>(id);
-    if (mod && RE::detail::BGSKeywordGetTypedKeywordByIndex(
-                 RE::KeywordType::kAttachPoint,
-                 mod->attachPoint.keywordIndex) == slot) {
+    if (mod &&
+        RE::detail::BGSKeywordGetTypedKeywordByIndex(
+          RE::KeywordType::kAttachPoint, mod->attachPoint.keywordIndex) ==
+          slot) {
       return id;
     }
   }
@@ -944,9 +948,10 @@ void ReportBuild(Platform& p, RE::WorkbenchMenuBase& menu,
 
   if (!examine || (!mod && !nullMod)) {
     if (recipe && !nullMod) {
-      p.Emit("craftRequested", Json{ { "workbench", benchId },
-                                     { "recipeId", recipe->GetFormID() },
-                                     { "count", 1 } });
+      p.Emit("craftRequested",
+             Json{ { "workbench", benchId },
+                   { "recipeId", recipe->GetFormID() },
+                   { "count", 1 } });
     }
     return;
   }
@@ -956,16 +961,17 @@ void ReportBuild(Platform& p, RE::WorkbenchMenuBase& menu,
     return;
   }
   bool attach = !nullMod;
-  uint32_t modId = attach && mod ? mod->GetFormID()
-                                 : ModInSlot(*key, examine->keyword);
+  uint32_t modId =
+    attach && mod ? mod->GetFormID() : ModInSlot(*key, examine->keyword);
   if (!modId) {
     REX::WARN("Mod change at {:X} without a mod in the slot", benchId);
     return;
   }
-  p.Emit("modRequested", Json{ { "workbench", benchId },
-                               { "item", items::ToJson(*key) },
-                               { "modId", modId },
-                               { "attach", attach } });
+  p.Emit("modRequested",
+         Json{ { "workbench", benchId },
+               { "item", items::ToJson(*key) },
+               { "modId", modId },
+               { "attach", attach } });
 }
 
 template <class Menu>

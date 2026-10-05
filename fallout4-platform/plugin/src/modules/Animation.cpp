@@ -230,8 +230,8 @@ void Write(RE::IAnimationGraphManagerHolder* h, const StickyVar& v)
       break;
     case VarType::kInt:
       h->SetGraphVariableInt(
-        v.name, static_cast<int>(
-                  std::clamp(v.value, -2147483648.0, 2147483647.0)));
+        v.name,
+        static_cast<int>(std::clamp(v.value, -2147483648.0, 2147483647.0)));
       break;
     case VarType::kBool:
       h->SetGraphVariableBool(v.name, v.value != 0);
@@ -456,30 +456,56 @@ void Sweep()
 // are Skyrim-style guesses: log the player's events in game and adjust.
 constexpr std::string_view kReplayable[] = {
   // jumps
-  "jumpStart", "jumpStartFromWalk", "jumpFall", "jumpLand", "jumpLandSoft",
-  "jumpLandToWalk", "jumpLandToRun", "jumpEnd", "jumpEndToRun",
+  "jumpStart",
+  "jumpStartFromWalk",
+  "jumpFall",
+  "jumpLand",
+  "jumpLandSoft",
+  "jumpLandToWalk",
+  "jumpLandToRun",
+  "jumpEnd",
+  "jumpEndToRun",
   // sneak
-  "sneakStart", "sneakStop",
+  "sneakStart",
+  "sneakStop",
   // reload start
-  "reloadStart", "reloadReserveStart", "reloadSequentialStart",
+  "reloadStart",
+  "reloadReserveStart",
+  "reloadSequentialStart",
   "reloadSequentialReserveStart",
   // attacks / melee
-  "attackStart", "attackStartAuto", "attackRelease", "attackStop",
-  "attackInterrupt", "meleeattackStart", "meleeattackSprintStart",
+  "attackStart",
+  "attackStartAuto",
+  "attackRelease",
+  "attackStop",
+  "attackInterrupt",
+  "meleeattackStart",
+  "meleeattackSprintStart",
   "meleeAttackGun",
   // throws
-  "grenadeThrowStart", "mineThrowStart",
+  "grenadeThrowStart",
+  "mineThrowStart",
   // block
-  "blockStart", "blockStop",
+  "blockStart",
+  "blockStop",
   // equip / unequip (draw / holster)
-  "weapEquip", "weapUnequip", "weapForceEquip",
+  "weapEquip",
+  "weapUnequip",
+  "weapForceEquip",
   // sighted
-  "sightedStateEnter", "sightedStateExit", "rifleSightedStart",
+  "sightedStateEnter",
+  "sightedStateExit",
+  "rifleSightedStart",
   "rifleSightedEnd",
   // stagger / get up
-  "staggerStart", "GetUpStart", "GetUpBegin", "GetUpEnd",
+  "staggerStart",
+  "GetUpStart",
+  "GetUpBegin",
+  "GetUpEnd",
   // idles / pose
-  "IdleStop", "IdleForceDefaultState", "g_archetypeBaseStateStart",
+  "IdleStop",
+  "IdleForceDefaultState",
+  "g_archetypeBaseStateStart",
   "g_archetypeRelaxedStateStart",
 };
 constexpr size_t kReplayableCount = std::size(kReplayable);
@@ -533,8 +559,9 @@ void Capture(const RE::BSFixedString& event) noexcept
     if (now - g_lastEmitMs[idx].exchange(now) < kDedupeMs) {
       return;
     }
-    p.Emit("animationEvent", Json{ { "actor", game::kPlayerRef },
-                                   { "name", std::string(name) } });
+    p.Emit(
+      "animationEvent",
+      Json{ { "actor", game::kPlayerRef }, { "name", std::string(name) } });
   } catch (...) {
   }
 }
@@ -662,8 +689,7 @@ void InstallAnimation(Platform& p)
     return nullptr;
   });
   p.RegisterNative("notifyAnimationGraph", [](const Json& a) -> Json {
-    return NotifyGraph(a.at(0).get<uint32_t>(),
-                       a.at(1).get<std::string>());
+    return NotifyGraph(a.at(0).get<uint32_t>(), a.at(1).get<std::string>());
   });
 
   p.OnFrame([&p](float) { Frame(p); });

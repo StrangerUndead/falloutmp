@@ -1,5 +1,5 @@
 #pragma once
-// JSON <-> wire format of SkyMP messages (skymp5-server/cpp/messages).
+// JSON <-> wire format of SkyMP messages (falloutmp-server/cpp/messages).
 // Messages the serializer knows travel in the binary format; anything
 // else (custom packets) as the packet id byte followed by JSON text.
 #include <cstdint>

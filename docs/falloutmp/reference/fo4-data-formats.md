@@ -1,6 +1,6 @@
 # Fallout 4 data formats — reference for the FalloutMP port
 
-Status: research reference (2026-10-05). Audience: the engineer (human or Claude Code session) who implements Fallout 4 (FO4) support in `libespm`, `skymp5-server`, the archive/strings loaders and the spawn/save path. Orientation: `docs/FALLOUT4_PORT_RESEARCH.md` §4.2.
+Status: research reference (2026-10-05). Audience: the engineer (human or Claude Code session) who implements Fallout 4 (FO4) support in `libespm`, `falloutmp-server`, the archive/strings loaders and the spawn/save path. Orientation: `docs/FALLOUT4_PORT_RESEARCH.md` §4.2.
 
 All multi-byte integers are **little-endian**. `formid` = u32 FormID **as stored in the file** (file-local: top byte indexes that plugin's `MAST` list; must be remapped, see §3). `lstring` = u32 string ID if the plugin is localized, else a zstring. `fv` = the record's **form version** (record header u16 at +0x14). Offsets are hex from the start of the subrecord *payload* (after the 6-byte field header) unless stated.
 
@@ -95,7 +95,7 @@ FO4 top-group order differs (FO4 adds e.g. `AVIF`, `OMOD`, `CMPO`, `INNR`, `SCOL
 
 Sources: generic helpers [xe: wbInterface.pas:20525-20620] (`IsDeleted`=0x20, `IsLocalized`=0x80, `IsPersistent`=0x400, `IsInitiallyDisabled`=0x800, `IsCompressed`=0x40000, `IsLight`=0x200 for non-Starfield); per-record lists in FO4.pas (TES4:12091, REFR:11347-11450, ACHR:4483-4490, NPC_:10286-10292, FURN:6848-6859, OMOD:12501 (bit 4 "Legendary Mod", bit 7 "Mod Collection"), KEYM:9823, MISC:10212).
 
-The server's `AttachEspmRecord` uses `0x800` (disabled), `0x20` (deleted), ACHR `0x200` (starts dead) [src: skymp5-server/cpp/server_guest_lib/WorldState.cpp:368-445; libespm/src/ACHR.cpp:8] — all still correct for FO4.
+The server's `AttachEspmRecord` uses `0x800` (disabled), `0x20` (deleted), ACHR `0x200` (starts dead) [src: falloutmp-server/cpp/server_guest_lib/WorldState.cpp:368-445; libespm/src/ACHR.cpp:8] — all still correct for FO4.
 
 ### 1.4 Field (subrecord) header, `XXXX`, compression
 
@@ -138,7 +138,7 @@ FO4 range: ReSaver rejects FO4 save form versions < 60 [rsv: ESS.java:285-290]; 
 ### 2.1 How lstrings are stored in records
 
 - If `TES4.flags & 0x80`, every field xEdit defines as `wbLString` (FULL, DESC, SHRT, ATTX, ONAM short names, ITXT/BTXT/RNAM/UNAM terminal text, NAM0/WNAM terminal header/welcome, DNAM addiction name, MPPN/TTGP morph/tint names, GMST string values, …) is a **4-byte u32 string ID**; `0` = empty. Otherwise it is an inline zstring.
-- The ID refers to the string tables of **the plugin that contains that version of the record** (the winning override, if it is localized) — `ScampServer::GetLocalizedString` already does this via `lookupRes.fileIdx` [src: skymp5-server/cpp/addon/ScampServer.cpp:~850-890].
+- The ID refers to the string tables of **the plugin that contains that version of the record** (the winning override, if it is localized) — `ScampServer::GetLocalizedString` already does this via `lookupRes.fileIdx` [src: falloutmp-server/cpp/addon/ScampServer.cpp:~850-890].
 - Which table: xEdit's rule [xe: wbLocalization.pas:~548-561 `LocalizedValueDecider`]:
 
 | Record / field | Table |
@@ -173,7 +173,7 @@ Encoding: xEdit's default for unknown language codes (FO4's `en`) is **UTF-8 wit
 
 | Where | Today | Problem for FO4 | Change |
 |---|---|---|---|
-| `LocalizationProvider` ctor [src: skymp5-server/cpp/localization_provider/LocalizationProvider.cpp:104-123] | scans `dataDir/"strings"` (lower-case dir), loads every file whose name **contains** `language` | Linux is case-sensitive (`Strings`); FO4 has no loose strings; `"en"` substring matches unrelated names | Source = (loose dir, case-insensitive) ∪ (BA2 archives in load order via rsm-bsa); match exact `<plugin>_<lang>.<ext>` |
+| `LocalizationProvider` ctor [src: falloutmp-server/cpp/localization_provider/LocalizationProvider.cpp:104-123] | scans `dataDir/"strings"` (lower-case dir), loads every file whose name **contains** `language` | Linux is case-sensitive (`Strings`); FO4 has no loose strings; `"en"` substring matches unrelated names | Source = (loose dir, case-insensitive) ∪ (BA2 archives in load order via rsm-bsa); match exact `<plugin>_<lang>.<ext>` |
 | `Parse()` [src: …LocalizationProvider.cpp:78-102] | key = filename before last `_` (case preserved); extension compared to lower-case `.strings/.dlstrings/.ilstrings` | `Fallout4_en.STRINGS` → never parsed; key `Fallout4` vs `Get()` caller lower-cases → mismatch | lower-case key and extension |
 | `ParseILDLStrings` [src: …:54-75] | `length = (uint32_t)buffer[start]` (one signed byte); loop bound `length - start` | wrong length for > 127-byte strings; works only by NUL-stopping | read u32 length; copy `length-1` bytes |
 | `ParseDirectoryEntries` [src: …:10-31] | no bounds checks | crash on malformed files | validate `8+8n ≤ size`, `offset < dataSize` |
@@ -203,7 +203,7 @@ Creation Club / "Creations": AE (1.11.137+) ships ~150 CC items as `cc*.esl` + `
 ### 3.2 What libespm does today
 
 - `IdMapping = std::array<uint8_t, 256>` [src: libespm/include/libespm/IdMapping.h:7]; `GetMappedId(id, map) = (id & 0xFFFFFF) | map[id>>24] << 24` [src: libespm/src/Utils.cpp:69-74]; `CombineBrowser::Impl::sources` is `std::array<Source,256>` [src: libespm/include/libespm/CombineBrowser.h:59]; `BrowserInfo::fileIdx` is `uint8_t` [src: BrowserInfo.h:17]. `Combiner::Combine` fills `toComb[m] = globalIdx` for masters and `toComb[numMasters] = selfIdx`, `0xFF` elsewhere; `LookupById` maps a *combined* ID back to raw per source and skips results `>= 0xFF000000` [src: libespm/src/Combiner.cpp:27-56; CombineBrowser.cpp:24-46].
-- Combined ID == "load-order index in `espmFiles` << 24 | object" — that convention leaks into the server: `FormDesc::ToFormId/FromFormId` [src: skymp5-server/cpp/server_guest_lib/FormDesc.cpp:46-98], `WorldState::GetFileIdx(formId) = formId >> 24` [src: WorldState.cpp:~1158], DB/change-form storage (`FormDesc` strings like `"3c:Skyrim.esm"`).
+- Combined ID == "load-order index in `espmFiles` << 24 | object" — that convention leaks into the server: `FormDesc::ToFormId/FromFormId` [src: falloutmp-server/cpp/server_guest_lib/FormDesc.cpp:46-98], `WorldState::GetFileIdx(formId) = formId >> 24` [src: WorldState.cpp:~1158], DB/change-form storage (`FormDesc` strings like `"3c:Skyrim.esm"`).
 - Latent bug: `CombineBrowser::FindNavMeshes` computes `rawFormId` but passes the combined `worldSpaceId` to the source browser [src: libespm/src/CombineBrowser.cpp:74].
 
 ### 3.3 Concrete design: light-aware combining
@@ -236,7 +236,7 @@ Creation Club / "Creations": AE (1.11.137+) ships ~150 CC items as `cc*.esl` + `
 
 ### 3.4 Default FO4 load order for server settings
 
-`Fallout4.esm, DLCRobot.esm, DLCworkshop01.esm, DLCCoast.esm, DLCworkshop02.esm, DLCworkshop03.esm, DLCNukaWorld.esm, [DLCUltraHighResolution.esm], <Fallout4.ccc entries that exist>, <user ESM/ESL/ESP>` — replace the hardcoded Skyrim list [src: skymp5-server/cpp/addon/ScampServer.cpp:315-321].
+`Fallout4.esm, DLCRobot.esm, DLCworkshop01.esm, DLCCoast.esm, DLCworkshop02.esm, DLCworkshop03.esm, DLCNukaWorld.esm, [DLCUltraHighResolution.esm], <Fallout4.ccc entries that exist>, <user ESM/ESL/ESP>` — replace the hardcoded Skyrim list [src: falloutmp-server/cpp/addon/ScampServer.cpp:315-321].
 
 ---
 
@@ -410,7 +410,7 @@ Other NPC_ fields:
 | `FMRI`+`FMRS` | 4 + 28+ | **face morph region**: `FMRI u32 index` (resolves to race `FMRI`), `FMRS {float pos[3]; float rot[3]; float scale; u8[] unknown}` |
 | `FMIN` | 4 | float facial morph intensity |
 
-Health in FO4 is not "race starting health + offset": use `DNAM.calculatedHealth` / `calculatedActionPoints` (CK-computed) as base, or compute from Endurance/level when auto-calc [inference]. `GetBaseActorValues` must be rewritten accordingly [src: skymp5-server/cpp/server_guest_lib/GetBaseActorValues.cpp:25-87].
+Health in FO4 is not "race starting health + offset": use `DNAM.calculatedHealth` / `calculatedActionPoints` (CK-computed) as base, or compute from Endurance/level when auto-calc [inference]. `GetBaseActorValues` must be rewritten accordingly [src: falloutmp-server/cpp/server_guest_lib/GetBaseActorValues.cpp:25-87].
 
 ### 4.5 RACE
 
@@ -453,7 +453,7 @@ Health in FO4 is not "race starting health + offset": use `DNAM.calculatedHealth
 
 ### 4.6 WEAP
 
-[xe: FO4.pas:12877-13032] [mut: Major Records/Weapon.xml] Subrecords: EDID, VMAD, OBND, PTRN, STCP, FULL, MODL…, ICON, MICO, EITM (+EAMT u16), DEST, ETYP (EQUP), BIDS, BAMT, YNAM, ZNAM, KSIZ/KWDA, DESC, **INRD**, **APPR**, **OBTE…STOP**, **NNAM** (embedded weapon OMOD), MOD4… (1st-person model), **DNAM**, **FNAM**, **CRDT**, INAM (impact data set), LNAM (NPC add-ammo LVLI), WAMD (AMDL aim model), WZMD (ZOOM), CNAM (template WEAP), **DAMA** (extra damage types: `{DMGT, u32}`), FLTR, MASE (u32 melee speed 0 Very Slow … 4 Very Fast). Record flags: 0x4 Non-Playable, 0x40000000 High-Res 1st Person Only. There is **no `DATA`** — value/weight/damage moved into DNAM (libespm `WEAP::Data::weapData` will be null → `GetWeightFromRecord` dereferences null [src: skymp5-server/cpp/server_guest_lib/GetWeightFromRecord.cpp:20-23]).
+[xe: FO4.pas:12877-13032] [mut: Major Records/Weapon.xml] Subrecords: EDID, VMAD, OBND, PTRN, STCP, FULL, MODL…, ICON, MICO, EITM (+EAMT u16), DEST, ETYP (EQUP), BIDS, BAMT, YNAM, ZNAM, KSIZ/KWDA, DESC, **INRD**, **APPR**, **OBTE…STOP**, **NNAM** (embedded weapon OMOD), MOD4… (1st-person model), **DNAM**, **FNAM**, **CRDT**, INAM (impact data set), LNAM (NPC add-ammo LVLI), WAMD (AMDL aim model), WZMD (ZOOM), CNAM (template WEAP), **DAMA** (extra damage types: `{DMGT, u32}`), FLTR, MASE (u32 melee speed 0 Very Slow … 4 Very Fast). Record flags: 0x4 Non-Playable, 0x40000000 High-Res 1st Person Only. There is **no `DATA`** — value/weight/damage moved into DNAM (libespm `WEAP::Data::weapData` will be null → `GetWeightFromRecord` dereferences null [src: falloutmp-server/cpp/server_guest_lib/GetWeightFromRecord.cpp:20-23]).
 
 **DNAM (132 bytes, packed — note unaligned floats from 0x37)**
 
@@ -625,7 +625,7 @@ Attachment model: an item has `APPR` slots (keywords); an OMOD whose `DATA.attac
 | `FNAM` | 4·n | category keywords (workbench menu tabs) |
 | `INTV` | 4 | `u16 createdObjectCount (default 1); u16 priority` (optional from field 1) |
 
-Crafting semantics: required items are CMPO components; the game satisfies a CMPO requirement from loose CMPO-bearing MISC items by scrapping (MISC `CVPA`) and from the component's `MNAM` scrap item [inference]. Workbench FURN keywords come from FURN `KWDA` (as today in `CraftService::OnCraftItem` [src: skymp5-server/cpp/server_guest_lib/CraftService.cpp:53-57]); Skyrim temper bench IDs `0xadb78`/`0x88108` [src: CraftService.cpp:84-93] must go.
+Crafting semantics: required items are CMPO components; the game satisfies a CMPO requirement from loose CMPO-bearing MISC items by scrapping (MISC `CVPA`) and from the component's `MNAM` scrap item [inference]. Workbench FURN keywords come from FURN `KWDA` (as today in `CraftService::OnCraftItem` [src: falloutmp-server/cpp/server_guest_lib/CraftService.cpp:53-57]); Skyrim temper bench IDs `0xadb78`/`0x88108` [src: CraftService.cpp:84-93] must go.
 
 ### 4.14 CONT / LVLI / LVLN / OTFT
 
@@ -648,7 +648,7 @@ Crafting semantics: required items are CMPO components; the game satisfies a CMP
 | `ONAM` | 4 | (LVLI) lstring override name |
 | `MODL`… | | (LVLN) model |
 
-Skyrim LVLO is `u16 level; u8[2]; formid; u16 count; u8[2]`. libespm reads `Entry {u32 level; u32 formId; u32 count}` contiguously after LLCT [src: libespm/include/libespm/LeveledListBase.h:22-29, src/LeveledListBase.cpp:22-24] → on FO4 `count` = `count | chanceNone<<16 | …` and any `COED` breaks the stride. Parse each LVLO field individually; apply per-entry chance-none. `LeveledListUtils` treats `chanceNoneGlobalId != 0` as 100% none [src: skymp5-server/cpp/server_guest_lib/LeveledListUtils.cpp:35] — read the GLOB value instead.
+Skyrim LVLO is `u16 level; u8[2]; formid; u16 count; u8[2]`. libespm reads `Entry {u32 level; u32 formId; u32 count}` contiguously after LLCT [src: libespm/include/libespm/LeveledListBase.h:22-29, src/LeveledListBase.cpp:22-24] → on FO4 `count` = `count | chanceNone<<16 | …` and any `COED` breaks the stride. Parse each LVLO field individually; apply per-entry chance-none. `LeveledListUtils` treats `chanceNoneGlobalId != 0` as 100% none [src: falloutmp-server/cpp/server_guest_lib/LeveledListUtils.cpp:35] — read the GLOB value instead.
 
 **OTFT** [xe: FO4.pas:9357-9360]: `INAM` 4·n formid (ARMO/LVLI) — same as Skyrim (libespm OK, but `count = dataSize / sizeof(dataSize)` happens to equal /4 [src: libespm/src/OTFT.cpp:13]).
 
@@ -772,7 +772,7 @@ Commonly used FO4 condition functions (index, params) [xe: FO4.pas:262-740]:
 | 756 | GetLoadedAmmoCount | — | |
 | 792 | IsInWorkshopMode | — | |
 
-The indices the server already implements happen to have the **same index and meaning** in FO4 (47, 69, 101, 182, 254, 263, 264, 300, 569, 596, 597, 640, 682, 722) [src: skymp5-server/cpp/server_guest_lib/condition_functions/*.cpp `GetFunctionIndex`] — but their parameters change (AVIF formids instead of AV indices for 640; "magic" ones are mostly irrelevant). There is **no `IsInPowerArmor` condition function** in FO4's table; use `WornHasKeyword(ArmorTypePower)` or the PA furniture state [xe table has no such entry].
+The indices the server already implements happen to have the **same index and meaning** in FO4 (47, 69, 101, 182, 254, 263, 264, 300, 569, 596, 597, 640, 682, 722) [src: falloutmp-server/cpp/server_guest_lib/condition_functions/*.cpp `GetFunctionIndex`] — but their parameters change (AVIF formids instead of AV indices for 640; "magic" ones are mostly irrelevant). There is **no `IsInPowerArmor` condition function** in FO4's table; use `WornHasKeyword(ArmorTypePower)` or the PA furniture state [xe table has no such entry].
 
 ### 4.21 VMAD (script attachments), FO4 version
 
@@ -900,7 +900,7 @@ Archive list keys in `Fallout4.ini [Archive]`: `SResourceArchiveList`, `SResourc
 
 - `vcpkg.json` depends on `rsm-bsa` (not on macOS/emscripten) via the overlay `overlay_ports/rsm-bsa` pinned to **tag 4.1.0** (`REF 4.1.0`, SHA512 `c488a4f7…`) with three local patches (`variant-emplace-fix`, `structural-binding`, `fix-static-cast-error` — the last one already patches `src/bsa/fo4.cpp`) [src: vcpkg.json:31-34; overlay_ports/rsm-bsa/portfile.cmake:1-14].
 - rsm-bsa 4.1.0 has full FO4 BA2 read/write (GNRL + DX10, zlib), **but its header reader throws `"invalid version"` unless `version == 1`** [bsa: 4.1.0 src/bsa/fo4.cpp:134-137]. v7/v8 support landed on master in commit `04d1fdf` (2024-05-19), plus v2/v3 Starfield and LZ4; there is no newer release tag. ⇒ Change the overlay to `REF 2c7280d5c9199f90b7338d70425181029c9bb2f2` (or later), re-check that the three patches still apply, and add the `lz4`/`directxtex` deps already listed. Without this, every NG/AE `Fallout4 - *.ba2` fails to open.
-- Server usage today: only `BsaArchiveScriptStorage` (`bsa::tes4::archive bsa; bsa.read(path); bsa["scripts"]` iterates the `scripts` folder of a Skyrim BSA) [src: skymp5-server/cpp/server_guest_lib/script_storages/BsaArchiveScriptStorage.cpp:36-62]; linked when `TARGET bsa::bsa` exists, else `NO_BSA` [src: skymp5-server/cpp/CMakeLists.txt:141-145]. FO4 equivalent: `bsa::fo4::archive ba2; ba2.read(path);` then iterate `for (auto& [key, file] : ba2)`, filter `key.name()` starting with `scripts\` (case-insensitive) and ending `.pex`, and get bytes via `file.write(stream, bsa::fo4::format::general)` or by decompressing `file[0]`. FO4 script names are **namespaced** (`Scripts\Workshop\WorkshopParentScript.pex` ↔ `Workshop:WorkshopParentScript`) — map the subpath into the colon form (broad survey §4.3). The localization provider (§2.4) needs the same BA2 access for `Strings\`.
+- Server usage today: only `BsaArchiveScriptStorage` (`bsa::tes4::archive bsa; bsa.read(path); bsa["scripts"]` iterates the `scripts` folder of a Skyrim BSA) [src: falloutmp-server/cpp/server_guest_lib/script_storages/BsaArchiveScriptStorage.cpp:36-62]; linked when `TARGET bsa::bsa` exists, else `NO_BSA` [src: falloutmp-server/cpp/CMakeLists.txt:141-145]. FO4 equivalent: `bsa::fo4::archive ba2; ba2.read(path);` then iterate `for (auto& [key, file] : ba2)`, filter `key.name()` starting with `scripts\` (case-insensitive) and ending `.pex`, and get bytes via `file.write(stream, bsa::fo4::format::general)` or by decompressing `file[0]`. FO4 script names are **namespaced** (`Scripts\Workshop\WorkshopParentScript.pex` ↔ `Workshop:WorkshopParentScript`) — map the subpath into the colon form (broad survey §4.3). The localization provider (§2.4) needs the same BA2 access for `Strings\`.
 
 ---
 
@@ -1012,7 +1012,7 @@ Recommendation: start with **(b)** (already the broad survey's recommendation, �
 | `Utils.cpp::kCorrectHashcode` | Add FO4 ESM CRCs per supported runtime (CI only) |
 | New: `fo4/AVIF.h`, `fo4/OMOD.h`, `fo4/CMPO.h`, `fo4/INNR.h`, `fo4/KEYM.h`, `fo4/NOTE.h`, `fo4/TERM.h`, `fo4/FURN.h`, `fo4/PROJ.h`, `fo4/EXPL.h`, `fo4/HAZD.h`, `fo4/PERK.h`, `fo4/ObjectTemplate.h` | per §4 |
 
-### 8.3 Consumers in `skymp5-server`
+### 8.3 Consumers in `falloutmp-server`
 
 | Consumer | What must change |
 |---|---|
@@ -1294,7 +1294,7 @@ Format `index Name(param types)`; 479 entries [xe: FO4.pas:262-740].
 | `FULL` returned as `const char*` in CONT/TREE/FLOR/QUST although Skyrim.esm is localized | [src: libespm/src/CONT.cpp:18 …] |
 | `CombineBrowser::FindNavMeshes` passes the combined ID instead of `rawFormId` | [src: libespm/src/CombineBrowser.cpp:74] |
 | `ZlibDecompress` uses a single `inflate(Z_NO_FLUSH)` without checking output size | [src: libespm/include/libespm/ZlibUtils.h:7-28] |
-| `LocalizationProvider::ParseILDLStrings` reads a 1-byte length | [src: skymp5-server/cpp/localization_provider/LocalizationProvider.cpp:63] |
+| `LocalizationProvider::ParseILDLStrings` reads a 1-byte length | [src: falloutmp-server/cpp/localization_provider/LocalizationProvider.cpp:63] |
 
 ## Appendix C — sources
 

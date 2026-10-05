@@ -1,6 +1,6 @@
-include(${CMAKE_CURRENT_LIST_DIR}/skymp_execute_process.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/execute_process_with_coverage.cmake)
 
-# Tags were added to skymp20 to merge coverage reports
+# Coverage tags (to merge coverage reports)
 # Unused currently, so always use 00000 as a tag and clear temp files
 
 # Important note: 
@@ -36,7 +36,7 @@ endif()
 
 # OpenCppCoverage is Windows-only
 if(WIN32 AND CPPCOV)
-  skymp_execute_process(
+  execute_process_with_coverage(
     EXECUTABLE_PATH ${EXE_PATH}
     CPPCOV ${CPPCOV}
     CPPCOV_TAG ${tag}

@@ -120,8 +120,8 @@ NPCs do not use VATS. Hosted NPCs are valid targets with the same rules. Compani
 ## 7. Tasks
 - [ ] **F18-T01** Off mode: client `vatsService.ts` blocks `VATSMenu` and the VATS key (with CLI-021); server rejects `VatsAction` when off — S — Depends: CLI-021, F18-T02 — Verify: L-unit, G-self — Files: falloutmp-client/src/services/services/vatsService.ts
   - Accept: the self-test cannot open VATS; a forged request is rejected with a correction.
-- [ ] **F18-T02** `VatsAction` message (C++ + TS) and the `WeaponFire.vatsSeq` optional field — S — Depends: NET-002, F09-T01 — Verify: L-unit — Files: skymp5-server/cpp/messages/VatsActionMessage.h, WeaponFireMessage.h; falloutmp-client/src/services/messages/vatsActionMessage.ts
-- [ ] **F18-T03** Eligibility checks (mode, shooter state, target rules, engage distance, front cone) — S — Depends: F18-T02, F01-T05 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/Fo4VatsService.{h,cpp}; unit/Fo4VatsTest.cpp
+- [ ] **F18-T02** `VatsAction` message (C++ + TS) and the `WeaponFire.vatsSeq` optional field — S — Depends: NET-002, F09-T01 — Verify: L-unit — Files: falloutmp-server/cpp/messages/VatsActionMessage.h, WeaponFireMessage.h; falloutmp-client/src/services/messages/vatsActionMessage.ts
+- [ ] **F18-T03** Eligibility checks (mode, shooter state, target rules, engage distance, front cone) — S — Depends: F18-T02, F01-T05 — Verify: L-unit — Files: falloutmp-server/cpp/server_guest_lib/fo4/Fo4VatsService.{h,cpp}; unit/Fo4VatsTest.cpp
 - [ ] **F18-T04** AP cost model (WEAP AP + additive OMOD percentages via SRV-022, entry points via SRV-021, burst cost) and F08 spend — S — Depends: F18-T03, SRV-022, F08-T09 — Verify: L-unit
 - [ ] **F18-T05** Hit-chance model with settings constants, movement-history speed, BPTD to-hit, perks; calibration procedure against vanilla (R10) — M — Depends: F18-T03, SRV-021 — Verify: L-unit, G-self
   - Accept: unit cases pass; a G-self calibration table (engine-displayed vs server chance) is recorded and constants updated.

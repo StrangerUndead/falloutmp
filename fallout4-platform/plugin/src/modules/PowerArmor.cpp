@@ -136,9 +136,10 @@ Json PlayEnter(Platform& p, uint32_t frameId)
   auto player = RE::PlayerCharacter::GetSingleton();
   auto frame = frameId == game::kPlayerRef ? nullptr : game::Ref(frameId);
   if (!player || !IsPowerArmorFrame(frame) || game::Loading()) {
-    p.Log("warn", std::format("playPowerArmorEnter: {:X} is not a power "
-                              "armor frame",
-                              frameId));
+    p.Log("warn",
+          std::format("playPowerArmorEnter: {:X} is not a power "
+                      "armor frame",
+                      frameId));
     p.Resolve(id, false);
     return Platform::Pending(id);
   }
@@ -153,8 +154,9 @@ Json PlayEnter(Platform& p, uint32_t frameId)
   // and core move from the frame). [verify] fromScript = false plays the
   // full entry sequence; the return value is logged only
   bool handled = frame->ActivateRef(player, nullptr, 1, false, false, false);
-  p.Log("info", std::format("Entering power armor {:X} (activate: {})",
-                            frameId, handled));
+  p.Log(
+    "info",
+    std::format("Entering power armor {:X} (activate: {})", frameId, handled));
   return Platform::Pending(id);
 }
 
@@ -203,8 +205,9 @@ void PlayerFrame(Platform& p)
       Finish(p, true);
     } else if (now - g_transition->startMs >
                (g_transition->enter ? kEnterTimeoutMs : kExitTimeoutMs)) {
-      p.Log("warn", std::format("Power armor {} timed out",
-                                g_transition->enter ? "entry" : "exit"));
+      p.Log("warn",
+            std::format("Power armor {} timed out",
+                        g_transition->enter ? "entry" : "exit"));
       Finish(p, false);
     }
   }
@@ -247,11 +250,11 @@ struct FurnitureActivate
                     RE::TESBoundObject* a_objectToGet, std::int32_t a_count)
   {
     auto& p = Platform::Get();
-    if (a_item && a_action && a_action->IsPlayerRef() &&
-        a_this && a_this->HasKeywordID(kPowerArmorFrameKeyword)) {
+    if (a_item && a_action && a_action->IsPlayerRef() && a_this &&
+        a_this->HasKeywordID(kPowerArmorFrameKeyword)) {
       uint32_t frameId = a_item->GetFormID();
       bool allowed = g_allowFrame.load() == frameId &&
-                     p.FrameCount() <= g_allowUntil.load();
+        p.FrameCount() <= g_allowUntil.load();
       if (!allowed) {
         double now = p.NowMs();
         // Activation repeats while the key is held: one request a second
@@ -272,8 +275,8 @@ struct FurnitureActivate
 
 struct PuppetPowerArmor
 {
-  uint32_t frame = 0;       // the frame the puppet enters (world or proxy)
-  uint32_t proxy = 0;       // our proxy frame (0 = none)
+  uint32_t frame = 0; // the frame the puppet enters (world or proxy)
+  uint32_t proxy = 0; // our proxy frame (0 = none)
   bool proxyFilled = false;
   bool wantInside = false;
   uint64_t switchAtFrame = 0; // > 0: SwitchToPowerArmor due
@@ -335,9 +338,9 @@ RE::TESObjectREFR* PlaceProxy(RE::Actor* actor, uint32_t baseId)
   if (!game::ResolveSpace(game::SpaceOf(actor), world, interior)) {
     return nullptr;
   }
-  auto ref = game::CreateRef(baseId, actor->GetPosition(),
-                             game::ToDeg(actor->data.angle.z), world,
-                             interior);
+  auto ref =
+    game::CreateRef(baseId, actor->GetPosition(),
+                    game::ToDeg(actor->data.angle.z), world, interior);
   if (ref && !IsPowerArmorFrame(ref)) {
     RemoveRef(ref->GetFormID()); // not a frame base
     return nullptr;
@@ -390,8 +393,8 @@ void SetInPowerArmor(Platform& p, uint32_t actorId, uint32_t frameId,
     uint32_t base = st.frameBaseId ? st.frameBaseId : kEmptyFrameFurniture;
     auto proxy = PlaceProxy(actor, base);
     if (!proxy) {
-      p.Log("warn", std::format("No proxy frame {:X} for puppet {:X}", base,
-                                actorId));
+      p.Log("warn",
+            std::format("No proxy frame {:X} for puppet {:X}", base, actorId));
       st.frame = 0;
       return;
     }
@@ -479,8 +482,8 @@ void SetCoreCharge(float charge)
     return;
   }
   float capacity = 100.f;
-  if (auto s = RE::PowerArmor::GetNewBatteryCapacity();
-      s && s->GetType() == RE::Setting::SETTING_TYPE::kFloat &&
+  if (auto s = RE::PowerArmor::GetNewBatteryCapacity(); s &&
+      s->GetType() == RE::Setting::SETTING_TYPE::kFloat &&
       s->GetFloat() > 0.f) {
     capacity = s->GetFloat();
   }
@@ -494,9 +497,8 @@ void SetCoreCharge(float charge)
     float after = player->GetActorValue(*info);
     if (after < target) {
       // Damage healed and still short: raise the base
-      player->SetBaseActorValue(*info,
-                                player->GetBaseActorValue(*info) +
-                                  (target - after));
+      player->SetBaseActorValue(
+        *info, player->GetBaseActorValue(*info) + (target - after));
     }
   }
 }

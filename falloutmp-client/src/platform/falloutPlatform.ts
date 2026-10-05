@@ -186,7 +186,7 @@ export interface WorldNatives {
 
 export interface UiNatives {
   showNotification(text: string): void;
-  // The CEF front (skymp5-front fork) receives client events as JSON.
+  // Forwards a client event, as JSON, to the in-game UI.
   sendToFront(event: string, payload: unknown): void;
 }
 

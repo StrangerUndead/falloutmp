@@ -33,9 +33,9 @@ A Fallout 4 server needs one new top-level key, plus an optional `fo4` block.
 }
 ```
 
-- **`game`** is `"skyrim"` (the default) or `"fallout4"`. It selects the game profile: load order, form ids, archive type and protocol. Skyrim and Fallout 4 clients can't join each other's servers, because the connection password carries a per-game prefix.
+- **`game`** is `"fallout4"`, the default and the only value. The connection password carries the protocol prefix (`fo4-1_`), so clients of another protocol version can't join.
 - **`fo4`** tunes the Fallout 4 rules. Every key is optional.
-- **`master`** is SkyMP's server list and account service. It lists Skyrim servers only, so a Fallout 4 server uses no master by default. Set `"offlineMode": true` (players join by IP, no accounts) unless your gamemode handles logins. An explicit `"master": ""` turns the master off on a Skyrim server too.
+- **`master`** is the URL of a server list and account service. There is none by default. Set `"offlineMode": true` (players join by IP, no accounts) unless your gamemode handles logins.
 
 Settings are checked at startup. A value of the wrong type stops the server with the setting's full path:
 

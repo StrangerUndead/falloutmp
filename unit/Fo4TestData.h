@@ -20,13 +20,13 @@ constexpr FormId kDuctTape = 0x59AE6; // adhesive 1
 constexpr FormId k10mm = 0x4822, kAmmo10mm = 0x1F276, kAmmo45 = 0x1F66A;
 constexpr FormId kT45Torso = 0x30A0, kFusionCore = 0x75FE4;
 // Keywords
-constexpr FormId kApReceiver = 0x9001, kApMagazine = 0x9002,
-                 kApScope = 0x9003, kApMount = 0x9004;
+constexpr FormId kApReceiver = 0x9001, kApMagazine = 0x9002, kApScope = 0x9003,
+                 kApMount = 0x9004;
 constexpr FormId kWorkbenchWeapons = 0x8001, kWorkbenchChem = 0x8002;
 // Mods
 constexpr FormId kModReceiverStd = 0x7001, kModReceiverHardened = 0x7002,
-                 kModMagLarge = 0x7003, kModMount = 0x7004,
-                 kModScope = 0x7005, kModReceiver45 = 0x7006;
+                 kModMagLarge = 0x7003, kModMount = 0x7004, kModScope = 0x7005,
+                 kModReceiver45 = 0x7006;
 constexpr FormId kLooseHardened = 0x7102, kLooseMagLarge = 0x7103,
                  kLooseMount = 0x7104, kLooseScope = 0x7105;
 // Recipes, perks, consumables
@@ -144,8 +144,8 @@ inline void Build(InMemoryFo4DataSource& d)
   mag.target = OmodTarget::Weapon;
   mag.attachPointKeywordId = kApMagazine;
   mag.looseModId = kLooseMagLarge;
-  mag.properties = { NumProp(WeaponProperty::AmmoCapacity,
-                             OmodFunction::Add, 6.f) };
+  mag.properties = { NumProp(WeaponProperty::AmmoCapacity, OmodFunction::Add,
+                             6.f) };
   d.AddObjectMod(mag);
 
   ObjectModData mount;

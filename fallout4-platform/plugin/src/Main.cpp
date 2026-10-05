@@ -59,7 +59,8 @@ void OnMessage(F4SE::MessagingInterface::Message* a_msg)
 
 F4SE_PLUGIN_VERSION = []() noexcept {
   F4SE::PluginVersionData v{};
-  v.PluginVersion({ FMP_VERSION_MAJOR, FMP_VERSION_MINOR, FMP_VERSION_PATCH, 0 });
+  v.PluginVersion(
+    { FMP_VERSION_MAJOR, FMP_VERSION_MINOR, FMP_VERSION_PATCH, 0 });
   v.PluginName("FalloutMP");
   v.AuthorName("FalloutMP");
   v.UsesAddressLibrary(true);
@@ -73,9 +74,9 @@ F4SE_PLUGIN_VERSION = []() noexcept {
 F4SE_PLUGIN_LOAD(const F4SE::LoadInterface* a_f4se)
 {
   // A trampoline for call-site hooks (REL::GetTrampoline())
-  F4SE::Init(a_f4se, { .logName = "FalloutMP",
-                       .trampoline = true,
-                       .trampolineSize = 1024 });
+  F4SE::Init(
+    a_f4se,
+    { .logName = "FalloutMP", .trampoline = true, .trampolineSize = 1024 });
   REX::INFO("FalloutMP {}.{}.{} loading", FMP_VERSION_MAJOR, FMP_VERSION_MINOR,
             FMP_VERSION_PATCH);
   fmp::Platform::Get().SetVersions(a_f4se->RuntimeVersion().string(),

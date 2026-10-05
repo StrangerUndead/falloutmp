@@ -22,13 +22,13 @@ namespace fmp::puppets {
 
 struct State
 {
-  uint32_t baseId = 0;  // base NPC the puppet was made from
-  uint32_t npcId = 0;   // its own runtime TESNPC (appearance), 0 = shared
+  uint32_t baseId = 0; // base NPC the puppet was made from
+  uint32_t npcId = 0;  // its own runtime TESNPC (appearance), 0 = shared
   float spawnTimeMs = 0;
   // Last network movement state (Movement module), for other modules:
-  uint32_t moveFlags = 0;  // MoveFlag bits (setMovementFlags)
-  float aimPitch = 0;      // degrees (setAimAngles)
-  float aimHeading = 0;    // degrees, relative to the yaw
+  uint32_t moveFlags = 0; // MoveFlag bits (setMovementFlags)
+  float aimPitch = 0;     // degrees (setAimAngles)
+  float aimHeading = 0;   // degrees, relative to the yaw
 };
 
 // Main thread only (State pointers stay valid until Remove).

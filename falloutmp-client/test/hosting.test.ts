@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { longToNormal, SkympClientBridge } from "../src/integration/skympClientBridge";
+import { longToNormal, ClientBridge } from "../src/integration/clientBridge";
 import { Av } from "../src/services/messages/codes";
 import { HitReportMessage, UpdateMovementFo4Message, WeaponFireMessage } from "../src/services/messages/fo4Messages";
 import { Fo4MsgType } from "../src/services/messages/msgType";
@@ -13,7 +13,7 @@ const kRaiderLocal = 0x1a2b3;
 function hostRaider() {
   const h = makeClient();
   h.platform.refs.map(kRaider, kRaiderLocal);
-  new SkympClientBridge(h.client).onHostStart({ target: kRaider + 0x100000000 });
+  new ClientBridge(h.client).onHostStart({ target: kRaider + 0x100000000 });
   return h;
 }
 
@@ -22,7 +22,7 @@ test("HostStart long ids convert like the server's LongToNormal", () => {
   assert.equal(longToNormal(0xff000010), 0xff000010);
   const h = hostRaider();
   assert.ok(h.client.ctx.isHosted(kRaider));
-  new SkympClientBridge(h.client).onHostStop({ target: kRaider + 0x100000000 });
+  new ClientBridge(h.client).onHostStop({ target: kRaider + 0x100000000 });
   assert.ok(!h.client.ctx.isHosted(kRaider));
 });
 
