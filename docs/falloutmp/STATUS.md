@@ -5,7 +5,7 @@
 ## Current position
 - **Plan version:** 1.1 (2026-10-05)
 - **Working branch:** `claude/fallout4-port-research`
-- **Current milestones:** the Linux-verifiable parts of M1, M2 and M6–M11 are built. The server game layer and the client services are implemented and tested. Everything that needs Fallout 4 running (M3 platform onwards) is not started.
+- **Current milestones:** the Linux-verifiable parts of M1, M2 and M6–M11 are built. The server runs on real Fallout4.esm (user's VPS). The game client exists as a first slice (M3/M4/M5: connect, log in, spawn, see others move); its F4SE plugin builds in CI but is not verified in game yet.
 - **Code so far:** 33 commits on top of upstream SkyMP `f926944`, 16 of them plan-only. See the evidence log below.
 
 ## What exists (2026-10-05)
@@ -18,7 +18,10 @@
 | `fo4` server settings block with validation | Done | `Fo4SettingsTest` |
 | Gamemode API `mp.fo4.*` and `mp.onFo4...` events (6 blockable) | Done | `Fo4GamemodeApiTest`, `Fo4ServerTest` |
 | `falloutmp-client` services, `falloutPlatform` contract, skymp bridge | Done, against a fake platform | `npm test` (47 tests, including the C++/TS protocol parity test) |
-| fallout4-platform F4SE plugin | Not started (needs Windows) | — |
+| Client core `fallout4-platform/core`: SLikeNet connection (`fo4-1_` prefix), wire codec from the server's messages library, QuickJS host running the client bundle | Done | `Fo4ClientCoreTest` (4 cases) |
+| Client runtime `falloutmp-client/src/runtime`: `WorldSession` (connect, offline login, CreateActor/DestroyActor/Teleport/Host, puppets keyed by form id, reconnect, puppets recreated after saves), native `FalloutPlatform` adapter | Done | client `session.test.ts` (11 tests) |
+| Headless bot `fmp_bot` + `fmp_e2e.sh`: two clients join a fallout4 server on a synthetic Fallout4.esm, see each other, movement replicates | Done | `fallout4-platform/tools/fmp_e2e.sh` PASS |
+| F4SE plugin `fallout4-platform/plugin` (CommonLibF4 pinned `7c8c6f8`, AE 1.11.x): load on game data, tick from PlayerCharacter::Update (vfunc 0xCF), player movement capture, teleport via MoveTo onto a marker, puppets (CreateReferenceAtLocation of base 0x7, Papyrus EnableAI false, SetLocationOnReference per frame), HUD notifications, puppets removed before saves | Written; CI build `.github/workflows/falloutmp-client-windows.yml` | not run in game |
 | PEX FO4 reader (M2 PVM-001…006) | Not started | — |
 | Movement (F01): `UpdateMovementFo4` (65), server speed model (walk/sprint/encumbered/PA/jetpack/vertical), per-sample and windowed checks, scored corrections, cell-change rule, history for hit rewind, PA core drain from movement; client capture and interpolated replay | Done | `Fo4MovementTest`, `Fo4ServerTest` [F01], client `movement.test.ts` |
 | Effects (F20-T03): `EffectsUpdate` (92) owner full and neighbour visual subset, pushed on use, expiry and join; `getEffects`/`cureAddictions`/`addRads`; client `EffectsService` | Done | `Fo4ServerTest` [F20], `Fo4MessagesTest`, client effects test |
@@ -28,11 +31,12 @@
 | F13 remainder: `NpcAiState` (111) threat/detection, host migration re-seed, hostility matrix, legendary rolls | Not started | — |
 | T2 systems (companions, VATS, stealth, quests, survival) | Not started | — |
 
-Test totals at the last commit: C++ 248 test cases and about 2100 assertions (`./unit/unit "~[espm]"`); client 59 tests.
+Test totals at the last commit: C++ 256 test cases and about 2150 assertions (`./unit/unit "~[espm]"`); client 70 tests; e2e join PASS.
 
 Guides: [guides/server-admin.md](guides/server-admin.md), [guides/gamemode-api.md](guides/gamemode-api.md), [guides/implementation.md](guides/implementation.md).
 
 ## Next actions (for the next session)
+0. Client in game: get the Windows workflow green, then the user runs the build (F4SE + Address Library on 1.11.x) and reports `FalloutMP.log`. Verify first: the hook fires, MoveTo teleports, puppets appear and move (`puppet-move` "native" vs "papyrus"), EnableAI's Papyrus signature. Then movement flags, appearance (F03) and animation (F02).
 1. M2: PEX FO4 reader (PVM-001…006), so server Papyrus can run Fallout 4 scripts.
 2. F13 remainder: `NpcAiState` (111), legendary rolls (LTPT/LTPC), hostility from factions.
 3. Windows work for the user or CI: PLAT-001+ (the F4SE plugin implementing `falloutPlatform.ts`), then the G-self checks in the verification table below.
@@ -44,9 +48,9 @@ Guides: [guides/server-admin.md](guides/server-admin.md), [guides/gamemode-api.m
 | M0 Foundations | [~] REF-001 done (data tests tagged); ENV scripts in `tools/` | `541425d` |
 | M1 Game-pluggable core | [~] profiles, prefix and registry done; REF-004…013 refactors open | `91a92f3` |
 | M2 FO4 data on server | [~] FO4 records and data source done; PEX reader open | `91a92f3`, `ea262f4` |
-| M3 Platform alive | [ ] needs Windows | |
-| M4 Reflection, connect & spawn | [ ] | |
-| M5 See each other | [ ] | |
+| M3 Platform alive | [~] F4SE plugin written (QuickJS, not Node); unverified in game | `2bd1acd` |
+| M4 Reflection, connect & spawn | [~] connect, login and spawn done without reflection; e2e with bots | `6c92c73` |
+| M5 See each other | [~] puppets follow movement (bots); no animation or appearance | `6c92c73` |
 | M6 Items & world | [~] server and client logic done; in-game apply open | `af67519`, `f6c6654`, `b67cecf` |
 | M7 Character & status | [~] server and client logic done | `78e6675` |
 | M8 Combat — T0 parity alpha | [~] ranged validation and damage done; melee, explosives and VATS open | `45b2c81` |
@@ -59,7 +63,7 @@ Guides: [guides/server-admin.md](guides/server-admin.md), [guides/gamemode-api.m
 _(none; the next session starts at "Next actions")_
 
 ## Blockers
-- Windows CI requires the user to enable GitHub Actions on the fork (Q-08).
+- Windows CI: Actions are enabled on the fork (2026-10-05); the plugin workflow is the only Windows job that matters for FalloutMP.
 - Every in-game verification (G-self/G-manual) requires the user (Q-09).
 
 ## Decisions awaiting user
@@ -68,6 +72,7 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 ## Decisions log
 | Date | Decision | By | Affects |
 |---|---|---|---|
+| 2026-10-05 | ADR-004 amended for the first client slice: the plugin embeds QuickJS-ng instead of Node.js. The client bundle is engine-free, QuickJS builds the same on Linux (tests, headless bot) and Windows, and the DLL stays small. Revisit if npm modules or Node APIs are needed in game | Claude (implementation), user asked to build the client now | PLAT-010, ADR-004 |
 | 2026-10-05 | No DLC content: the Fallout 4 default load order is `Fallout4.esm` only; servers and players need no DLC | User | GameProfile, F00, docs |
 | 2026-10-05 | Fully player-run world: no NPC characters and no game factions. Landlords, traders, governments and factions are real players. Keep `npcEnabled` off; NPC hosting (F13) stays in the code but unused. Systems that assumed NPCs (vendors, settler ratings, NPC quest givers, NPC kill XP) need player-run replacements | User | F13, F21, F22, F23, F27, F32 |
 | 2026-10-05 | Movement speed limits off by default; human NPCs off by default; ownership models for wasteland buildings under discussion (rent in cities like Keizaal Online) | User | F01, F13, F22 |
@@ -123,6 +128,10 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 - F08 hosted-NPC AV reports are cause-bounded and can never kill (review C1).
 
 ## Deviations recorded during implementation
+- Client: the first plugin slice doesn't fork skyrim-platform. It is a small F4SE plugin (`fallout4-platform/plugin`) with natives called by name through one JSON bridge (`__fmp.native`); unimplemented natives are logged once and return defaults. Papyrus reflection (ADR-006), CEF (ADR-005) and template-save world entry (ADR-007) are not used: the player loads any save and is moved by MoveTo.
+- Client: other players are clones of base NPC 0x7 with AI off until appearance (F03) and animation (F02) sync exist.
+- Server: a fallout4 server without `startPoints` spawns at Sanctuary Hills (it used Skyrim's default) and uses no master server by default.
+- falloutmp-client: actors are keyed by form id (`refrId`), never by CreateActor's slot `idx`; the skymp bridge used `idx`, which made the server drop the client's movement.
 - F17: worn power armor pieces live in the wearer's worn record, not in the player inventory. They move between the frame and the record only on the client's Ack.
 - F22 and others: world state (settlements, frames, locks, parties, containers, clock, weather) is stored in a JSON file (`fo4.worldStatePath`), not in ADR-010 records yet. Writes go through a temporary file and a rename.
 - F09: `WeaponFire` gained `clientShotId`, echoed to the shooter only, so hit claims can name the server sequence. This is not in the 01-sync-standard registry text yet.
@@ -140,6 +149,8 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 ## Evidence log
 | Date | Task | Evidence |
 |---|---|---|
+| 2026-10-05 | Client first slice | `6c92c73`, `2bd1acd`: `Fo4ClientCoreTest`, client 70 tests, `fmp_e2e.sh` PASS (two bots, 356 movement updates applied) |
+| 2026-10-05 | First real data load (user VPS) | Fallout4.esm: 1,244,528 refs, 31 workshops after the CONT fix (`d1d90c0`), 315 map markers |
 | 2026-10-05 | F13 NPC data | `Fo4NpcTest` (4 cases), `Fo4EspmTest` NPC_/OTFT; suite 248 cases |
 | 2026-10-05 | F13 hosting slice | `Fo4ServerTest` "a host drives its NPC within the same rules"; client `hosting.test.ts` (4 tests); suite 243/2046 |
 | 2026-10-05 | F20-T03 effects | `Fo4ServerTest` "effects are pushed on use and on expiry", message round trip; suite 242/2030 |
@@ -166,6 +177,7 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 ## Session log
 | Date | Session summary |
 |---|---|
+| 2026-10-05 | Server ran on the user's VPS with real data; fixed container workbenches and the master default. Built the client: core (QuickJS, SLikeNet, codec), runtime session, headless bot and e2e join, F4SE plugin and Windows workflow. |
 | 2026-10-05 | Research (11 references) + full plan v1 written: vision, sync standard, architecture/ADRs, milestones, backlog, 32 feature specs, testing, risks. No code changes. |
 | 2026-10-05 | Implementation: server Fallout 4 game layer, PartOne integration and persistence, settings, gamemode API and events, falloutmp-client services with the parity test, admin, gamemode and implementation guides. All Linux tests green. |
 | 2026-10-05 | Plan v1.1: two adversarial reviews applied (5 + 5 critical, 15 + 12 major findings). 33 specs, 645 tasks. Added `tools/falloutmp-plan-stats.py`. No code changes. |

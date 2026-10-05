@@ -4,7 +4,7 @@ FalloutMP is an open-source multiplayer framework for Fallout 4. It is built on 
 
 The target is a fully player-run wasteland. There are no NPC characters and no game factions. Traders, landlords, settlement owners and governments are all real players.
 
-> **Status: not playable yet.** The server side and the client sync logic are built and tested on Linux. The in-game part, an F4SE plugin for Windows, is not written yet, so you can't join a server from the game. Details are in [docs/falloutmp/STATUS.md](docs/falloutmp/STATUS.md).
+> **Status: first test build.** The server runs on real Fallout 4 data. A first game client exists: it connects, logs in, puts you at your server position and shows other players moving. It hasn't been tested in the game yet, and most systems (inventory, combat, workshops) aren't connected to the game. Details are in [docs/falloutmp/STATUS.md](docs/falloutmp/STATUS.md).
 
 ## Contents
 
@@ -15,7 +15,7 @@ The target is a fully player-run wasteland. There are no NPC characters and no g
 5. [Running the tests](#5-running-the-tests)
 6. [Running a Fallout 4 server](#6-running-a-fallout-4-server)
 7. [Writing a gamemode](#7-writing-a-gamemode)
-8. [The client package](#8-the-client-package)
+8. [The game client](#8-the-game-client)
 9. [Documentation](#9-documentation)
 10. [Contributing](#10-contributing)
 11. [Licenses and credits](#11-licenses-and-credits)
@@ -41,7 +41,8 @@ The target is a fully player-run wasteland. There are no NPC characters and no g
 | Saving characters and the world | Done |
 | Gamemode API `mp.fo4.*` and `mp.onFo4...` events | Done |
 | TypeScript client services for all of the above (`falloutmp-client`) | Done, tested against a fake game |
-| F4SE plugin (`fallout4-platform`) that connects the client to the game | **Not started**, needs Windows |
+| Game client core: connection, login, message codec, JavaScript host (`fallout4-platform/core`) | Done; two headless clients join a test server and see each other move |
+| F4SE plugin (`fallout4-platform/plugin`): player position, teleport, other players as puppets | **First slice written**, built by CI, not tested in game yet |
 | Rent, player shops, raid windows | Not started; design under discussion |
 
 Skyrim still works. A server without `"game"`, or with `"game": "skyrim"`, runs SkyMP as before.
@@ -253,7 +254,42 @@ mp.onFo4PowerArmorEnter = (actorId) => !isInSafeZone(actorId); // your own check
 
 The API covers items, actor values, progression, effects, power armor, settlements, vendors, locks, parties, PvP zones, time, weather and map markers. There are 17 events, and 7 of them can block the action. A failed call throws `Fo4Error` with an error code. See [guides/gamemode-api.md](docs/falloutmp/guides/gamemode-api.md).
 
-## 8. The client package
+## 8. The game client
+
+The client has three parts:
+
+| Part | What it is | Runs on |
+|---|---|---|
+| `falloutmp-client/` | All client logic in TypeScript: the session (connect, login, other players) and the sync services. Bundled into one script, `falloutmp-client.js` | Any JavaScript engine |
+| `fallout4-platform/core/` | C++: the network connection, the message codec and a QuickJS engine that runs the script | Windows and Linux |
+| `fallout4-platform/plugin/` | The F4SE plugin `FalloutMP.dll`: connects the core to the game through CommonLibF4 | Windows, Fallout 4 1.11.x |
+
+**Getting the plugin.** The workflow *FalloutMP client (Windows)* (`.github/workflows/falloutmp-client-windows.yml`) builds it on every push that touches the client. Download the `FalloutMP-client` artifact from the run's page. Installation steps for players are in [fallout4-platform/plugin/INSTALL.txt](fallout4-platform/plugin/INSTALL.txt).
+
+**Building it yourself on Windows** (Visual Studio 2022, CMake 3.24+):
+
+```bat
+git submodule update --init vcpkg
+vcpkg\bootstrap-vcpkg.bat
+cmake -S fallout4-platform/plugin -B build-plugin -G "Visual Studio 17 2022" -A x64 ^
+  -DCMAKE_TOOLCHAIN_FILE=%CD%\vcpkg\scripts\buildsystems\vcpkg.cmake ^
+  -DVCPKG_TARGET_TRIPLET=x64-windows-static -DVCPKG_OVERLAY_PORTS=%CD%\overlay_ports
+cmake --build build-plugin --config Release --target FalloutMP
+cd falloutmp-client && npm install && npm run bundle
+```
+
+**Testing a server without the game.** `fmp_bot` runs the real client script against a fake game. Two checks use it:
+
+```sh
+# In the repository: a local test server on synthetic data, two bots
+(cd falloutmp-client && npm run bundle)
+fallout4-platform/tools/fmp_e2e.sh build
+
+# On a server machine with the server package: joins the running server
+/opt/falloutmp-server/tools/test-join.sh
+```
+
+### 8.1 Client services
 
 `falloutmp-client/` holds the client-side sync services: inventory, equipment, actor values, progression, effects, power armor, settlements, crafting, movement, combat, barter, locks, parties, map, and time and weather. It talks to the game only through the `FalloutPlatform` interface in `src/platform/falloutPlatform.ts`. That interface is the full list of natives the future F4SE plugin must implement.
 
