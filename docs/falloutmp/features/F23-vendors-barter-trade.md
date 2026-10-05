@@ -72,7 +72,7 @@ Players trade with vendors (Diamond City traders, caravans, settlement stores) t
 | `Activate` (6) | C→S | activate a vendor NPC | R | user action | reused (F07) |
 | `Barter` op `open` | C→S | `nonce`, `vendorActorId` | R | from activation/dialogue | new (registry 98) |
 | `Barter` op `opened` | S→C | `nonce`, `vendorActorId`, `containerRefId`, `invVersion` u32, `buyMult`, `sellMult` (f32, final after perks), `vendorCaps` | R | reply | new |
-| container `inventory` property | S→C | vendor stock (entries with `ItemKey`, count) to the barterer | R | with `opened` and on change | reused (F06 pattern) |
+| `SetInventoryFo4` (68) with `refId` = merchant container, `version` = `invVersion` | S→C | vendor stock (entries with `ItemKey`, count) to every open session | R | with `opened` and on change | reused (F06 container model) |
 | `Barter` op `trade` | C→S | `nonce`, `vendorActorId`, `invVersion`, `buy[] {ItemKey, count, unitPrice}`, `sell[] {ItemKey, count, unitPrice}`, `capsDelta` (s32, + = player receives) | R | on `CompleteTrade` | new |
 | `Barter` op `invest` | C→S | `nonce`, `vendorActorId` | R | on `ConfirmInvestment` | new |
 | `Barter` op `close` | C→S / S→C | `vendorActorId`, `reason` | R | menu closed / server forces (vendor died, hours over, too far) | new |
@@ -104,7 +104,7 @@ Every rejection sends `Barter result{ok=false}` + `SetInventoryFo4` + current ve
    - the target actor is in a vendor faction with a resolvable `VENC`;
    - alive (F12) and not hostile to this player (F13 factions / crime ledger, world-economy S15);
    - within `VENV` hours on the server clock (F25), unless `vendors.ignoreHours`;
-   - distance ≤ `vendors.reach` (default 512 u, server positions);
+   - distance ≤ the F07 activation reach for NPC_ (per-type override `vendors.reach`, default 512 u, server positions);
    - `onBarterOpen` not vetoed.
    Shared stock allows **several concurrent barterers** (optimistic concurrency by `invVersion`). It does not use SkyMP's single-occupant rule.
 3. **Session:** a trade requires an open session for this vendor; the session ends on close, distance > reach + 128 u, vendor death, or hours ending (→ `close` S→C).

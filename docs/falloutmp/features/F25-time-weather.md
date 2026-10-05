@@ -60,8 +60,8 @@ Rules:
 | Message | Dir | Fields | Reliability | Rate / trigger | New or reused |
 |---|---|---|---|---|---|
 | `WorldTimeWeather` (105) | S→C | `serverNowMs u64`, `gameDaysPassed f64`, `gameYear u16`, `gameMonth u8`, `gameDay u8`, `gameHour f32`, `timeScale f32`, `flags u8` (clockChanged, weatherChanged, forced, radstorm, interiorOnly), `slotKey u32` (worldspace id), `weatherId u32`, `prevWeatherId u32`, `transitionElapsedSec f32`, `transitionSec f32` | R | after `CreateActorFo4 isMe`; on clock change; on weather change in the actor's slot; on the actor's worldspace change; keepalive every 60 s; ≤ 48 B | registry 105 |
-| `RestAction` (107) | C→S | `nonce u32`, `op u8` (request, cancel), `kind u8` (sleep, wait), `hours u8`, `furnitureRefId u32` | R | user action | new (107, this spec) |
-| `RestAction` (107) | S→C | `nonce u32`, `op u8` (accepted, denied, finished), `reason u8`, `endServerMs u64` | R | reply / end | new (107) |
+| `RestAction` (113) | C→S | `nonce u32`, `op u8` (request, cancel), `kind u8` (sleep, wait), `hours u8`, `furnitureRefId u32` | R | user action | new (113, this spec) |
+| `RestAction` (113) | S→C | `nonce u32`, `op u8` (accepted, denied, finished), `reason u8`, `endServerMs u64` | R | reply / end | new (113) |
 
 - The server computes Y/M/D/H. The client never derives the calendar, so there is one tested implementation.
 - Effects of a finished rest arrive through `EffectsUpdate` (92) and `ChangeValuesAv` (72). They are owned by F20/F08.
@@ -224,7 +224,7 @@ Rules:
   - Accept: `WaitGameTime(1)` at timescale 20 waits 180 s. The Skyrim profile behaviour is unchanged (gated by GameProfile).
 - [ ] **F25-T03** ESPM CLMT and REGN records plus WTHR UNAM views; GameProfile climate table per worldspace — M — Depends: ESPM-005, ESPM-010, ESPM-002 — Verify: L-fixture, D-real — Files: libespm/include/libespm/{CLMT,REGN}.h (new), libespm/src/, unit/Fo4ClimateRecordsTest.cpp
   - Accept: fixture weather lists and chances parse. D-real lists the Commonwealth climate and the radstorm weathers' UNAM spells.
-- [ ] **F25-T04** `WorldTimeWeather` (105) and `RestAction` (107) messages + client mirrors — S — Depends: NET-002 — Verify: L-unit — Files: skymp5-server/cpp/messages/{WorldTimeWeatherMessage,RestActionMessage}.h, Messages.h, falloutmp-client/src/services/messages/
+- [ ] **F25-T04** `WorldTimeWeather` (105) and `RestAction` (113) messages + client mirrors — S — Depends: NET-002 — Verify: L-unit — Files: skymp5-server/cpp/messages/{WorldTimeWeatherMessage,RestActionMessage}.h, Messages.h, falloutmp-client/src/services/messages/
   - Accept: binary and JSON round trips. `WorldTimeWeather` ≤ 48 B.
 - [ ] **F25-T05** `WeatherService`: per-worldspace slots, seeded roll, transitions, forced weather, `onWeatherChange`, `mp.getWeather/setWeather/releaseWeather`, audience, persistence — M — Depends: F25-T01, F25-T03, F25-T04 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/WeatherService.{h,cpp} (new), unit/WeatherServiceTest.cpp
   - Accept: the `[Weather]` cases pass, including the late-joiner snapshot and a worldspace change.

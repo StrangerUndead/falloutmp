@@ -43,7 +43,7 @@ A player sits at a chemistry station, cooking station, armor or weapons workbenc
 |---|---|---|---|---|
 | Actor inventory (components, junk, outputs) | `Inventory` with `ItemKey` entries | actor `MpChangeFormREFR.inv` | yes (`inv`) | ESM/template |
 | Workshop container inventory (source and leftover sink) | `Inventory` | workshop container `MpChangeFormREFR.inv` (F22) | yes (`inv`) | ESM |
-| Workbench occupant | `MpActor*` | `MpObjectReference::occupant` (existing) | no | none |
+| Workbench occupant(s) | `map<markerIdx, actorId>` | `MpObjectReference::occupants` (F07; replaces SkyMP's single `occupant`) | no | empty |
 | Recipe index (bench keyword → COBJs; created form → COBJs; item → scrap recipe) | cache | `RecipeIndex` (new) | no | built lazily from COBJ |
 | Component catalogue (MISC `CVPA`, CMPO `MNAM`/`GNAM`, rarity) | cache | `ComponentLedger` (new) | no | ESM |
 | Recent request nonces (last 64 per actor, with cached result) | ring | `MpActor::recentRequests` (new; shared with F16, F22) | no | empty |
@@ -57,7 +57,7 @@ A player sits at a chemistry station, cooking station, armor or weapons workbenc
 | `ScrapItem` (86) | C→S | `nonce`, `workbenchRefId`, `item` (`ItemKey`), `count` u16 | R | on scrap confirm | new |
 | `RequestResult` (107) | S→C | `nonce`, `requestType` u8 (request MsgType), `ok`, `error` u16, `refId` u32 (0 here), `items[]` `{ItemKey, count}` (craft: created; scrap: yields) | R | once per request | **new (allocated here)** |
 | `SetInventoryFo4` (68) | S→C | crafter's inventory (authoritative) | R | on accept and on every reject | reused (F04) |
-| container `inventory` property / F06 contents | S→C | workshop container after change | R | when touched | reused (F06/F22) |
+| `SetInventoryFo4` (68) with `refId` = workshop container, `version` | S→C | workshop container after change, to its occupant/peekers | R | when touched | reused (F06/F22) |
 | `ProgressionUpdate` (89) | S→C | XP from crafting | R | on accept | reused (F19) |
 
 `RequestResult.error` codes (shared with F16/F22): `NotOccupant, TooFar, BenchMismatch, UnknownRecipe, ConditionsFailed, InsufficientComponents, ItemNotFound, NotScrappable, Legendary, Equipped, RateLimited, Duplicate, GamemodeBlocked, Permission, Internal`.
@@ -78,7 +78,7 @@ A player sits at a chemistry station, cooking station, armor or weapons workbenc
 Checks run in order. Every failure sends `RequestResult{ok=false, error}` **plus** `SetInventoryFo4` to the owner (S12, I12, NET-007) and, if a workshop container was involved, its contents to its viewers.
 1. Sender's own actor (players only; NPCs do not craft) (S6).
 2. Rate ≤ 10 craft/scrap requests per second per actor (S22: `crafting.maxRequestsPerSec`). A repeated `nonce` returns the cached result without re-executing (`Duplicate` only if no cached result exists).
-3. Occupancy: the actor is the workbench's occupant, and its server position is within `crafting.reach` (default 256 u, the SkyMP FURN reach) (I15, F07-T04).
+3. Occupancy: the actor is an occupant of the workbench, and its server position is within the F07 activation reach (`GameProfile::ActivationReach(FURN)`, setting `activationReach`, default 300 u + 64 u slack) (I15, F07-T04).
 4. Bench: the base is FURN with `WBDT` ≠ 0; COBJ `BNAM` ∈ the bench's keywords, compared as **global** ids (fixes the raw-id temper bug). Excluded bench keywords come from `GameProfile::Crafting()` (REF-013).
 5. Recipe: COBJ exists in the load order and is not a workshop build or scrap recipe; `count` ∈ [1, 100].
 6. Conditions: CTDA evaluated with `ConditionsEvaluator` (`kCraft`) and the FO4 function table (REF-009, ESPM-011); `HasPerk` is answered by SRV-021.
@@ -104,7 +104,7 @@ N/A for crafting: NPCs do not craft, and hosted NPCs using workbenches play idle
 ### 4.9 Gamemode API & server Papyrus
 - `onCraft(actorId, itemId, count, recipeId, workbenchId, consumed[])` **blockable**. The first four arguments keep SkyMP's order; `consumed` lists `{baseId, count, source: "player"|"workshop"|"network"}`.
 - `onScrapItem(actorId, workbenchId, item, count, yields[])` **blockable**.
-- Settings (S22): `crafting.reach`, `crafting.maxRequestsPerSec`, `crafting.xp` (per-station table, default from G-self measurement), `scrap.formula` (`"vanilla"`, or gamemode override via `mp.set(0, "scrapRules", …)`).
+- Settings (S22): `crafting.maxRequestsPerSec`, `crafting.xp` (per-station table, default from G-self measurement), `scrap.formula` (`"vanilla"`, or gamemode override via `mp.set(0, "scrapRules", …)`).
 - `mp.get(actorId, "inventory")` shows the result (F04). There is no new crafting property.
 - Papyrus events (S16): `Actor.OnPlayerUseWorkBench(akWorkBench)` when occupancy starts; `OnItemAdded`/`OnItemRemoved` for every change (F04-T09).
 - Papyrus natives (PVM-014): `ObjectReference.GetComponentCount`, `RemoveComponents`, `RemoveItemByComponent` (through the ledger), `MiscObject.GetObjectComponentCount`; F4SE getters `MiscObject.GetMiscComponents`, `Component.GetScrapItem/GetScrapScalar`, `ConstructibleObject.GetConstructibleComponents/GetCreatedObject/GetCreatedCount/GetWorkbenchKeyword`.

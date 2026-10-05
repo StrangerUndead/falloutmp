@@ -116,7 +116,7 @@ Everyone near a settlement sees the same objects, wiring and powered lights. Lat
 | `WorkshopState` (96) | S→C | `workshopRefId`, `version`, `owner {type, id, name}`, `yourPerms`, `budget {cur/max draws, tris, objects}`, `ratings[] {idx u8, value}` (delta; full on first send), `power[] {componentId, capacity, load}`, `flags` (claimable, underAttack) | R | on change, coalesced per tick; daily | new (registry) |
 | `WorkshopObjects` (108) | S→C | `workshopRefId`, `version`, `kind` (`snapshot`, `delta`), `chunk`/`chunkCount` u16, `added[] {refId, baseId, pos[3], rot[3], scale?, flags u16}`, `moved[] {refId, pos, rot}`, `removed[]`, `flagsChanged[] {refId, flags}`, `scrappedPrePlaced[]`, `wires[]` (snapshot only) | R | on stream-in (chunks of ≤ 96 objects via the deferred channel); deltas per tick | **new (allocated here)** |
 | `CreateActorFo4` (64) / `DestroyActor` / `UpdateProperty` | S→C | interactive objects, settlers, turrets; props `powered`, `destructionStage`, `workshopId`, `inventory` | R | grid subscription | reused |
-| `SetInventoryFo4` (68) + container `inventory` | S→C | builder inventory and workshop container | R | on change / correction | reused (F04/F06) |
+| `SetInventoryFo4` (68) | S→C | builder inventory; and with `refId` = workshop container (`version`) to its occupant/peekers | R | on change / correction | reused (F04/F06) |
 | `Activate` (6) | C→S | workbench (container/transfer), switches, crops, beds | R | user action | reused (F06/F07) |
 
 ### 4.4 Client capture (owner side)

@@ -190,7 +190,13 @@ Two sub-ranges:
 | 110 | `NoteAction` | new | C→S | R | F24 | Note read / holotape play / holotape chatter outside a terminal |
 | 111 | `NpcAiState` | new | both | R | F13 (consumed by F29) | Host → server: hosted NPC combat state/target, special states (burrowed…), per-target detection levels, crime reports. Server → new host: AI re-seed bundle on host migration |
 | 112 | `CompanionState` | new | S→C | R | F21 | Companion follower state, pending command for the host, owner's affinity/threshold, downed; command results (nonce/error) |
-| 113–122 | free | | | | | Allocate in specs; update this table in the same commit |
+| 113 | `RestAction` | new | both | R | F25 | Wait/sleep request/cancel (C→S) and accepted/denied/finished result (S→C) in server-mediated rest mode |
+| 114 | `QuestUpdate` | new | S→C | R | F27 | Snapshot of one gamemode quest slot: title, stage, flags, objectives, targets (owner or scope members) |
+| 115 | `DialogueAction` | new | both | R | F27 | Gamemode dialogue: open/choose/close (C→S); show line + choices / close / denied (S→C) |
+| 116 | `ConsoleCommandResult` | new | S→C | R | F30 | One result per `ConsoleCommand` (12): ok, code, text (no silent rejects, I12) |
+| 117 | `ContainerPeek` | new | C→S | R | F06 | Start/stop a quick-loot peek subscription on a container/corpse (`target`, 0 = stop); contents come back as `SetInventoryFo4` with `refId` |
+| 118 | `SetFavorites` | new | C→S | R | F04 | Owner's 12 favorite slots (`ItemKey`) and tagged components (T1), persisted in the player profile |
+| 119–122 | free | | | | | Allocate in specs; update this table in the same commit |
 
 Rules for adding a message:
 1. Follow recipe (a) in reference/skymp-sync-inventory.md §4.5.

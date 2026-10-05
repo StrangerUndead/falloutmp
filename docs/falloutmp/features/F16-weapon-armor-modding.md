@@ -118,7 +118,7 @@ Every failure sends `RequestResult{ok=false}` + `SetInventoryFo4` to the owner. 
 ### 4.9 Gamemode API & server Papyrus
 - `onModItem(actorId, workbenchId, item, ops, newItem, rename)` **blockable**.
 - `mp.get(refId, "inventory")` shows `omods`/`name`; `mp.getItemStats(itemKey)` (read-only, from SRV-022) for gamemode UIs and balance logs.
-- Settings (S22): `modding.reach`, `modding.noRenameKeywords`, `modding.maxNameLength`, `modding.allowDetachRequired` (default false).
+- Settings (S22): `modding.noRenameKeywords`, `modding.maxNameLength`, `modding.allowDetachRequired` (default false).
 - Papyrus events: `Actor.OnPlayerModArmorWeapon(akBaseObject, akModBaseObject)` once per attached OMOD; `OnItemAdded`/`OnItemRemoved` for loose mods and components (F04-T09).
 - Papyrus natives (PVM-014): `AttachMod`, `RemoveMod`, `RemoveAllMods` (world refs: update the ref's instance and broadcast via F05/CreateActor props); `AttachModToInventoryItem`, `RemoveModFromInventoryItem`, `RemoveAllModsFromInventoryItem` (resolve to the **first** matching stack in canonical `ItemKey` order, deterministically); F4SE `GetAllMods`, `ObjectMod.GetLooseMod`/`GetMaxRank`/`GetPropertyModifiers`.
 

@@ -65,9 +65,9 @@ Quest state lives on the server and is persisted. It is either per player (insta
 ### 4.3 Protocol
 | Message | Dir | Fields | Reliability | Rate / trigger | New or reused |
 |---|---|---|---|---|---|
-| `QuestUpdate` (108) | S→C | `slot u8`, `op u8` (set, clear), `questKey str≤64`, `title str≤128`, `stage u16`, `flags u8` (active, completed, failed, tracked), `objectives[≤16] {index u8, state u8 (hidden, displayed, completed, failed), text str≤256}`, `targets[≤8] {objectiveIndex u8, refId u32, pos f32[3], worldOrCell u32}` | R | on change (deferred overwrite channel per slot); all slots after spawn; ≤ 1.5 KB | new (108, this spec) |
-| `DialogueAction` (109) | C→S | `nonce u32`, `op u8` (open, choose, close), `speakerRefId u32`, `choiceId u16` | R | user action | new (109, this spec) |
-| `DialogueAction` (109) | S→C | `nonce u32`, `op u8` (show, close, denied), `speakerRefId u32`, `line {text, voicePath?, durationMs}`, `choices[≤4] {id u16, text, flags u8 (speechCheck), chancePct u8}`, `reason u8` | R | per node | new (109) |
+| `QuestUpdate` (114) | S→C | `slot u8`, `op u8` (set, clear), `questKey str≤64`, `title str≤128`, `stage u16`, `flags u8` (active, completed, failed, tracked), `objectives[≤16] {index u8, state u8 (hidden, displayed, completed, failed), text str≤256}`, `targets[≤8] {objectiveIndex u8, refId u32, pos f32[3], worldOrCell u32}` | R | on change (deferred overwrite channel per slot); all slots after spawn; ≤ 1.5 KB | new (114, this spec) |
+| `DialogueAction` (115) | C→S | `nonce u32`, `op u8` (open, choose, close), `speakerRefId u32`, `choiceId u16` | R | user action | new (115, this spec) |
+| `DialogueAction` (115) | S→C | `nonce u32`, `op u8` (show, close, denied), `speakerRefId u32`, `line {text, voicePath?, durationMs}`, `choices[≤4] {id u16, text, flags u8 (speechCheck), chancePct u8}`, `reason u8` | R | per node | new (115) |
 | `SpSnippet` (30) | S→C | one-shot UI: `Debug.Notification`, `Message.Show`, `Message.ShowAsHelpMessage`, `InputEnableLayer` | R | on native call | reused |
 
 Why objective state is not sent as SpSnippet calls:
@@ -219,11 +219,11 @@ Papyrus quests are **shared** by default. One VM object exists per quest. A ques
 - [ ] **F27-T04** Server Papyrus Quest/Alias natives and events on `QuestService` — M — Depends: F27-T03, PVM-007, PVM-013 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/script_classes/PapyrusQuest.cpp, PapyrusAlias.cpp (new), unit/PapyrusQuestTest.cpp
   - Accept: the `[PapyrusQuest]` cases pass. The Skyrim `Quest` behaviour is unchanged.
 - [ ] **F27-T05** JS API `mp.quest*`, `onQuestStage`/`onQuestObjective`, and the gamemode TS framework layer — M — Depends: F27-T03 — Verify: L-int — Files: skymp5-server/cpp/addon/ScampServer.cpp, skymp5-server/cpp/server_guest_lib/gamemode_events/QuestStageEvent.cpp, falloutmp-gamemode/src/quests/framework.ts
-- [ ] **F27-T06** `QuestUpdate` (108) message, slot assignment, deferred send, snapshot on spawn — S — Depends: NET-002, F27-T03 — Verify: L-unit — Files: skymp5-server/cpp/messages/QuestUpdateMessage.h, Messages.h, falloutmp-client/src/services/messages/
+- [ ] **F27-T06** `QuestUpdate` (114) message, slot assignment, deferred send, snapshot on spawn — S — Depends: NET-002, F27-T03 — Verify: L-unit — Files: skymp5-server/cpp/messages/QuestUpdateMessage.h, Messages.h, falloutmp-client/src/services/messages/
 - [ ] **F27-T07** `FalloutMP.esl` generator (quest slots, objectives, target aliases, a hide-person keyword for F31) — M — Depends: ESPM-002, ESPM-003 — Verify: L-fixture, G-self — Files: tools/falloutmp-plugin-gen/, falloutmp-client-deps/FalloutMP.esl
   - Accept: the plugin loads in game with no errors and the slots are startable.
 - [ ] **F27-T08** Client `QuestDisplayService` + natives (`getRunningQuests`, `setQuestObjectiveText`), CEF tracker fallback — L — Depends: F27-T06, F27-T07, PLAT-031, CLI-050 — Verify: L-ts, G-self, G-manual — Files: falloutmp-client/src/services/services/questDisplayService.ts, fallout4-platform/src/.../QuestApi.cpp
-- [ ] **F27-T09** (T2) Dialogue: `DialogueAction` (109), server `DialogueService` (sessions, validation, speech checks), `mp.dialogueShow/Close`, `onDialogueOpen/Choice`, front dialogue widget — L — Depends: F07, F19, FRONT-001, NET-002 — Verify: L-unit, G-manual — Files: skymp5-server/cpp/server_guest_lib/DialogueService.{h,cpp} (new), falloutmp-front/src/features/dialogue/
+- [ ] **F27-T09** (T2) Dialogue: `DialogueAction` (115), server `DialogueService` (sessions, validation, speech checks), `mp.dialogueShow/Close`, `onDialogueOpen/Choice`, front dialogue widget — L — Depends: F07, F19, FRONT-001, NET-002 — Verify: L-unit, G-manual — Files: skymp5-server/cpp/server_guest_lib/DialogueService.{h,cpp} (new), falloutmp-front/src/features/dialogue/
   - Accept: the `[Dialogue]` cases pass.
 - [ ] **F27-T10** (T2) Scenes and radiant story events: server-timeline scenes (`DialogueAction{show}` to listeners + F02 actions), `OnStory*` events for gamemode quests — M — Depends: F27-T04, PVM-015 — Verify: L-unit
 - [ ] **F27-T11** GM-040 demo ("clear location" radiant), DOCS-003 quest section, G-manual script — S — Depends: F27-T05, F27-T08 — Verify: L-int, G-manual — Files: falloutmp-gamemode/src/quests/clearLocation.ts, docs/falloutmp/test-scripts/F27-quests.md
