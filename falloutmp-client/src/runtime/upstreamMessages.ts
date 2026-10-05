@@ -24,7 +24,7 @@ export interface CreateActorMessage {
   baseRecordType?: string;
   appearance?: { name?: string; isFemale?: boolean };
   isDead?: boolean;
-  props?: { isDisabled?: boolean; isHostedByOther?: boolean; isDead?: boolean };
+  props?: { isDisabled?: boolean; isHostedByOther?: boolean; isDead?: boolean; isRaceMenuOpen?: boolean };
 }
 
 export interface DestroyActorMessage {

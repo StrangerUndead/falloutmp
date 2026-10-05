@@ -83,9 +83,11 @@ target_include_directories(commonlibf4 PUBLIC "${commonlibf4_SOURCE_DIR}/include
 target_link_libraries(commonlibf4 PUBLIC commonlib-shared::commonlib-shared)
 target_precompile_headers(commonlibf4 PRIVATE "${commonlibf4_SOURCE_DIR}/include/F4SE/Impl/PCH.h")
 
-file(GLOB plugin_src "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
+file(GLOB plugin_src "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/modules/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/modules/*.h")
 add_library(FalloutMP SHARED ${plugin_src})
 target_link_libraries(FalloutMP PRIVATE commonlibf4 fmp_core_plugin)
+target_include_directories(FalloutMP PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/src/modules")
 target_compile_definitions(FalloutMP PRIVATE
   FMP_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
   FMP_VERSION_MINOR=${PROJECT_VERSION_MINOR}

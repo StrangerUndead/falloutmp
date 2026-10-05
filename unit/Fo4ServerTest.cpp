@@ -2,6 +2,7 @@
 #include "Fo4TestData.h"
 #include "fo4/Fo4Server.h"
 #include <catch2/catch_all.hpp>
+#include <limits>
 #include <nlohmann/json.hpp>
 #include <set>
 
@@ -1035,4 +1036,111 @@ TEST_CASE("Fo4Server: a host drives its NPC within the same rules",
   w.host.now += 100;
   w.server->OnMessage(kBob, MsgType::ChangeValuesAv, av);
   REQUIRE(raider.avs.GetCurrent(Av::Health) == hp);
+}
+
+TEST_CASE("Fo4Server: appearance is validated, relayed, streamed and saved",
+          "[fo4][Fo4Server][F03]")
+{
+  ServerWorld w;
+  UpdateAppearanceFo4Message m;
+  m.rev = 1;
+  m.data.raceId = 0x13746;
+  m.data.isFemale = true;
+  m.data.headPartIds = { 0x1000, 0x1001 };
+  m.data.bodyMorph = { 0.3f, 0.3f, 0.4f };
+  m.data.morphSliders = { { 7, 0.5f } };
+  m.data.tints = { { 3, 1, 50, 0xFF00FFFF, -1 } };
+  w.server->OnMessage(kAlice, MsgType::UpdateAppearanceFo4, m);
+  auto relay = w.host.LastToNeighbours(kAlice, MsgType::UpdateAppearanceFo4);
+  REQUIRE(relay != nullptr);
+  REQUIRE(relay["idx"] == kAlice);
+  REQUIRE(relay["data"]["headPartIds"].size() == 2);
+  REQUIRE(w.host.CountEvents("onFo4AppearanceChange") == 1);
+
+  // Stale revision: rejected, the owner gets the stored appearance back
+  w.host.sent.clear();
+  m.data.isFemale = false;
+  w.server->OnMessage(kAlice, MsgType::UpdateAppearanceFo4, m);
+  REQUIRE_FALSE(w.host.SentToNeighbours(kAlice, MsgType::UpdateAppearanceFo4));
+  REQUIRE(w.host.Last(kAlice, MsgType::UpdateAppearanceFo4)["data"]
+                                                          ["isFemale"] ==
+          true);
+
+  // Bad numbers are rejected
+  m.rev = 2;
+  m.data.bodyMorph[0] = std::numeric_limits<float>::quiet_NaN();
+  w.host.sent.clear();
+  w.server->OnMessage(kAlice, MsgType::UpdateAppearanceFo4, m);
+  REQUIRE_FALSE(w.host.SentToNeighbours(kAlice, MsgType::UpdateAppearanceFo4));
+
+  // Another player streaming in gets appearance and equipment of Alice
+  w.host.sent.clear();
+  w.server->OnStreamIn(kBob, kAlice);
+  auto toBob = w.host.Last(kBob, MsgType::UpdateAppearanceFo4);
+  REQUIRE(toBob["idx"] == kAlice);
+  REQUIRE(toBob["data"]["isFemale"] == true);
+  REQUIRE(w.host.Last(kBob, MsgType::UpdateEquipmentFo4)["actorIdx"] ==
+          kAlice);
+
+  // Her own stream-in is the full state, appearance first
+  w.host.sent.clear();
+  w.server->OnStreamIn(kAlice, kAlice);
+  REQUIRE(w.host.sent.front().type == int(MsgType::UpdateAppearanceFo4));
+  REQUIRE(w.host.Last(kAlice, MsgType::SetInventoryFo4) != nullptr);
+
+  // Saved and loaded with the actor
+  auto saved = w.server->ActorToJson(kAlice);
+  REQUIRE(saved["appearanceRev"] == 1);
+  ServerWorld w2;
+  w2.server->LoadActor(kAlice, saved);
+  w2.server->OnStreamIn(kBob, kAlice);
+  REQUIRE(w2.host.Last(kBob, MsgType::UpdateAppearanceFo4)["data"]
+                                                           ["tints"][0]
+                                                           ["value"] == 50);
+}
+
+TEST_CASE("Fo4Server: animation events and variables are relayed with limits",
+          "[fo4][Fo4Server][F02]")
+{
+  ServerWorld w;
+  UpdateActionsMessage a;
+  a.seq = 1;
+  a.events = { "JumpUp", "weaponFire" };
+  w.server->OnMessage(kAlice, MsgType::UpdateActions, a);
+  auto relay = w.host.LastToNeighbours(kAlice, MsgType::UpdateActions);
+  REQUIRE(relay["idx"] == kAlice);
+  REQUIRE(relay["events"].size() == 2);
+  REQUIRE(relay["ts"] == w.host.now);
+
+  UpdateGraphVariablesMessage v;
+  v.values = { { "Speed", 0, 250.f }, { "Direction", 0, 0.25f } };
+  w.server->OnMessage(kAlice, MsgType::UpdateGraphVariables, v);
+  REQUIRE(w.host.LastToNeighbours(kAlice, MsgType::UpdateGraphVariables)
+            ["values"][0]["name"] == "Speed");
+
+  // Not someone else's actor
+  w.host.sent.clear();
+  a.idx = kBob;
+  w.server->OnMessage(kAlice, MsgType::UpdateActions, a);
+  REQUIRE(w.host.sent.empty());
+
+  // Floods are cut: 25 variable updates per second
+  a.idx = 0;
+  int relayed = 0;
+  for (int i = 0; i < 100; ++i) {
+    w.host.sent.clear();
+    w.server->OnMessage(kAlice, MsgType::UpdateGraphVariables, v);
+    relayed += w.host.SentToNeighbours(kAlice, MsgType::UpdateGraphVariables);
+  }
+  REQUIRE(relayed < 30);
+  w.host.now += 1000;
+  w.host.sent.clear();
+  w.server->OnMessage(kAlice, MsgType::UpdateGraphVariables, v);
+  REQUIRE(w.host.SentToNeighbours(kAlice, MsgType::UpdateGraphVariables));
+
+  // Non-finite values are dropped
+  w.host.sent.clear();
+  v.values[0].value = std::numeric_limits<float>::infinity();
+  w.server->OnMessage(kAlice, MsgType::UpdateGraphVariables, v);
+  REQUIRE_FALSE(w.host.SentToNeighbours(kAlice, MsgType::UpdateGraphVariables));
 }

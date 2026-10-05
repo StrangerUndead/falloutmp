@@ -47,6 +47,74 @@ export interface UpdateMovementFo4Message {
   healthPercentage: number;
 }
 
+// F03: a player's face and body (C->S on LooksMenu close, S->C relay,
+// stream-in and correction).
+export interface MorphSlider {
+  key: number;
+  value: number;
+}
+
+export interface FaceRegion {
+  index: number;
+  pos: Vec3;
+  rot: Vec3;
+  scale: number;
+}
+
+export interface AppearanceTint {
+  tintIndex: number; // u16
+  dataType: number; // u8
+  value: number; // intensity 0..100
+  rgba: number; // u32
+  templateColorIndex: number; // i16, -1 = none
+}
+
+export interface AppearanceFo4 {
+  isFemale: boolean;
+  raceId: number;
+  hairColorId: number;
+  facialHairColorId: number;
+  headTextureSetId: number;
+  headPartIds: number[];
+  bodyMorph: Vec3; // thin, muscular, large
+  morphRegions: number[];
+  morphSliders: MorphSlider[];
+  faceRegions: FaceRegion[];
+  faceMorphIntensity: number;
+  tints: AppearanceTint[];
+  skinTone: number;
+}
+
+export interface UpdateAppearanceFo4Message {
+  t: Fo4MsgType.UpdateAppearanceFo4;
+  idx: number; // 0 = own actor (C->S); the actor's form id (S->C)
+  rev: number;
+  data: AppearanceFo4;
+}
+
+// F02: animation graph events (R) and variables (U, <= 20 Hz).
+export interface UpdateActionsMessage {
+  t: Fo4MsgType.UpdateActions;
+  idx: number;
+  seq: number; // u32
+  ts: number;
+  events: string[];
+}
+
+export interface GraphVariable {
+  name: string;
+  type: number; // 0 float, 1 int, 2 bool
+  value: number;
+}
+
+export interface UpdateGraphVariablesMessage {
+  t: Fo4MsgType.UpdateGraphVariables;
+  idx: number;
+  seq: number; // u16
+  ts: number;
+  values: GraphVariable[];
+}
+
 export interface SetInventoryFo4Message {
   t: Fo4MsgType.SetInventoryFo4;
   refId: number; // 0 = the receiving player
@@ -418,6 +486,9 @@ export interface WorldTimeWeatherMessage {
 // Every Fallout 4 message implemented on both sides, keyed by type id.
 export interface Fo4MessageMap {
   [Fo4MsgType.UpdateMovementFo4]: UpdateMovementFo4Message;
+  [Fo4MsgType.UpdateAppearanceFo4]: UpdateAppearanceFo4Message;
+  [Fo4MsgType.UpdateActions]: UpdateActionsMessage;
+  [Fo4MsgType.UpdateGraphVariables]: UpdateGraphVariablesMessage;
   [Fo4MsgType.SetInventoryFo4]: SetInventoryFo4Message;
   [Fo4MsgType.PutItemFo4]: PutItemFo4Message;
   [Fo4MsgType.TakeItemFo4]: TakeItemFo4Message;
@@ -462,6 +533,24 @@ export function emptyItemKey(baseId = 0): ItemKey {
 }
 
 const v0 = (): Vec3 => [0, 0, 0];
+
+export function emptyAppearance(): AppearanceFo4 {
+  return {
+    isFemale: false,
+    raceId: 0,
+    hairColorId: 0,
+    facialHairColorId: 0,
+    headTextureSetId: 0,
+    headPartIds: [],
+    bodyMorph: [0, 0, 0],
+    morphRegions: [],
+    morphSliders: [],
+    faceRegions: [],
+    faceMorphIntensity: 1,
+    tints: [],
+    skinTone: 0,
+  };
+}
 const special1 = (): SpecialArray => [1, 1, 1, 1, 1, 1, 1];
 
 // Complete default bodies (without "t"). Factories, so nested arrays are
@@ -494,6 +583,9 @@ export const kMessageDefaults: DefaultsTable = {
     flags: 0,
     healthPercentage: 100,
   }),
+  [Fo4MsgType.UpdateAppearanceFo4]: () => ({ idx: 0, rev: 0, data: emptyAppearance() }),
+  [Fo4MsgType.UpdateActions]: () => ({ idx: 0, seq: 0, ts: 0, events: [] }),
+  [Fo4MsgType.UpdateGraphVariables]: () => ({ idx: 0, seq: 0, ts: 0, values: [] }),
   [Fo4MsgType.SetInventoryFo4]: () => ({ refId: 0, version: 0, entries: [] }),
   [Fo4MsgType.PutItemFo4]: containerOp,
   [Fo4MsgType.TakeItemFo4]: containerOp,
@@ -746,6 +838,11 @@ export const kNestedDefaults = {
     splineBaseId: 0,
   }),
   Marker: (): MapMarkerEntry => ({ refId: 0, name: "", type: 0, pos: v0() }),
+  MorphSlider: (): MorphSlider => ({ key: 0, value: 0 }),
+  FaceRegion: (): FaceRegion => ({ index: 0, pos: v0(), rot: v0(), scale: 1 }),
+  Tint: (): AppearanceTint => ({ tintIndex: 0, dataType: 0, value: 0, rgba: 0, templateColorIndex: -1 }),
+  AppearanceFo4: () => emptyAppearance(),
+  GraphVariable: (): GraphVariable => ({ name: "", type: 0, value: 0 }),
   Effect: (): ActiveEffectEntry => ({ effectId: 0, sourceItem: 0, kind: 0, avId: 0, magnitude: 0, remainingMs: 0 }),
 };
 

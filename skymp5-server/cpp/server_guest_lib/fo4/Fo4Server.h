@@ -31,6 +31,9 @@
 
 class IMessageBase;
 enum class MsgType : uint8_t;
+namespace fo4msg {
+struct AppearanceFo4;
+}
 
 namespace fo4 {
 
@@ -83,6 +86,18 @@ public:
     (void)actor;
     (void)pos;
     (void)yawDeg;
+  }
+  // F03: closes the character editor of an actor after its appearance was
+  // accepted (upstream isRaceMenuOpen).
+  virtual void SetRaceMenuOpen(ActorId actor, bool open)
+  {
+    (void)actor;
+    (void)open;
+  }
+  virtual bool IsRaceMenuOpen(ActorId actor)
+  {
+    (void)actor;
+    return false;
   }
   // Gamemode event mp.<name>(...args). Returns false when a gamemode
   // handler returned false (blocks the action for blockable events).
@@ -147,6 +162,13 @@ struct Fo4ActorState
   uint32_t npcFlags = 0;  // ACBS flags (essential, protected, ...)
   FormId npcDeathItem = 0; // INAM leveled list added on death
   std::vector<NpcData::Faction> factions;
+  // F03: validated appearance and its revision (persisted)
+  std::shared_ptr<const fo4msg::AppearanceFo4> appearance;
+  uint32_t appearanceRev = 0;
+  // F02: animation stream rate limits (tokens refill per second)
+  float actionTokens = 60.f;
+  float variableTokens = 25.f;
+  int64_t animTokensAtMs = 0;
 };
 
 class Fo4Server
@@ -167,6 +189,10 @@ public:
 
   // Full state to the owner (on spawn and reconnect)
   void SendFullState(ActorId actor);
+  // `emitter` came into `listener`'s view (upstream CreateActor was just
+  // sent): its own actor gets the full state, a neighbour gets the public
+  // state of the emitter (appearance, equipment, power armor, effects).
+  void OnStreamIn(ActorId listener, ActorId emitter);
   void SendInventory(ActorId actor);
   void SendActorValues(ActorId actor);
   void SendProgression(ActorId actor);

@@ -8,6 +8,7 @@
 //   "connectionFailed" / "connectionDenied" {error}
 //   "message"                         a server message as JSON
 //   "platformEvent" {name, data}      PlatformEvents (captured game actions)
+//   "nativeResolved" {id, value}      result of an async native
 import { PlatformEvents } from "../platform/falloutPlatform";
 import { createNativePlatform, NativeBridge } from "./nativePlatform";
 import { RefMap, WorldSession } from "./worldSession";
@@ -58,6 +59,11 @@ g.__fmpOnEvent = (kind, payloadJson) => {
       return session.onConnectionFailed(errorOf(payloadJson));
     case "connectionDenied":
       return session.onConnectionDenied(errorOf(payloadJson));
+    case "nativeResolved": {
+      const { id, value } = JSON.parse(payloadJson) as { id: number; value: unknown };
+      native.resolveAsync(id, value);
+      return;
+    }
     case "platformEvent": {
       const { name, data } = JSON.parse(payloadJson) as { name: keyof PlatformEvents; data: never };
       native.emit(name, data);

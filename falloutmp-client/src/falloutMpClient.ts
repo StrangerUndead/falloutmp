@@ -3,6 +3,8 @@ import { FalloutPlatform } from "./platform/falloutPlatform";
 import { ClientContext } from "./services/context";
 import { isFallout4MsgType } from "./services/messages/msgType";
 import { ActorValueService } from "./services/services/actorValueService";
+import { AnimationOptions, AnimationService } from "./services/services/animationService";
+import { AppearanceService } from "./services/services/appearanceService";
 import { BarterService } from "./services/services/barterService";
 import { CombatService } from "./services/services/combatService";
 import { CraftingService } from "./services/services/craftingService";
@@ -24,6 +26,7 @@ export interface FalloutMpClientOptions {
   inventoryReconcileIntervalMs?: number;
   progressionRules?: ProgressionRules;
   movement?: MovementOptions;
+  animation?: AnimationOptions;
   // Wire platform capture events to the services (off in tests that drive
   // the services directly).
   bindPlatformEvents?: boolean;
@@ -50,6 +53,8 @@ export class FalloutMpClient {
   readonly timeWeather: WorldTimeWeatherService;
   readonly movement: MovementService;
   readonly effects: EffectsService;
+  readonly animation: AnimationService;
+  readonly appearance: AppearanceService;
 
   constructor(readonly platform: FalloutPlatform, transport: Fo4Transport, opts: FalloutMpClientOptions = {}) {
     this.ctx = new ClientContext(platform, transport, opts.requestTimeoutMs);
@@ -69,6 +74,8 @@ export class FalloutMpClient {
     this.timeWeather = new WorldTimeWeatherService(this.ctx);
     this.movement = new MovementService(this.ctx, opts.movement);
     this.effects = new EffectsService(this.ctx);
+    this.animation = new AnimationService(this.ctx, opts.animation);
+    this.appearance = new AppearanceService(this.ctx);
     if (opts.bindPlatformEvents ?? true) {
       this.bindPlatformEvents();
     }
@@ -109,12 +116,16 @@ export class FalloutMpClient {
   tick(): void {
     this.movement.tickOwner();
     this.movement.tickRemotes();
+    this.animation.tickOwner();
+    this.animation.tickRemotes();
     this.ctx.requests.tick();
     this.inventory.tick();
     this.combat.tick();
   }
 
   onActorStreamedIn(serverActorId: number): void {
+    this.appearance.applyTo(serverActorId);
+    this.animation.applyTo(serverActorId);
     this.actorValues.applyRemoteTo(serverActorId);
     this.equipment.applyTo(serverActorId);
     this.powerArmor.applyTo(serverActorId);
@@ -131,6 +142,8 @@ export class FalloutMpClient {
     this.powerArmor.forgetActor(serverActorId);
     this.movement.forgetActor(serverActorId);
     this.effects.forgetActor(serverActorId);
+    this.animation.forgetActor(serverActorId);
+    this.appearance.forgetActor(serverActorId);
   }
 
   onDisconnect(): void {
@@ -149,6 +162,8 @@ export class FalloutMpClient {
     this.timeWeather.reset();
     this.movement.reset();
     this.effects.reset();
+    this.animation.reset();
+    this.appearance.reset();
   }
 
   private bindPlatformEvents(): void {
@@ -209,6 +224,8 @@ export class FalloutMpClient {
     p.on("projectileHit", (e) =>
       this.combat.reportHit(e.localShotId || this.lastLocalShotId, e.projectileIndex, this.toServerActor(e.target), e.limb),
     );
+    p.on("animationEvent", (e) => this.animation.onLocalEvent(e.actor, e.name));
+    p.on("looksMenuClosed", () => this.appearance.onLooksMenuClosed());
     p.on("fastTravelRequested", (e) => void this.map.fastTravel(server(e.marker)));
   }
 

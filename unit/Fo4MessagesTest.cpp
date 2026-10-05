@@ -265,3 +265,46 @@ TEST_CASE("Skyrim messages are unchanged by the Fallout 4 registry",
   REQUIRE(data[2] == 6);
   REQUIRE(s.GetNumberOfBytesUsed() == 3 + 8 + 8 + 1);
 }
+
+TEST_CASE("Fo4 messages: appearance and animation round trips",
+          "[fo4][Fo4Messages][F02][F03]")
+{
+  UpdateAppearanceFo4Message a;
+  a.idx = 0xff000001;
+  a.rev = 3;
+  a.data.isFemale = true;
+  a.data.raceId = 0x13746;
+  a.data.headPartIds = { 1, 2, 3 };
+  a.data.bodyMorph = { 0.2f, 0.5f, 0.3f };
+  a.data.morphRegions = { 0.1f, -0.2f };
+  a.data.morphSliders = { { 0xABCD, 0.75f } };
+  a.data.faceRegions = { { 4, { 0.1f, 0, 0 }, { 0, 0.2f, 0 }, 1.1f } };
+  a.data.tints = { { 12, 2, 80, 0x112233FF, -1 } };
+  a.data.skinTone = 0xAABBCCDD;
+  size_t size = 0;
+  for (auto r : { RoundTripBinary(a, &size), RoundTripJson(a) }) {
+    REQUIRE(r.rev == 3);
+    REQUIRE(r.data.isFemale);
+    REQUIRE(r.data.headPartIds == std::vector<uint32_t>{ 1, 2, 3 });
+    REQUIRE(r.data.morphSliders[0].value == 0.75f);
+    REQUIRE(r.data.faceRegions[0].scale == 1.1f);
+    REQUIRE(r.data.tints[0].templateColorIndex == -1);
+    REQUIRE(r.data.skinTone == 0xAABBCCDD);
+  }
+  REQUIRE(size < 2048); // F03 budget
+
+  UpdateActionsMessage ac;
+  ac.idx = 0;
+  ac.seq = 9;
+  ac.events = { "JumpUp", "reloadStart" };
+  REQUIRE(RoundTripBinary(ac).events[1] == "reloadStart");
+  REQUIRE(RoundTripJson(ac).seq == 9);
+
+  UpdateGraphVariablesMessage gv;
+  gv.seq = 65535;
+  gv.values = { { "Speed", 0, 312.5f }, { "bIsSneaking", 2, 1.f } };
+  auto g = RoundTripBinary(gv);
+  REQUIRE(g.seq == 65535);
+  REQUIRE(g.values[1].type == 2);
+  REQUIRE(RoundTripJson(gv).values[0].value == 312.5f);
+}

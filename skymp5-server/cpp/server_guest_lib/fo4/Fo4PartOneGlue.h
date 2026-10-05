@@ -27,6 +27,8 @@ public:
   // Saves every loaded actor and the world now.
   void SaveAll();
   void OnActorDisconnected(MpActor& actor);
+  // An actor came into a player's view (after upstream CreateActor).
+  void OnSubscribe(uint32_t listenerActorId, uint32_t emitterActorId);
 
   // World state file (workshops, frames, locks, parties). Empty = off.
   void SetWorldStatePath(std::string path);

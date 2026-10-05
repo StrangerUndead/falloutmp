@@ -30,9 +30,15 @@ const kDefaults: Defaults = {
   spawnWire: () => 0,
   playPowerArmorEnter: () => Promise.resolve(false),
   playPowerArmorExit: () => Promise.resolve(false),
+  applyAppearanceFo4: () => Promise.resolve(false),
+  getGraphVariables: () => [],
+  notifyAnimationGraph: () => false,
+  getAppearanceFo4: () => undefined,
 };
 
-const kAsync = new Set<string>(["playPowerArmorEnter", "playPowerArmorExit"]);
+// Natives returning a Promise. The plugin answers {"pending": id} and later
+// emits "nativeResolved" {id, value} (or answers at once with a value).
+const kAsync = new Set<string>(["playPowerArmorEnter", "playPowerArmorExit", "applyAppearanceFo4"]);
 
 const kNatives: (keyof FalloutPlatform)[] = [
   "getInventoryEx", "addItemEx", "removeItemEx", "setAmmoLoaded",
@@ -50,6 +56,8 @@ const kNatives: (keyof FalloutPlatform)[] = [
   "setMapMarker", "setGameTime", "setTimeScale", "forceWeather",
   "showNotification", "sendToFront",
   "spawnPuppet", "deletePuppet", "getClientConfig",
+  "getGraphVariables", "setGraphVariables", "notifyAnimationGraph",
+  "getAppearanceFo4", "applyAppearanceFo4", "openLooksMenu", "closeLooksMenu",
 ];
 
 export interface NativePlatformHandle {
@@ -57,12 +65,15 @@ export interface NativePlatformHandle {
   // Platform events from the plugin (and the per-frame "tick").
   emit<K extends keyof PlatformEvents>(event: K, e: PlatformEvents[K]): void;
   setNow(nowMs: number): void;
+  // "nativeResolved" from the plugin: settles an async native's Promise.
+  resolveAsync(id: number, value: unknown): void;
   missingNatives(): string[];
 }
 
 export function createNativePlatform(bridge: NativeBridge, refs: RefResolver): NativePlatformHandle {
   const bus = new EventBus<PlatformEvents>();
   const missing = new Set<string>();
+  const pending = new Map<number, (value: unknown) => void>();
   let now = 0;
 
   const call = (name: string, args: unknown[]): unknown => {
@@ -91,7 +102,14 @@ export function createNativePlatform(bridge: NativeBridge, refs: RefResolver): N
     platform[name] = kAsync.has(name)
       ? (...args: unknown[]) => {
           const r = call(name, args);
-          return r instanceof Promise ? r : Promise.resolve(r ?? false);
+          if (r instanceof Promise) {
+            return r;
+          }
+          const id = (r as { pending?: number } | undefined)?.pending;
+          if (typeof id === "number") {
+            return new Promise((resolve) => pending.set(id, resolve));
+          }
+          return Promise.resolve(r ?? false);
         }
       : (...args: unknown[]) => call(name, args);
   }
@@ -101,6 +119,11 @@ export function createNativePlatform(bridge: NativeBridge, refs: RefResolver): N
     emit: (event, e) => bus.emit(event, e),
     setNow: (nowMs) => {
       now = nowMs;
+    },
+    resolveAsync: (id, value) => {
+      const resolve = pending.get(id);
+      pending.delete(id);
+      resolve?.(value === null ? undefined : value);
     },
     missingNatives: () => Array.from(missing),
   };

@@ -41,6 +41,7 @@ export interface PartyState {
 }
 
 export interface ClientEvents {
+  appearanceApplied: { actor: number; ok: boolean };
   inventoryChanged: { refId: number; version: number; entries: ItemCount[] };
   actorValuesChanged: { actorIdx: number; values: AvValue[] };
   equipmentChanged: { actorIdx: number; weapon?: ItemKey; armor: ItemKey[] };

@@ -5,6 +5,7 @@ import { FalloutMpClient, FalloutMpClientOptions } from "../src/falloutMpClient"
 import {
   ClientConfig,
   FalloutPlatform,
+  LooksMenuMode,
   PuppetSpawn,
   FormId,
   PlatformEvents,
@@ -13,7 +14,7 @@ import {
   WorkshopObjectSpawn,
   WorkshopRatings,
 } from "../src/platform/falloutPlatform";
-import { ItemCount, ItemKey, Vec3 } from "../src/services/messages/fo4Messages";
+import { AppearanceFo4, GraphVariable, ItemCount, ItemKey, Vec3 } from "../src/services/messages/fo4Messages";
 
 export const kPlayer = 0x14;
 export const kPlayerServerId = 0xff000001;
@@ -330,6 +331,45 @@ export class FakePlatform implements FalloutPlatform {
   }
   getClientConfig(): ClientConfig | undefined {
     return this.clientConfig;
+  }
+  // F02: graph variables per actor; notified events are recorded
+  readonly graphVariables = new Map<number, Map<string, GraphVariable>>();
+  readonly animEvents: { actor: number; name: string }[] = [];
+  getGraphVariables(actor: FormId, names: string[]): GraphVariable[] {
+    const vars = this.graphVariables.get(actor);
+    return names.map((n) => vars?.get(n)).filter((v): v is GraphVariable => !!v);
+  }
+  setGraphVariables(actor: FormId, values: GraphVariable[]): void {
+    let vars = this.graphVariables.get(actor);
+    if (!vars) {
+      vars = new Map();
+      this.graphVariables.set(actor, vars);
+    }
+    for (const v of values) {
+      vars.set(v.name, { ...v });
+    }
+    this.record("setGraphVariables", actor, values);
+  }
+  notifyAnimationGraph(actor: FormId, eventName: string): boolean {
+    this.animEvents.push({ actor, name: eventName });
+    return true;
+  }
+  // F03
+  readonly appearances = new Map<number, AppearanceFo4>();
+  looksMenuOpen: LooksMenuMode | undefined = undefined;
+  getAppearanceFo4(actor: FormId): AppearanceFo4 | undefined {
+    return this.appearances.get(actor);
+  }
+  applyAppearanceFo4(actor: FormId, data: AppearanceFo4): Promise<boolean> {
+    this.appearances.set(actor, data);
+    this.record("applyAppearanceFo4", actor, data);
+    return Promise.resolve(true);
+  }
+  openLooksMenu(mode: LooksMenuMode): void {
+    this.looksMenuOpen = mode;
+  }
+  closeLooksMenu(): void {
+    this.looksMenuOpen = undefined;
   }
 
   on<K extends keyof PlatformEvents>(event: K, handler: (e: PlatformEvents[K]) => void): void {

@@ -13,6 +13,8 @@
 // - ItemKey/ItemCount are the protocol types: the plugin resolves mods and
 //   condition to an ExtraDataList (BGSObjectInstanceExtra, ExtraHealth).
 import {
+  AppearanceFo4,
+  GraphVariable,
   ItemCount,
   ItemKey,
   PowerArmorPiece,
@@ -188,6 +190,35 @@ export interface UiNatives {
   sendToFront(event: string, payload: unknown): void;
 }
 
+export interface AnimationNatives {
+  // Values of graph variables on the actor's active (3rd-person) graph, in
+  // the order asked; variables the graph doesn't have are left out.
+  getGraphVariables(actor: FormId, names: string[]): GraphVariable[];
+  // Written after the engine's own update for this frame, so locomotion
+  // channels don't overwrite them.
+  setGraphVariables(actor: FormId, values: GraphVariable[]): void;
+  // Sends an animation event to the actor's graph; false when refused.
+  notifyAnimationGraph(actor: FormId, eventName: string): boolean;
+}
+
+// F03 LooksMenu modes (Game.ShowRaceMenu uiMode)
+export enum LooksMenuMode {
+  Create = 0,
+  Remake = 1,
+  Haircut = 2,
+  Surgery = 3,
+  FacePaint = 4,
+}
+
+export interface AppearanceNatives {
+  // Face and body of an actor's base (the player or a puppet).
+  getAppearanceFo4(actor: FormId): AppearanceFo4 | undefined;
+  // Writes the face block and rebuilds the 3D; resolves when it's loaded.
+  applyAppearanceFo4(actor: FormId, data: AppearanceFo4): Promise<boolean>;
+  openLooksMenu(mode: LooksMenuMode): void;
+  closeLooksMenu(): void;
+}
+
 export interface PuppetSpawn {
   pos: Vec3;
   yaw: number; // degrees
@@ -267,6 +298,13 @@ export interface PlatformEvents {
   fastTravelRequested: { marker: FormId };
   // F13: values of a hosted NPC changed in the host's simulation
   hostedValuesChanged: { actor: FormId; values: { avId: number; current: number; max: number }[] };
+  // F02: animation graph events of the player or a hosted NPC (the plugin
+  // filters locomotion and gameplay-only events)
+  animationEvent: { actor: FormId; name: string };
+  // F03: the LooksMenu closed (the player finished editing)
+  looksMenuClosed: Record<string, never>;
+  // Any menu (Pip-Boy, containers, workshop, terminals) opened or closed
+  menuOpenClose: { menu: string; open: boolean };
 }
 
 export interface PlatformEventSource {
@@ -290,6 +328,8 @@ export interface FalloutPlatform
     UiNatives,
     PuppetNatives,
     SessionNatives,
+    AnimationNatives,
+    AppearanceNatives,
     PlatformEventSource {
   readonly refs: RefResolver;
   getPlayer(): FormId;

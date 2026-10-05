@@ -200,6 +200,19 @@ public:
     }
   }
 
+  void SetRaceMenuOpen(ActorId a, bool open) override
+  {
+    if (auto ac = ActorPtr(a); ac && ac->IsRaceMenuOpen() != open) {
+      ac->SetRaceMenuOpen(open);
+    }
+  }
+
+  bool IsRaceMenuOpen(ActorId a) override
+  {
+    auto ac = ActorPtr(a);
+    return ac && ac->IsRaceMenuOpen();
+  }
+
   bool FireGamemodeEvent(const std::string& name,
                          const nlohmann::json& args) override
   {
@@ -290,6 +303,19 @@ void Fo4PartOneGlue::OnMessage(uint32_t actorId, MsgType type,
 {
   EnsureActorLoaded(actorId);
   pImpl->server->OnMessage(actorId, type, msg);
+}
+
+void Fo4PartOneGlue::OnSubscribe(uint32_t listenerActorId,
+                                 uint32_t emitterActorId)
+{
+  EnsureActorLoaded(listenerActorId);
+  EnsureActorLoaded(emitterActorId);
+  try {
+    pImpl->server->OnStreamIn(listenerActorId, emitterActorId);
+  } catch (const std::exception& e) {
+    spdlog::error("Fo4PartOneGlue: stream-in of {:x} to {:x} failed: {}",
+                  emitterActorId, listenerActorId, e.what());
+  }
 }
 
 void Fo4PartOneGlue::EnsureActorLoaded(uint32_t actorId)

@@ -169,7 +169,7 @@ export class WorldSession {
       case UpstreamMsgType.CustomPacket:
         return this.onCustomPacket(msg as CustomPacketMessage);
       case UpstreamMsgType.SetRaceMenuOpen:
-        return; // character creation is not synced yet (F03)
+        return this.client?.appearance.onRaceMenu((msg as { open?: boolean }).open === true);
     }
     if (isFallout4MsgType(msg.t)) {
       this.client?.onMessage(msg as { t: number });
@@ -261,6 +261,9 @@ export class WorldSession {
       if (this.state !== "inWorld") {
         this.state = "inWorld";
         this.platform.showNotification("Connected to the server");
+      }
+      if (m.props?.isRaceMenuOpen) {
+        client.appearance.onRaceMenu(true);
       }
       return;
     }

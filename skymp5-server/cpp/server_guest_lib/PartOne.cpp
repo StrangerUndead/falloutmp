@@ -896,6 +896,13 @@ void PartOne::Init()
     message.transform.worldOrCell = worldOrCell;
 
     sendTarget->Send(listenerUserId, message, true);
+
+    // Fallout 4: appearance, equipment and the rest follow CreateActor on
+    // the same reliable channel
+    if (pImpl->fo4 && emitter->AsActor()) {
+      pImpl->fo4->OnSubscribe(listenerAsActor->GetFormId(),
+                              emitter->GetFormId());
+    }
   };
 
   pImpl->onUnsubscribe = [this](PartOneSendTargetWrapper* sendTarget,

@@ -5,9 +5,61 @@
 #include <cmath>
 #include <set>
 #include <nlohmann/json.hpp>
+#include <simdjson.h>
 #include <spdlog/spdlog.h>
 
 namespace fo4 {
+
+namespace {
+// F03 limits (AppearanceFo4 <= ~2 KB): counts and finite numbers only; the
+// chargen catalogue check against RACE/HDPT/CLFM is not built yet.
+const char* AppearanceProblem(const fo4msg::AppearanceFo4& a)
+{
+  auto finite = [](float f) { return std::isfinite(f); };
+  if (a.headPartIds.size() > 32 || a.morphRegions.size() > 16 ||
+      a.morphSliders.size() > 256 || a.faceRegions.size() > 128 ||
+      a.tints.size() > 128) {
+    return "TooLarge";
+  }
+  if (!a.raceId) {
+    return "NoRace";
+  }
+  for (float f : a.bodyMorph) {
+    if (!finite(f) || f < -0.01f || f > 1.01f)
+      return "BadBodyMorph";
+  }
+  for (float f : a.morphRegions) {
+    if (!finite(f) || std::fabs(f) > 10.f)
+      return "BadMorphRegion";
+  }
+  for (auto& m : a.morphSliders) {
+    if (!finite(m.value) || std::fabs(m.value) > 10.f)
+      return "BadMorphSlider";
+  }
+  for (auto& r : a.faceRegions) {
+    for (int i = 0; i < 3; ++i) {
+      if (!finite(r.pos[i]) || !finite(r.rot[i]) ||
+          std::fabs(r.pos[i]) > 100.f || std::fabs(r.rot[i]) > 100.f)
+        return "BadFaceRegion";
+    }
+    if (!finite(r.scale) || r.scale < 0.f || r.scale > 10.f)
+      return "BadFaceRegion";
+  }
+  if (!finite(a.faceMorphIntensity)) {
+    return "BadIntensity";
+  }
+  for (auto& t : a.tints) {
+    if (t.value > 100)
+      return "BadTint";
+  }
+  return nullptr;
+}
+
+constexpr size_t kMaxAnimEvents = 16;
+constexpr size_t kMaxGraphVariables = 48;
+constexpr size_t kMaxAnimNameLength = 64;
+}
+
 
 namespace {
 
@@ -305,8 +357,65 @@ void Fo4Server::SendEffects(ActorId actor)
   Neighbours(actor, pub, true);
 }
 
+void Fo4Server::OnStreamIn(ActorId listener, ActorId emitter)
+{
+  if (listener == emitter) {
+    SendFullState(listener);
+    return;
+  }
+  auto& st = Actor(emitter);
+  if (st.appearance) {
+    UpdateAppearanceFo4Message a;
+    a.idx = emitter;
+    a.rev = st.appearanceRev;
+    a.data = *st.appearance;
+    host.SendTo(listener, a, true);
+  }
+  UpdateEquipmentFo4Message eq;
+  eq.actorIdx = emitter;
+  eq.op = UpdateEquipmentFo4Message::kState;
+  if (st.equippedWeapon) {
+    eq.weapon = ToMsg(*st.equippedWeapon);
+  }
+  for (auto& a : st.equippedArmor) {
+    eq.armor.push_back(ToMsg(a));
+  }
+  host.SendTo(listener, eq, true);
+  if (powerArmor.GetWorn(emitter)) {
+    auto snap = powerArmor.Snapshot(emitter);
+    PowerArmorStateMessage m;
+    m.actorIdx = emitter;
+    m.frameRefId = snap.frameRefId;
+    m.phase = static_cast<uint8_t>(snap.phase);
+    m.frameBaseId = snap.frameBaseId;
+    for (auto& p : snap.pieces) {
+      m.pieces.push_back(
+        { static_cast<uint8_t>(p.slot), ToMsg(p.key), p.healthPct });
+    }
+    m.coreBaseId = snap.coreBaseId;
+    m.unpowered = snap.unpowered;
+    m.jetpackCapable = snap.jetpackCapable;
+    host.SendTo(listener, m, true);
+  }
+  if (st.effects && !st.effects->Active().empty()) {
+    EffectsUpdateMessage pub;
+    pub.idx = emitter;
+    for (auto& e : st.effects->Active()) {
+      pub.effects.push_back({ e.effectId, e.sourceItem, 0, 0, 0.f, 0 });
+    }
+    host.SendTo(listener, pub, true);
+  }
+}
+
 void Fo4Server::SendFullState(ActorId actor)
 {
+  if (auto& own = Actor(actor); own.appearance) {
+    UpdateAppearanceFo4Message a;
+    a.idx = actor;
+    a.rev = own.appearanceRev;
+    a.data = *own.appearance;
+    host.SendTo(actor, a, true);
+  }
   SendInventory(actor);
   SendActorValues(actor);
   SendProgression(actor);
@@ -449,6 +558,92 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
         maxHp > 0 ? ms.avs.GetCurrent(Av::Health) / maxHp * 100.f : 0.f, 0.f,
         100.f));
       Neighbours(subject, relay, false);
+      return;
+    }
+    case MsgType::UpdateAppearanceFo4: {
+      auto& m = As<UpdateAppearanceFo4Message>(msg);
+      if (m.idx != 0 && m.idx != sender) {
+        return; // hosts never set NPC appearance (F03 rule 1)
+      }
+      auto correct = [&](const char* why) {
+        spdlog::debug("Appearance of {:x} rejected: {}", sender, why);
+        if (st.appearance) {
+          UpdateAppearanceFo4Message c;
+          c.idx = sender;
+          c.rev = st.appearanceRev;
+          c.data = *st.appearance;
+          host.SendTo(sender, c, true);
+        }
+      };
+      if (auto problem = AppearanceProblem(m.data)) {
+        return correct(problem);
+      }
+      if (st.appearance && m.rev <= st.appearanceRev) {
+        return correct("StaleRevision");
+      }
+      if (!host.FireGamemodeEvent(
+            "onFo4AppearanceChange",
+            nlohmann::json::array({ sender, m.rev, m.data.raceId }))) {
+        return correct("Vetoed");
+      }
+      st.appearance = std::make_shared<fo4msg::AppearanceFo4>(m.data);
+      st.appearanceRev = m.rev;
+      host.SetRaceMenuOpen(sender, false);
+      UpdateAppearanceFo4Message relay = m;
+      relay.idx = sender;
+      Neighbours(sender, relay, true);
+      return;
+    }
+    case MsgType::UpdateActions:
+    case MsgType::UpdateGraphVariables: {
+      // F02: presentation only (class B). Ownership, size and rate checks,
+      // then relay; nothing here changes gameplay state.
+      const bool actions = type == MsgType::UpdateActions;
+      uint32_t idx = actions ? As<UpdateActionsMessage>(msg).idx
+                             : As<UpdateGraphVariablesMessage>(msg).idx;
+      const ActorId subject = idx == 0 ? sender : idx;
+      if (subject != sender && !IsHostedBy(subject, sender)) {
+        return;
+      }
+      auto& as = Actor(subject);
+      int64_t now = host.NowMs();
+      float dt = static_cast<float>(now - as.animTokensAtMs) / 1000.f;
+      as.animTokensAtMs = now;
+      as.actionTokens = std::min(60.f, as.actionTokens + dt * 60.f);
+      as.variableTokens = std::min(25.f, as.variableTokens + dt * 25.f);
+      if (actions) {
+        UpdateActionsMessage relay = As<UpdateActionsMessage>(msg);
+        if (relay.events.size() > kMaxAnimEvents ||
+            as.actionTokens < static_cast<float>(relay.events.size())) {
+          return;
+        }
+        for (auto& e : relay.events) {
+          if (e.empty() || e.size() > kMaxAnimNameLength) {
+            return;
+          }
+        }
+        as.actionTokens -= static_cast<float>(relay.events.size());
+        relay.idx = subject;
+        relay.ts = static_cast<uint32_t>(now);
+        Neighbours(subject, relay, true);
+      } else {
+        UpdateGraphVariablesMessage relay =
+          As<UpdateGraphVariablesMessage>(msg);
+        if (relay.values.size() > kMaxGraphVariables ||
+            as.variableTokens < 1.f) {
+          return;
+        }
+        for (auto& v : relay.values) {
+          if (v.name.empty() || v.name.size() > kMaxAnimNameLength ||
+              !std::isfinite(v.value) || v.type > 2) {
+            return;
+          }
+        }
+        as.variableTokens -= 1.f;
+        relay.idx = subject;
+        relay.ts = static_cast<uint32_t>(now);
+        Neighbours(subject, relay, false);
+      }
       return;
     }
     case MsgType::ChangeValuesAv: {
@@ -1696,6 +1891,14 @@ nlohmann::json Fo4Server::ActorToJson(ActorId id) const
   }
   j["equippedArmor"] = armor;
   j["discoveredMarkers"] = st->discoveredMarkers;
+  if (st->appearance) {
+    UpdateAppearanceFo4Message m;
+    m.data = *st->appearance;
+    nlohmann::json mj;
+    m.WriteJson(mj);
+    j["appearance"] = mj["data"];
+    j["appearanceRev"] = st->appearanceRev;
+  }
   if (auto w = powerArmor.GetWorn(id)) {
     j["powerArmor"] = powerArmor.WornToJson(*w);
   }
@@ -1741,6 +1944,21 @@ void Fo4Server::LoadActor(ActorId id, const nlohmann::json& j)
     }
     if (j.contains("powerArmor")) {
       powerArmor.RestoreWorn(id, PowerArmorService::WornFromJson(j["powerArmor"]));
+    }
+    if (j.contains("appearance")) {
+      nlohmann::json mj = {
+        { "t", static_cast<int>(MsgType::UpdateAppearanceFo4) },
+        { "idx", 0 },
+        { "rev", 0 },
+        { "data", j["appearance"] }
+      };
+      simdjson::dom::parser parser;
+      std::string text = mj.dump();
+      auto doc = parser.parse(text);
+      UpdateAppearanceFo4Message m;
+      m.ReadJson(doc.value());
+      st.appearance = std::make_shared<fo4msg::AppearanceFo4>(m.data);
+      st.appearanceRev = j.value("appearanceRev", 0u);
     }
   } catch (const std::exception& e) {
     spdlog::error("Fo4Server: bad equipment/effects for {:x}: {}", id,

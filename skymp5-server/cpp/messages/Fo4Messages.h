@@ -994,10 +994,172 @@ struct WorldTimeWeatherMessage : public MessageBase<WorldTimeWeatherMessage>
   }
 };
 
+
+// 66: a player's Fallout 4 face and body (F03). C->S when the LooksMenu
+// closes (idx 0 = own actor); S->C to neighbours on change and stream-in,
+// and to the owner as a correction.
+namespace fo4msg {
+struct MorphSlider
+{
+  uint32_t key = 0;
+  float value = 0.f;
+  template <class A>
+  void Serialize(A& a)
+  {
+    a.Serialize("key", key).Serialize("value", value);
+  }
+};
+
+struct FaceRegion
+{
+  uint32_t index = 0;
+  std::array<float, 3> pos = { 0, 0, 0 };
+  std::array<float, 3> rot = { 0, 0, 0 };
+  float scale = 1.f;
+  template <class A>
+  void Serialize(A& a)
+  {
+    a.Serialize("index", index)
+      .Serialize("pos", pos)
+      .Serialize("rot", rot)
+      .Serialize("scale", scale);
+  }
+};
+
+struct Tint
+{
+  uint16_t tintIndex = 0;
+  uint8_t dataType = 0;
+  uint8_t value = 0; // intensity 0..100
+  uint32_t rgba = 0;
+  int16_t templateColorIndex = -1;
+  template <class A>
+  void Serialize(A& a)
+  {
+    a.Serialize("tintIndex", tintIndex)
+      .Serialize("dataType", dataType)
+      .Serialize("value", value)
+      .Serialize("rgba", rgba)
+      .Serialize("templateColorIndex", templateColorIndex);
+  }
+};
+
+struct AppearanceFo4
+{
+  bool isFemale = false;
+  uint32_t raceId = 0;
+  uint32_t hairColorId = 0;
+  uint32_t facialHairColorId = 0;
+  uint32_t headTextureSetId = 0;
+  std::vector<uint32_t> headPartIds;
+  std::array<float, 3> bodyMorph = { 0, 0, 0 }; // thin, muscular, large
+  std::vector<float> morphRegions;
+  std::vector<MorphSlider> morphSliders;
+  std::vector<FaceRegion> faceRegions;
+  float faceMorphIntensity = 1.f;
+  std::vector<Tint> tints;
+  uint32_t skinTone = 0;
+  template <class A>
+  void Serialize(A& a)
+  {
+    a.Serialize("isFemale", isFemale)
+      .Serialize("raceId", raceId)
+      .Serialize("hairColorId", hairColorId)
+      .Serialize("facialHairColorId", facialHairColorId)
+      .Serialize("headTextureSetId", headTextureSetId)
+      .Serialize("headPartIds", headPartIds)
+      .Serialize("bodyMorph", bodyMorph)
+      .Serialize("morphRegions", morphRegions)
+      .Serialize("morphSliders", morphSliders)
+      .Serialize("faceRegions", faceRegions)
+      .Serialize("faceMorphIntensity", faceMorphIntensity)
+      .Serialize("tints", tints)
+      .Serialize("skinTone", skinTone);
+  }
+};
+
+struct GraphVariable
+{
+  std::string name;
+  uint8_t type = 0; // 0 float, 1 int, 2 bool
+  float value = 0.f;
+  template <class A>
+  void Serialize(A& a)
+  {
+    a.Serialize("name", name).Serialize("type", type).Serialize("value",
+                                                                value);
+  }
+};
+}
+
+struct UpdateAppearanceFo4Message
+  : public MessageBase<UpdateAppearanceFo4Message>
+{
+  FO4_MSG_TYPE(UpdateAppearanceFo4)
+  uint32_t idx = 0;
+  uint32_t rev = 0;
+  fo4msg::AppearanceFo4 data;
+
+  template <class A>
+  void Serialize(A& a)
+  {
+    a.Serialize("t", kMsgType)
+      .Serialize("idx", idx)
+      .Serialize("rev", rev)
+      .Serialize("data", data);
+  }
+};
+
+// 74: animation graph events of an actor the sender simulates (F02):
+// jumps, reloads, attacks, idles. C->S (idx 0 = own actor), relayed to
+// neighbours with idx = the actor's form id. Never causes gameplay.
+struct UpdateActionsMessage : public MessageBase<UpdateActionsMessage>
+{
+  FO4_MSG_TYPE(UpdateActions)
+  uint32_t idx = 0;
+  uint32_t seq = 0;
+  uint32_t ts = 0;
+  std::vector<std::string> events;
+
+  template <class A>
+  void Serialize(A& a)
+  {
+    a.Serialize("t", kMsgType)
+      .Serialize("idx", idx)
+      .Serialize("seq", seq)
+      .Serialize("ts", ts)
+      .Serialize("events", events);
+  }
+};
+
+// 75: animation graph variables (locomotion, aim, stance) at up to 20 Hz.
+struct UpdateGraphVariablesMessage
+  : public MessageBase<UpdateGraphVariablesMessage>
+{
+  FO4_MSG_TYPE(UpdateGraphVariables)
+  uint32_t idx = 0;
+  uint16_t seq = 0;
+  uint32_t ts = 0;
+  std::vector<fo4msg::GraphVariable> values;
+
+  template <class A>
+  void Serialize(A& a)
+  {
+    a.Serialize("t", kMsgType)
+      .Serialize("idx", idx)
+      .Serialize("seq", seq)
+      .Serialize("ts", ts)
+      .Serialize("values", values);
+  }
+};
+
 #undef FO4_MSG_TYPE
 
 #define REGISTER_FO4_MESSAGES                                                 \
   REGISTER_MESSAGE(UpdateMovementFo4Message)                                  \
+  REGISTER_MESSAGE(UpdateAppearanceFo4Message)                                \
+  REGISTER_MESSAGE(UpdateActionsMessage)                                      \
+  REGISTER_MESSAGE(UpdateGraphVariablesMessage)                               \
   REGISTER_MESSAGE(SetInventoryFo4Message)                                    \
   REGISTER_MESSAGE(PutItemFo4Message)                                         \
   REGISTER_MESSAGE(TakeItemFo4Message)                                        \
