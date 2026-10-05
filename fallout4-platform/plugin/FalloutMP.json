@@ -1,4 +1,23 @@
 {
   "server-ip": "",
-  "server-port": 7777
+  "server-port": 7777,
+  "probe": false,
+  "features": {
+    "session": true,
+    "movement": true,
+    "puppets": true,
+    "animation": true,
+    "appearance": true,
+    "inventory": true,
+    "equipment": true,
+    "actorValues": true,
+    "progression": true,
+    "effects": true,
+    "combat": true,
+    "powerArmor": true,
+    "workshop": true,
+    "locks": true,
+    "map": true,
+    "world": true
+  }
 }
