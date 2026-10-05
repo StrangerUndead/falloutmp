@@ -7,7 +7,7 @@
 
 PartOne& GetPartOne();
 
-TEST_CASE("Dropping an item", "[DropItemTest]")
+TEST_CASE("Dropping an item", "[DropItemTest][espm]")
 {
   auto& partOne = GetPartOne();
   // an iron dagger

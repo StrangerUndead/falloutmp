@@ -6,7 +6,7 @@
 PartOne& GetPartOne();
 
 TEST_CASE("Animations system processes animation events correctly",
-          "[AnimationSystem]")
+          "[AnimationSystem][espm]")
 {
   PartOne& p = GetPartOne();
   p.animationSystem.Init(&p.worldState);

@@ -9,7 +9,7 @@
 extern PartOne& GetPartOne();
 
 TEST_CASE("Returns true and sends nothing for normal movement",
-          "[MovementValidation]")
+          "[MovementValidation][espm]")
 {
   PartOne& partOne = GetPartOne();
 
@@ -28,7 +28,7 @@ TEST_CASE("Returns true and sends nothing for normal movement",
 }
 
 TEST_CASE("Returns false and sends teleport packet when moving too fast",
-          "[MovementValidation]")
+          "[MovementValidation][espm]")
 {
   PartOne& partOne = GetPartOne();
 
@@ -56,7 +56,7 @@ TEST_CASE("Returns false and sends teleport packet when moving too fast",
 
 TEST_CASE(
   "Returns false and sends teleport packet when moving between locations",
-  "[MovementValidation]")
+  "[MovementValidation][espm]")
 {
   PartOne& partOne = GetPartOne();
 

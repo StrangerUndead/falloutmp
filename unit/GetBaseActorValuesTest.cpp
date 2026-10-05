@@ -8,7 +8,7 @@
 extern espm::Loader l;
 PartOne& GetPartOne();
 
-TEST_CASE("GetBaseActorValues works correctly", "[GetBaseActorValues]")
+TEST_CASE("GetBaseActorValues works correctly", "[GetBaseActorValues][espm]")
 {
   // Ri'saad is a Khajiit roving merchant from caravan.
   const uint32_t kRisaadFormId = 0x0001B1DB;

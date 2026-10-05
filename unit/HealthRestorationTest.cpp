@@ -6,7 +6,7 @@
 
 PartOne& GetPartOne();
 
-TEST_CASE("Potions restore health", "[Restoration]")
+TEST_CASE("Potions restore health", "[Restoration][espm]")
 {
   using namespace std::chrono_literals;
   PartOne& p = GetPartOne();

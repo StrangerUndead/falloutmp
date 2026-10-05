@@ -53,7 +53,7 @@ TEST_CASE("ConsoleCommand packet is parsed", "[ConsoleCommand]")
 }
 
 TEST_CASE("AddItem doesn't execute for non-privilleged users",
-          "[ConsoleCommand]")
+          "[ConsoleCommand][espm]")
 {
   PartOne& p = GetPartOne();
 

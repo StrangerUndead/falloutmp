@@ -48,7 +48,7 @@ void ExecuteBenchmark(int numPlayers)
             << GetTimePassed(was) << std::endl;
 }
 
-TEST_CASE("SendToNeighbours", "[Benchmarks]")
+TEST_CASE("SendToNeighbours", "[Benchmarks][espm]")
 {
   ExecuteBenchmark(1);
   // ExecuteBenchmark(50);

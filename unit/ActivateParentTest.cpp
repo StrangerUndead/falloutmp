@@ -8,7 +8,7 @@ PartOne& GetPartOne();
 
 TEST_CASE(
   "trapwallwood (54b15) in BleakFalls shouldn't be activatable by actors",
-  "[ActivateParentTest]")
+  "[ActivateParentTest][espm]")
 {
   PartOne& p = GetPartOne();
 
@@ -51,7 +51,7 @@ public:
 
 TEST_CASE("trapwallwood (54b15) in BleakFalls should be activatable by "
           "activation parents",
-          "[ActivateParentTest]")
+          "[ActivateParentTest][espm]")
 {
   PartOne& p = GetPartOne();
 

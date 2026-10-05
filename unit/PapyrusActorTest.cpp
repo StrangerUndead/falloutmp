@@ -71,7 +71,7 @@ TEST_CASE("DamageActorValue", "[Papyrus][Actor][espm]")
   DoDisconnect(p, 0);
 }
 
-TEST_CASE("IsDead()", "[Papyrus][Actor]")
+TEST_CASE("IsDead()", "[Papyrus][Actor][espm]")
 {
   PapyrusActor papyrusActor;
   PartOne& partOne = GetPartOne();

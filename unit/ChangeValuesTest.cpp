@@ -14,7 +14,7 @@ extern espm::Loader l;
 using namespace std::chrono_literals;
 
 TEST_CASE("Player attribute percentages are changing correctly",
-          "[ChangeValues] ")
+          "[ChangeValues][espm]")
 {
   PartOne& p = GetPartOne();
 
@@ -44,7 +44,7 @@ TEST_CASE("Player attribute percentages are changing correctly",
 }
 
 TEST_CASE("OnChangeValues call is cropping percentage values",
-          "[ChangeValues]")
+          "[ChangeValues][espm]")
 {
   PartOne& p = GetPartOne();
   DoConnect(p, 0);
@@ -129,7 +129,7 @@ TEST_CASE("ChangeValues message is being delivered to client",
 
 TEST_CASE("OnChangeValues function sends ChangeValues message with new "
           "percentages if input values was incorrect",
-          "[ChangeValues]")
+          "[ChangeValues][espm]")
 {
   using namespace std::chrono_literals;
 
@@ -167,7 +167,7 @@ TEST_CASE("OnChangeValues function sends ChangeValues message with new "
 
 TEST_CASE("OnChangeValues function doesn't sends ChangeValues message if "
           "input values is ok",
-          "[ChangeValues]")
+          "[ChangeValues][espm]")
 {
   using namespace std::chrono_literals;
 

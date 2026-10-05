@@ -25,7 +25,7 @@ PartOne& GetPartOne();
 extern espm::Loader l;
 using namespace std::chrono_literals;
 
-TEST_CASE("Formula takes weapon damage into account", "[TES5DamageFormula]")
+TEST_CASE("Formula takes weapon damage into account", "[TES5DamageFormula][espm]")
 {
   PartOne& p = GetPartOne();
   DoConnect(p, 0);
@@ -49,7 +49,7 @@ TEST_CASE("Formula takes weapon damage into account", "[TES5DamageFormula]")
   DoDisconnect(p, 0);
 }
 
-TEST_CASE("Damage is reduced based on target's armor", "[TES5DamageFormula]")
+TEST_CASE("Damage is reduced based on target's armor", "[TES5DamageFormula][espm]")
 {
   PartOne& p = GetPartOne();
   DoConnect(p, 0);
@@ -99,7 +99,7 @@ TEST_CASE("Damage is reduced based on target's armor", "[TES5DamageFormula]")
 }
 
 TEST_CASE("Formula is race-dependent for unarmed attack",
-          "[TES5DamageFormula]")
+          "[TES5DamageFormula][espm]")
 {
   PartOne& p = GetPartOne();
   DoConnect(p, 0);

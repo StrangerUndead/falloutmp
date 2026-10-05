@@ -9,7 +9,7 @@ extern espm::Loader l;
 
 PartOne& GetPartOne();
 
-TEST_CASE("Picking up a bunch of items", "[PickUpItemCountTest]")
+TEST_CASE("Picking up a bunch of items", "[PickUpItemCountTest][espm]")
 {
   auto& partOne = GetPartOne();
 

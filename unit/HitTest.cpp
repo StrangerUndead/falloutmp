@@ -19,7 +19,7 @@ const auto kExtraWornTrue = [] {
 }();
 }
 
-TEST_CASE("OnHit damages target actor based on damage formula", "[Hit]")
+TEST_CASE("OnHit damages target actor based on damage formula", "[Hit][espm]")
 {
   PartOne& p = GetPartOne();
   DoConnect(p, 0);
@@ -55,7 +55,7 @@ TEST_CASE("OnHit damages target actor based on damage formula", "[Hit]")
 }
 
 TEST_CASE("OnHit function sends ChangeValues message with coorect percentages",
-          "[TES5DamageFormula]")
+          "[TES5DamageFormula][espm]")
 {
   PartOne& p = GetPartOne();
   DoConnect(p, 0);
@@ -92,7 +92,7 @@ TEST_CASE("OnHit function sends ChangeValues message with coorect percentages",
   DoDisconnect(p, 0);
 }
 
-TEST_CASE("OnHit doesn't damage character if it is out of range", "[Hit]")
+TEST_CASE("OnHit doesn't damage character if it is out of range", "[Hit][espm]")
 {
   PartOne& p = GetPartOne();
   DoConnect(p, 0);
@@ -144,7 +144,7 @@ TEST_CASE("OnHit doesn't damage character if it is out of range", "[Hit]")
   DoDisconnect(p, 0);
 }
 
-TEST_CASE("Dead actors can't attack", "[Hit]")
+TEST_CASE("Dead actors can't attack", "[Hit][espm]")
 {
   PartOne& p = GetPartOne();
   RawMessageData rawMsgData;
@@ -184,7 +184,7 @@ TEST_CASE("Dead actors can't attack", "[Hit]")
   DoDisconnect(p, 0);
 }
 
-TEST_CASE("checking weapon cooldown", "[Hit]")
+TEST_CASE("checking weapon cooldown", "[Hit][espm]")
 {
   PartOne& p = GetPartOne();
   DoConnect(p, 0);

@@ -4,7 +4,7 @@
 PartOne& GetPartOne();
 extern espm::Loader l;
 
-TEST_CASE("DeathState packed is correct if actor was killed", "[Respawn]")
+TEST_CASE("DeathState packed is correct if actor was killed", "[Respawn][espm]")
 {
   PartOne& p = GetPartOne();
   DoConnect(p, 0);
@@ -33,7 +33,7 @@ TEST_CASE("DeathState packed is correct if actor was killed", "[Respawn]")
   REQUIRE(ac.GetChangeForm().actorValues.healthPercentage == 0.f);
 }
 
-TEST_CASE("DeathState packed is correct if actor is respawning", "[Respawn]")
+TEST_CASE("DeathState packed is correct if actor is respawning", "[Respawn][espm]")
 {
   PartOne& p = GetPartOne();
   DoConnect(p, 0);

@@ -8,7 +8,7 @@ PartOne& GetPartOne();
 
 TEST_CASE("MS13BanditCampfire01 in BleakFalls should have inventory/equipment "
           "derived from NPC template",
-          "[TemplateInventory]")
+          "[TemplateInventory][espm]")
 {
   PartOne& p = GetPartOne();
   p.worldState.npcSettings["Skyrim.esm"].spawnInInterior = true;

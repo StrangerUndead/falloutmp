@@ -28,7 +28,7 @@ class MyScriptStorage : public IScriptStorage
 
 TEST_CASE("MS13FrostbiteSpiderREF in BleakFalls should have scripts "
           "derived from NPC template",
-          "[TemplateScript]")
+          "[TemplateScript][espm]")
 {
   PartOne& p = GetPartOne();
 

@@ -89,7 +89,7 @@ TEST_CASE("CropPeriodAfterLastRegen returns correct value if period is in "
 TEST_CASE("CropHealthRegeneration, CropMagickaRegeneration and "
           "CropStaminaRegeneration are working correctly, regeneration is not "
           "too fast",
-          "[CropRegeneration]")
+          "[CropRegeneration][espm]")
 {
 
   using namespace std::chrono_literals;

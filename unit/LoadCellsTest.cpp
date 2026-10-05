@@ -5,7 +5,7 @@
 PartOne& GetPartOne();
 extern espm::Loader l;
 
-TEST_CASE("Loading Cells from Solstheim.esm", "[LoadCells]")
+TEST_CASE("Loading Cells from Solstheim.esm", "[LoadCells][espm]")
 {
   auto& p = GetPartOne();
   auto& t = p.worldState.GetNeighborsByPosition(0x04000800, 7, 8);
@@ -13,7 +13,7 @@ TEST_CASE("Loading Cells from Solstheim.esm", "[LoadCells]")
 }
 
 TEST_CASE("Check number of messages if player spawned in Skyrim",
-          "[LoadCells]")
+          "[LoadCells][espm]")
 {
   auto& p = GetPartOne();
 
@@ -29,7 +29,7 @@ TEST_CASE("Check number of messages if player spawned in Skyrim",
 }
 
 TEST_CASE("Check number of messages if player spawned in Solstheim",
-          "[LoadCells]")
+          "[LoadCells][espm]")
 {
   auto& p = GetPartOne();
 
