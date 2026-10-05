@@ -124,3 +124,35 @@ TEST_CASE("World bootstrap registers frames, workshops, areas and locks",
   REQUIRE(again.workshops == 0);
   REQUIRE(server.PowerArmor().FindFrame(0x1000)->ownerProfileId == 7);
 }
+
+TEST_CASE("World bootstrap finds container and keyword workbenches",
+          "[fo4][Bootstrap]")
+{
+  PluginBuilder b;
+  b.AddRecord("KYWD", 0x10).EditorId("WorkshopKeyword");
+  // The vanilla settlement workbench is a container
+  b.AddRecord("CONT", 0x31).EditorId("WorkshopWorkbench");
+  // A modded workbench recognised only by its keyword
+  b.AddRecord("ACTI", 0x32).EditorId("MyCustomBench").Keywords({ 0x10 });
+  // An ordinary container is not a workshop
+  b.AddRecord("CONT", 0x33).EditorId("Footlocker");
+  Refr(b, 0x1001, 0x31, { 0, 0, 0 });
+  Refr(b, 0x1002, 0x32, { 0, 0, 0 });
+  Refr(b, 0x1003, 0x33, { 0, 0, 0 });
+
+  auto bytes = b.Build();
+  espm::Browser browser(bytes.data(), bytes.size());
+  espm::Combiner combiner;
+  combiner.AddSource(&browser, "Fallout4.esm");
+  auto combined = combiner.Combine();
+  espm::CompressedFieldsCache cache;
+  auto data = std::make_shared<EspmFo4DataSource>(*combined, cache);
+  NullHost host;
+  Fo4Server server(data, host);
+
+  auto rep = BootstrapWorld(*combined, cache, server);
+  REQUIRE(rep.workshops == 2);
+  REQUIRE(server.Workshops().Find(0x1001));
+  REQUIRE(server.Workshops().Find(0x1002));
+  REQUIRE_FALSE(server.Workshops().Find(0x1003));
+}

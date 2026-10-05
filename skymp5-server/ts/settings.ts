@@ -78,6 +78,21 @@ export class Settings {
       }
     });
 
+    // "master": "" or null turns the master server off explicitly. A
+    // Fallout 4 server has no master by default: the SkyMP gateway lists
+    // Skyrim servers only.
+    const masterGiven = Object.prototype.hasOwnProperty.call(settings, 'master');
+    if (masterGiven && !settings['master']) {
+      this.master = '';
+    } else if (!masterGiven && settings['game'] === 'fallout4') {
+      this.master = '';
+    }
+    if (!this.master && !this.offlineMode) {
+      console.warn('No master server and offlineMode is false: players can only '
+        + 'log in if the gamemode handles authentication. Set "offlineMode": true '
+        + 'for a server without accounts.');
+    }
+
     this.allSettings = settings;
   }
 

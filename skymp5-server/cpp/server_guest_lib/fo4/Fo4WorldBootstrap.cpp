@@ -99,6 +99,38 @@ WorldBootstrapReport BootstrapWorld(const espm::CombineBrowser& br,
       }
     }
 
+    // Settlement workbenches: the base can be a container (the vanilla
+    // WorkshopWorkbench), furniture or activator. Matched by editor id
+    // prefix or a workshop keyword.
+    if (cfg.registerWorkshops &&
+        (baseType == "CONT" || baseType == "FURN" || baseType == "ACTI") &&
+        !server.Workshops().Find(refId)) {
+      std::string edid = baseLr.rec->GetEditorId(cache);
+      bool isWorkshop = edid.rfind(cfg.workshopBaseEditorIdPrefix, 0) == 0;
+      if (!isWorkshop) {
+        for (auto kw : espm::fo4::GetKeywords(baseLr.rec, cache)) {
+          isWorkshop |= workshopKws.count(baseLr.ToGlobalId(kw)) > 0;
+        }
+      }
+      if (isWorkshop) {
+        Pending p{ refId, {} };
+        for (auto& link : d.linkedRefs) {
+          if (areaKws.count(lr.ToGlobalId(link.keywordId))) {
+            p.areaRefs.push_back(lr.ToGlobalId(link.refId));
+          }
+        }
+        pendingWorkshops.push_back(p);
+        Workshop w;
+        w.workbenchRefId = refId;
+        w.locationId =
+          d.persistLocationId ? lr.ToGlobalId(d.persistLocationId) : 0;
+        w.worldOrCell = LocationalDataUtils::GetWorldOrCell(br, lr);
+        server.Workshops().AddWorkshop(std::move(w));
+        ++rep.workshops;
+        continue;
+      }
+    }
+
     if (baseType != "FURN") {
       continue;
     }
@@ -128,27 +160,6 @@ WorldBootstrapReport BootstrapWorld(const espm::CombineBrowser& br,
       server.PowerArmor().AddFrame(std::move(f));
       ++rep.frames;
       continue;
-    }
-
-    bool isWorkshop = furn.editorId.rfind(cfg.workshopBaseEditorIdPrefix,
-                                          0) == 0;
-    for (auto kw : furn.keywords) {
-      isWorkshop |= workshopKws.count(baseLr.ToGlobalId(kw)) > 0;
-    }
-    if (cfg.registerWorkshops && isWorkshop && !server.Workshops().Find(refId)) {
-      Pending p{ refId, {} };
-      for (auto& link : d.linkedRefs) {
-        if (areaKws.count(lr.ToGlobalId(link.keywordId))) {
-          p.areaRefs.push_back(lr.ToGlobalId(link.refId));
-        }
-      }
-      pendingWorkshops.push_back(p);
-      Workshop w;
-      w.workbenchRefId = refId;
-      w.locationId = d.persistLocationId ? lr.ToGlobalId(d.persistLocationId)
-                                         : 0;
-      server.Workshops().AddWorkshop(std::move(w));
-      ++rep.workshops;
     }
   }
 
