@@ -34,7 +34,7 @@ Server-side milestones (M1, M2) and platform milestones (M3–M5) can run in par
 ## M1 — Shared core becomes game-pluggable (est. 3–5 weeks) — Linux only
 - **Refactors:** REF-002…REF-013, REF-015, REF-020, REF-021, REF-024, REF-030.
 - **Network:** NET-001, NET-002, NET-003, NET-008, NET-009.
-- **Build and server:** BUILD-001, BUILD-006, SRV-001 (scaffold), SRV-002, SRV-012, SRV-070.
+- **Build and server:** BUILD-001, BUILD-006, SRV-001 (scaffold), SRV-002, SRV-012, SRV-070, SRV-090 (scale budget baseline: `maxPlayers` up to 1,000 as a setting, per-tick metrics).
 
 **Exit criteria**
 1. Skyrim behaviour is unchanged: full `ctest` with Skyrim data (CI) and `~[espm]` locally are green, and Skyrim packets are byte-identical (NET-002 test).
@@ -126,7 +126,7 @@ Server-side milestones (M1, M2) and platform milestones (M3–M5) can run in par
 **Exit criteria**
 1. Every row of the parity matrix ([00-vision-scope.md §3](00-vision-scope.md)) is at SkyMP's level, with evidence.
 2. PvP and PvE gunfights work at RTT ≤ 150 ms, and the false-reject rate is under 2% in simulation.
-3. A load test with 100 bots and 300 hosted NPCs meets the §7 quality targets.
+3. Load tests meet the §7 targets at the alpha stage: 64 players in one area and 300 players spread over the map with 600 hosted NPCs (QA-020).
 4. Alpha release package (BUILD-008 draft).
 
 ## M9 — Progression & economy (est. 6–10 weeks)
@@ -149,7 +149,8 @@ Server-side milestones (M1, M2) and platform milestones (M3–M5) can run in par
 **Exit criteria**
 1. Workshop building persists and scales: 500 objects per settlement and 10 settlements on a server.
 2. Every T1 feature is at its target level.
-3. Beta release.
+3. Load test at 300 concurrent players meets the §7 targets (QA-022).
+4. Beta release.
 
 ## M12 — 1.0 (est. 8–12 weeks)
 - **Dependencies & compatibility (ADR-021):** DOCS-005 compatibility matrix finalized; SRV-003 client-mod allow/deny lists documented.
@@ -158,7 +159,7 @@ Server-side milestones (M1, M2) and platform milestones (M3–M5) can run in par
 
 **Exit criteria**
 1. Every feature is at its target level.
-2. The soak test passes.
+2. The soak test passes, and the 1,000-player load test meets the §7 targets (QA-022, SRV-090…093).
 3. Docs are complete, the licensing audit is done, and the release is published.
 
 ## Post-1.0

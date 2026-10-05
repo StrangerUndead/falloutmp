@@ -46,6 +46,7 @@ Q-01 … Q-18 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 | Date | Decision | By | Affects |
 |---|---|---|---|
 | 2026-10-05 | User states the Commonwealth Online 1.1.0 server package is open source and its code may be used. The package has no license file, so record the Nexus permissions in THIRD_PARTY_LICENSES before verbatim reuse | User | prior-art §3.5.1, OPS-002, OPS-011, QA-020 |
+| 2026-10-05 | Scale target corrected to SkyMP parity: ~1,000 concurrent players at 1.0 (compile cap `MAX_PLAYERS=1000`; user has seen 1,200 on SkyMP servers), staged 64 → 300 → 1,000. Added SRV-090…094 and QA-022 | User + Claude | 00 §7, 03, SRV, QA, R22 |
 | 2026-10-05 | ADR-021 Accepted: FalloutMP may require/recommend existing mods (F4SE, Address Library, Buffout 4 NG, High FPS Physics Fix, LooksMenu, MCM); policy in 07-dependencies-and-mods.md. Realism pass: overall timeline stated as ~14–20 months to 1.0 | Claude (planning) + user direction | 02, 03, 07, PLAT-095, SRV-003, CLI-080, F03-T12, F22-T26, DOCS-005 |
 | 2026-10-05 | Plan v1 adopted as working baseline; ADR-004, ADR-009, ADR-015 and ADR-018 Accepted | Claude (planning) | all |
 

@@ -72,7 +72,7 @@ FalloutMP turns this SkyMP fork into an open-source, server-authoritative multip
 **Non-goals.** Co-op of the vanilla main quest; Game Pass, Epic, VR and consoles; peer-to-peer hosting.
 
 **Quality targets (proposed).**
-- 32 players per server at the alpha and at least 100 at 1.0 (a measured goal), with a server tick p95 under 10 ms at 300 hosted NPCs.
+- SkyMP-class scale: about 1,000 concurrent players at 1.0 (SkyMP's compile-time cap is 1,000; production SkyMP servers have run 1,000+). Staged: 64 at the alpha, 300 at the beta, 1,000 at 1.0, with server tick p95 under 10 ms.
 - No rubber-banding at 150 ms RTT.
 - Hit false-reject rate under 2%.
 - At most 20 KB/s per client with 30 actors visible.

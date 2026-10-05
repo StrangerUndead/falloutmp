@@ -23,6 +23,7 @@
 | R17 | Users' extra mods conflict with sync | M | M | Server-defined load order and manifest check; documented "clean install" | F00-T09 |
 | R18 | Power armor on Actor puppets is unsolved by prior art | M | H | Dedicated prototype in F17; engine enter sequence on remote copy | F17 |
 | R19 | Leveled-actor determinism across clients | M | M | Server evaluates and sends the resolved base; TPTA handled server-side | F14, F13 |
+| R22 | 1,000-player parity target may not be reachable with FO4's heavier actors and gun-fire message volume in a single process | M | H | Engineer for scale from M1 (SRV-090…093); staged load tests 64 → 300 → 1,000 (QA-020/022); sharding design as fallback (SRV-094) | SRV-09x, QA-022 |
 | R21 | A recommended mod (LooksMenu, Buffout 4, High FPS Physics Fix, MCM) lags behind a Bethesda patch or changes its API | M | M | Native fallbacks for sync-critical paths; version ranges in the manifest; compatibility matrix updated per release | PLAT-095, SRV-003, DOCS-005 |
 | R20 | Rate limits / usage caps interrupt long agent research or implementation sessions | M | L | Smaller agent batches; resume agents; commit often | process |
 

@@ -7,7 +7,8 @@ Context: [04-testing-verification.md](../04-testing-verification.md); [reference
   - Accept: the user runs it with one launch, and Claude parses the JSON report.
 - [ ] **QA-011** G-manual test-script library `docs/falloutmp/test-scripts/` (one per feature milestone, with the request template from 06-workflow-conventions §6) — S — ongoing
 - [ ] **QA-012** GitHub issue template "In-game test report" (checklist id, sha, pass/fail, logs, self-test JSON) — S — Depends: — — Verify: —
-- [ ] **QA-020** Bot load test: headless bot clients (MockServer/createBot + raw protocol) simulating movement, combat and inventory for 100 players and 300 hosted NPCs; Prometheus capture — M — Depends: F01-T05, F09 — Verify: L-int
+- [ ] **QA-020** Bot load test harness: headless bot clients (MockServer/createBot + raw protocol) simulating movement, combat and inventory; scenarios "hot spot" (N players in one 3×3 area) and "spread" (N players across the map with hosted NPCs); Prometheus capture; first targets 64 hot-spot / 300 spread with 600 NPCs (M8) — M — Depends: F01-T05, F09 — Verify: L-int
+- [ ] **QA-022** Scale load tests: 300 players (M11) and 1,000 players with 2,000 hosted NPCs (M12) on a documented reference machine; multi-process bot runner; report tick p95, relay fan-out, bandwidth, memory; results recorded in STATUS.md and 00-vision-scope §7 — M — Depends: QA-020, SRV-090…SRV-093 — Verify: L-int
 - [ ] **QA-021** Network-condition emulation (latency, jitter, loss) for bot tests (tc/netem or in-process) — S — Depends: QA-020 — Verify: L-int
 - [ ] **QA-030** Soak-test protocol: 2 h, 10 players, crash/reconnect/persistence checks — S — Depends: M8 — Verify: G-manual
 - [ ] **QA-040** Adversarial persistence tests: duplication attempts (concurrent take/put, disconnect mid-transfer, crash between mutate and save) — M — Depends: F04, F06 — Verify: L-unit, L-int

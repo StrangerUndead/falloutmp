@@ -107,11 +107,11 @@ The "SkyMP level" column uses the L0–L4 scale from [01-sync-standard.md](01-sy
 
 | Metric | Target | How measured |
 |---|---|---|
-| Concurrent players per server | 32 at the M8 alpha; ≥ 100 at 1.0 (SkyMP default `maxPlayers` is 100). FO4 actors are heavier than Skyrim's, so 100 is a measured goal, not an assumption | Bot load test (`QA-020`) |
-| Server tick cost | p95 < 10 ms at 100 players, 300 hosted NPCs | Prometheus metrics, load test |
+| Concurrent players per server | **SkyMP parity = ~1,000** (SkyMP's compile-time cap is `MAX_PLAYERS=1000`, `skymp5-server/cpp/CMakeLists.txt:46`; production SkyMP servers have run 1,000+ players). Staged: 64 at the M8 alpha, 300 at the M11 beta, **1,000 at 1.0**. FO4 actors cost more per client, so the server-side budget (interest management, relay cost, tick) is engineered for 1,000 from M1, and the client is budgeted for ~40 visible actors | Bot load tests (`QA-020`, `QA-022`) at each stage |
+| Server tick cost | p95 < 10 ms at 1,000 players and 2,000 hosted NPCs spread over the map; p95 < 10 ms with 64 players in one 3×3 grid area (relay hot spot) | Prometheus metrics, load tests |
 | Remote movement smoothness | No visible teleporting at RTT ≤ 150 ms, 2% loss | `G-manual` scenario plus jitter injection |
 | Hit registration | Server validates hits with rewind ≤ 250 ms; false-reject rate < 2% at RTT 150 ms | `L-int` simulation plus `G-manual` |
-| Bandwidth | ≤ 20 KB/s down per client at 30 visible actors | Metrics |
+| Bandwidth | ≤ 20 KB/s down per client at 30 visible actors; ≤ 40 KB/s at 64 in one area (hot spot) ; server egress budget documented per 1,000 players | Metrics |
 | Persistence | Zero item dup/loss across disconnect, server crash (≤ last flush) and restart | `L-unit`/`L-int` adversarial tests |
 | Client stability | No crash in a 2 h session with 10 players; recoverable reconnect | `G-manual` soak test |
 | Version support | Fallout 4 AE 1.11.x (pinned list); clear error on unsupported runtimes | `G-self` |
