@@ -411,6 +411,7 @@ TEST_CASE("Fo4Server: progression, consumables, locks and persistence",
   constexpr FormId kDoor = 0xFF00D001;
   w.host.refPos[kDoor] = { 10, 0, 0 };
   w.server->Locks().settings.baseChance[0] = 1.f; // deterministic
+  w.server->Locks().settings.maxChance = 1.f;     // no 95% cap
   w.server->Locks().SetLock(kDoor, { 25, 0, true, 0 });
   alice.inventory.AddSimple(0xA, 3);
   LockpickAttemptMessage begin;

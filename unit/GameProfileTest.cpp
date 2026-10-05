@@ -5,6 +5,8 @@
 #include "game_profile/Fallout4GameProfile.h"
 #include "game_profile/SkyrimGameProfile.h"
 #include <catch2/catch_all.hpp>
+#include <string>
+#include <vector>
 
 TEST_CASE("ParseGameId accepts setting values", "[GameProfile]")
 {
@@ -45,7 +47,8 @@ TEST_CASE("Fallout 4 profile has Fallout 4 values", "[GameProfile]")
   REQUIRE(p.GetGameId() == GameId::Fallout4);
   REQUIRE(p.GetName() == "fallout4");
   REQUIRE(p.GetProtocolPrefix() == "fo4-1_");
-  REQUIRE(p.GetDefaultLoadOrder().front() == "Fallout4.esm");
+  REQUIRE(p.GetDefaultLoadOrder() ==
+          std::vector<std::string>{ "Fallout4.esm" }); // no DLC
   REQUIRE(p.GetArchiveExtension() == ".ba2");
   REQUIRE(p.GetCurrencyFormId() == 0xf);
   REQUIRE(p.IsItemRecordType("NOTE"));

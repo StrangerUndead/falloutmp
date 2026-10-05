@@ -6,9 +6,9 @@ This guide covers configuring and running a Fallout 4 server built from this rep
 
 The server reads the game's plugins. It never ships them. Copy them from your own Fallout 4 installation into the server's data directory.
 
-- **Required:** `Fallout4.esm`.
-- **Default load order:** `Fallout4.esm`, `DLCRobot.esm`, `DLCworkshop01.esm`, `DLCCoast.esm`, `DLCworkshop02.esm`, `DLCworkshop03.esm`, `DLCNukaWorld.esm`.
-- **Without the DLCs:** set your own `loadOrder` (section 2). Clients must use the same load order.
+- **Required:** `Fallout4.esm`. Nothing else.
+- **Default load order:** `Fallout4.esm` only. FalloutMP uses no DLC content by default, so players don't need any DLC either.
+- **Adding plugins:** list them in `loadOrder` (section 2) only if you deliberately want them. Every player's game must then match.
 
 Never commit Bethesda data to a repository.
 

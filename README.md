@@ -175,12 +175,11 @@ npx tsc --noEmit -p .
 
 ### 6.1 Game data
 
-Copy the master files from your own Fallout 4 installation (`Fallout 4/Data/`) into `build/dist/server/data/`:
+Copy one file from your own Fallout 4 installation (`Fallout 4/Data/`) into `build/dist/server/data/`:
 
-- `Fallout4.esm` (required)
-- `DLCRobot.esm`, `DLCworkshop01.esm`, `DLCCoast.esm`, `DLCworkshop02.esm`, `DLCworkshop03.esm`, `DLCNukaWorld.esm` (the default load order)
+- `Fallout4.esm`
 
-Don't commit Bethesda files to any repository. If you leave a DLC out, list your own `loadOrder`, and make every player's game match it.
+That's all. FalloutMP uses no DLC content: the default load order is `Fallout4.esm` alone, so neither the server nor the players need any DLC. Don't commit Bethesda files to any repository.
 
 ### 6.2 server-settings.json
 
@@ -190,10 +189,7 @@ Edit `build/dist/server/server-settings.json`:
 {
   "game": "fallout4",
   "dataDir": "data",
-  "loadOrder": [
-    "Fallout4.esm", "DLCRobot.esm", "DLCworkshop01.esm", "DLCCoast.esm",
-    "DLCworkshop02.esm", "DLCworkshop03.esm", "DLCNukaWorld.esm"
-  ],
+  "loadOrder": ["Fallout4.esm"],
   "name": "My Commonwealth",
   "port": 7777,
   "maxPlayers": 100,

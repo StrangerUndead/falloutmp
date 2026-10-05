@@ -75,12 +75,10 @@ const std::set<std::string>& SkyrimGameProfile::GetSyncedReferenceBaseTypes()
 
 std::vector<std::string> Fallout4GameProfile::GetDefaultLoadOrder() const
 {
-  // Base game plus the six story/workshop DLCs. Servers without a DLC list
-  // their own "loadOrder".
-  return { "Fallout4.esm",          "DLCRobot.esm",
-           "DLCworkshop01.esm",     "DLCCoast.esm",
-           "DLCworkshop02.esm",     "DLCworkshop03.esm",
-           "DLCNukaWorld.esm" };
+  // Base game only: FalloutMP uses no DLC content by default, so a server
+  // needs nothing beyond Fallout4.esm. Servers may still list their own
+  // "loadOrder".
+  return { "Fallout4.esm" };
 }
 
 GameProfile::StartPoint Fallout4GameProfile::GetDefaultStartPoint()

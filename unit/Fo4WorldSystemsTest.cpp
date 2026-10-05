@@ -277,6 +277,7 @@ TEST_CASE("Terminal hacking: Hacker gates, attempts and lockout",
 
   // Success path with a guaranteed roll
   ls.settings.baseChance[0] = 1.f;
+  ls.settings.maxChance = 1.f; // no 95% cap
   ls.SetTerminal(0x7E02, { 25, true, 0 });
   auto s2 = ls.BeginHack(0x7E02, hacker);
   auto ok = ls.HackAttempt(s2.sessionId, hacker, rng);

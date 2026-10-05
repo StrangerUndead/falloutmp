@@ -68,6 +68,7 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 ## Decisions log
 | Date | Decision | By | Affects |
 |---|---|---|---|
+| 2026-10-05 | No DLC content: the Fallout 4 default load order is `Fallout4.esm` only; servers and players need no DLC | User | GameProfile, F00, docs |
 | 2026-10-05 | Fully player-run world: no NPC characters and no game factions. Landlords, traders, governments and factions are real players. Keep `npcEnabled` off; NPC hosting (F13) stays in the code but unused. Systems that assumed NPCs (vendors, settler ratings, NPC quest givers, NPC kill XP) need player-run replacements | User | F13, F21, F22, F23, F27, F32 |
 | 2026-10-05 | Movement speed limits off by default; human NPCs off by default; ownership models for wasteland buildings under discussion (rent in cities like Keizaal Online) | User | F01, F13, F22 |
 | 2026-10-05 | Review pass applied (plan v1.1). Scope: 1.0 = T0+T1, T2 → 1.x. Estimates now computed from the task list (03 capacity model, `tools/falloutmp-plan-stats.py`): ~18–26 months to 1.0. New spec F32 parties/PvP (`PartyAction` 120). Lockpick/hack outcomes server-rolled (F24-T15). Hosted-NPC AV reports bounded (F08-T15). PLAT-020 split a/b; F27-T01 pulled into M4; F13-T01…T04 into M5; GM-013 split from GM-010. New tasks: PLAT-006 patch runbook, SRV-004 signing keys, SRV-005 anomaly scoring, SRV-013 schema migration, CLI-090 actor budget, OPS-004/005, QA-013, DOCS-006, FRONT-007, ENV-017, F00-T11, F09-T14, F31-T11. Risks R23–R26, Q-19 | Claude (planning) | all |
