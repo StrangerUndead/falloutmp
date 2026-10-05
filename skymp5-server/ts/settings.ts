@@ -87,6 +87,12 @@ export class Settings {
     } else if (!masterGiven && settings['game'] === 'fallout4') {
       this.master = '';
     }
+    // The default start point is in Skyrim; a Fallout 4 server without
+    // "startPoints" spawns players at Sanctuary Hills instead
+    // (Fallout4GameProfile::GetDefaultStartPoint).
+    if (settings['game'] === 'fallout4' && !settings['startPoints']) {
+      this.startPoints = [{ pos: [-79800, 90500, 7800], worldOrCell: '0x3c', angleZ: 180 }];
+    }
     if (!this.master && !this.offlineMode) {
       console.warn('No master server and offlineMode is false: players can only '
         + 'log in if the gamemode handles authentication. Set "offlineMode": true '

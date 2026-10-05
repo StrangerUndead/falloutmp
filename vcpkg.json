@@ -20,6 +20,7 @@
     "antigo",
     "prometheus-cpp-lite",
     "slikenet",
+    "quickjs-ng",
     "libsodium",
     {
       "name": "mongo-cxx-driver",

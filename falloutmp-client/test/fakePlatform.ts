@@ -3,7 +3,9 @@ import { diffInventories, sameStack } from "../src/core/itemKeys";
 import { RecordingTransport } from "../src/core/transport";
 import { FalloutMpClient, FalloutMpClientOptions } from "../src/falloutMpClient";
 import {
+  ClientConfig,
   FalloutPlatform,
+  PuppetSpawn,
   FormId,
   PlatformEvents,
   PowerArmorVisualState,
@@ -34,6 +36,13 @@ class FakeRefs implements RefResolver {
   }
   toServer(localId: number): number {
     return this.l2s.get(localId) ?? 0;
+  }
+  unmap(serverId: number): void {
+    const local = this.s2l.get(serverId);
+    this.s2l.delete(serverId);
+    if (local !== undefined) {
+      this.l2s.delete(local);
+    }
   }
 }
 
@@ -305,6 +314,22 @@ export class FakePlatform implements FalloutPlatform {
   }
   sendToFront(event: string, payload: unknown): void {
     this.record("sendToFront", event, payload);
+  }
+  readonly puppets = new Map<number, PuppetSpawn>();
+  nextPuppetId = 0xff900000;
+  clientConfig: ClientConfig | undefined = { serverIp: "127.0.0.1", serverPort: 7777, profileId: kPlayerProfile };
+  spawnPuppet(spawn: PuppetSpawn): FormId {
+    const ref = this.nextPuppetId++;
+    this.puppets.set(ref, spawn);
+    this.record("spawnPuppet", spawn);
+    return ref;
+  }
+  deletePuppet(ref: FormId): void {
+    this.puppets.delete(ref);
+    this.record("deletePuppet", ref);
+  }
+  getClientConfig(): ClientConfig | undefined {
+    return this.clientConfig;
   }
 
   on<K extends keyof PlatformEvents>(event: K, handler: (e: PlatformEvents[K]) => void): void {

@@ -154,7 +154,7 @@ test("the skymp bridge routes messages and sendMessage events", () => {
   const platform = new FakePlatform();
   const client = new FalloutMpClient(platform, new EmitterTransport({ emit: (_e, p) => emitted.push(p) }));
   const bridge = new SkympClientBridge(client);
-  bridge.onCreateActor({ idx: kPlayerServerId, isMe: true, profileId: 3 });
+  bridge.onCreateActor({ idx: 5, isMe: true, refrId: kPlayerServerId, profileId: 3 });
   assert.equal(client.ctx.session.localActorId, kPlayerServerId);
   assert.ok(bridge.handleIncoming({ t: Fo4MsgType.MapDiscovery, full: true, markers: [] } as never));
   assert.ok(!bridge.handleIncoming({ t: 1 }));

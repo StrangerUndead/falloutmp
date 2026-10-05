@@ -188,6 +188,36 @@ export interface UiNatives {
   sendToFront(event: string, payload: unknown): void;
 }
 
+export interface PuppetSpawn {
+  pos: Vec3;
+  yaw: number; // degrees
+  worldOrCell: FormId;
+  // NPC base to copy; 0 for another player (a player-like actor)
+  baseId: FormId;
+  name: string;
+  isFemale: boolean;
+}
+
+export interface PuppetNatives {
+  // Creates the stand-in for another player or a streamed-in NPC and
+  // returns its local reference (0 when it can't be created yet). The
+  // plugin keeps puppets out of saves and switches their AI off.
+  spawnPuppet(spawn: PuppetSpawn): FormId;
+  deletePuppet(ref: FormId): void;
+}
+
+export interface ClientConfig {
+  serverIp: string;
+  serverPort: number;
+  // Offline-mode servers identify players by this number
+  profileId: number;
+}
+
+export interface SessionNatives {
+  // From the plugin's settings file; undefined when no server is set.
+  getClientConfig(): ClientConfig | undefined;
+}
+
 // Player-side capture events the plugin emits.
 export interface PlatformEvents {
   tick: Record<string, never>;
@@ -258,6 +288,8 @@ export interface FalloutPlatform
     MapNatives,
     WorldNatives,
     UiNatives,
+    PuppetNatives,
+    SessionNatives,
     PlatformEventSource {
   readonly refs: RefResolver;
   getPlayer(): FormId;

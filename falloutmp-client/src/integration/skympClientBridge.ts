@@ -24,18 +24,25 @@ export class EmitterTransport implements Fo4Transport {
 }
 
 export class SkympClientBridge {
+  private idxToServerId = new Map<number, number>();
   constructor(private readonly client: FalloutMpClient) {}
 
   handleIncoming(msg: { t: number }): boolean {
     return this.client.onMessage(msg);
   }
 
-  // Upstream CreateActor message for the local player.
-  onCreateActor(msg: { idx: number; isMe: boolean; profileId?: number }): void {
+  // Upstream CreateActor. Its idx is the server's slot index; Fallout 4
+  // messages name actors by form id (refrId), so that is the id used here.
+  onCreateActor(msg: { idx: number; isMe: boolean; refrId?: number; profileId?: number }): void {
+    const serverId = msg.refrId !== undefined ? longToNormal(msg.refrId) : 0;
+    if (!serverId) {
+      return;
+    }
+    this.idxToServerId.set(msg.idx, serverId);
     if (msg.isMe) {
-      this.client.setLocalActor(msg.idx, msg.profileId ?? -1);
+      this.client.setLocalActor(serverId, msg.profileId ?? -1);
     } else {
-      this.client.onActorStreamedIn(msg.idx);
+      this.client.onActorStreamedIn(serverId);
     }
   }
 
@@ -50,10 +57,15 @@ export class SkympClientBridge {
   }
 
   onDestroyActor(msg: { idx: number }): void {
-    this.client.onActorDestroyed(msg.idx);
+    const serverId = this.idxToServerId.get(msg.idx);
+    this.idxToServerId.delete(msg.idx);
+    if (serverId !== undefined) {
+      this.client.onActorDestroyed(serverId);
+    }
   }
 
   onConnectionLost(): void {
+    this.idxToServerId.clear();
     this.client.onDisconnect();
   }
 }
