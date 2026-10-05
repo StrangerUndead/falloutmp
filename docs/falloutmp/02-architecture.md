@@ -5,8 +5,8 @@
 ```
                     Fallout 4 process (Windows, AE 1.11.x — ADR-001)
 ┌───────────────────────────────────────────────────────────────────────────────────┐
-│ f4se_loader → FalloutPlatform.dll  (F4SE plugin: F4SEPlugin_Version + _Load)      │
-│                 └─ FalloutPlatformImpl.dll                                        │
+│ f4se_loader → Data/F4SE/Plugins/FalloutPlatform.dll (F4SEPlugin_Version + _Load)  │
+│                 └─ Data/F4SE/Plugins/FalloutPlatformImpl.dll (ADR-003 layout rule)│
 │   ├─ CommonLibF4 (libxse, pinned) + Address Library for F4SE (ADR-003)            │
 │   ├─ Hooks: F4SE trampoline / vtable / Frida-gum (same toolset as SP)             │
 │   ├─ Embedded Node.js (libnode.dll, N-API) — unchanged from SP (ADR-004)          │
@@ -93,10 +93,15 @@ Status legend: **Accepted** (implement), **Proposed** (default plan; confirm wit
   - Single codebase with compile-time `GAME` macros everywhere (fragile).
 - **Consequences:** Some refactor cost up front (REF backlog). Skyrim unit tests act as the regression net.
 
-### ADR-003 Reverse-engineering foundation — *Open → see reference/commonlib-port-map.md*
-- **Default:** `libxse/commonlibf4` at a pinned commit, built through a vcpkg overlay port that wraps its xmake build or provides a CMake shim. C++23 only inside `fallout4-platform`.
-- **Fallback:** alandtse/CommonLibF4 (CMake) plus our own AE ID table.
-- Final details are recorded after `PLAT-001`/`PLAT-002` prototypes.
+### ADR-003 Reverse-engineering foundation — *Proposed (prototype in PLAT-001/BUILD-002)*
+- **Decision:** use `libxse/commonlibf4` pinned at `7c8c6f8` (AE 1.11.x) together with `libxse/commonlib-shared`, consumed through two vcpkg overlay ports:
+  - `commonlib-shared`, which already ships CMake;
+  - `commonlibf4-ae`, with a CMakeLists.txt we supply, because upstream builds only with xmake.
+- C++23 applies only to the `fallout4-platform` targets; the rest of the repo stays C++20. F4SE plugin version data is written by hand.
+- The community vcpkg `commonlibf4` port is the obsolete 2022 pre-AE library and must not be used.
+- **Layout constraint:** the library loads `version-1-11-xxx-0.bin` from next to the DLL that contains it, under an `F4SE` folder. So **both** `FalloutPlatform.dll` and `FalloutPlatformImpl.dll` must live in `Data/F4SE/Plugins`. SP's `Data/Platform/Distribution/RuntimeDependencies` location would crash at startup. Other runtime dependencies (libnode, CEF) can stay in `RuntimeDependencies`.
+- **Known RE gaps:** vtable IDs still use pre-AE numbering; about 30 event-source getters are missing; animation-hook slots; named-save loading; MoveTo. Details in reference/commonlib-port-map.md §7.
+- **Fallback:** alandtse/CommonLibF4 (MIT, CMake) plus our own AE ID table.
 
 ### ADR-004 JavaScript runtime — *Accepted*
 - Keep SP's embedded Node.js (embedder API, N-API addon, hot reload, `sp.storage`).

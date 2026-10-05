@@ -1,0 +1,19 @@
+# SRV — Server Core Systems for Fallout 4
+
+Context: [reference/fo4-systems-combat-character.md](../reference/fo4-systems-combat-character.md) §1 (new server components: AV store, magic-effect system, perk engine, OMOD stat resolver, movement history, shot registry); [reference/fo4-systems-world-economy.md](../reference/fo4-systems-world-economy.md) §3 (data models, services, settings); [reference/skyrim-coupling-index.md](../reference/skyrim-coupling-index.md) §5.1 (GameProfile).
+
+- [ ] **SRV-001** `Fallout4GameProfile` scaffold: load order defaults, Commonwealth/start points, protocol prefix, AV catalogue hook, damage factory hook, slot model, NPC filters, reloot defaults (FO4 record types), standard scripts set — M — Depends: REF-003…REF-013 — Verify: L-unit
+- [ ] **SRV-002** FO4 server settings: `game`, `loadOrder`, `startPoints`, `pvp`, `lootModel` (shared/instanced), `survival.*` toggles, `vats.mode`, `hitValidation.level`, `workshop.*`, `difficulty` (FO4 values; 5 is defunct, default 2) — S — Depends: SRV-001, REF-021 — Verify: L-unit
+- [ ] **SRV-010** Actor-value store keyed by AVIF form id: base (race/NPC PRPS/SPECIAL-derived), modifiers (permanent, temporary, damage), current, percentage; derived AVs (max HP from END/level, carry weight from STR, AP from AGI) — L — Depends: ESPM-005, ESPM-006 — Verify: L-unit (F08)
+- [ ] **SRV-011** AV snapshot/delta encoding for `ChangeValuesAv` and `CreateActorFo4` (owner-only vs public subsets) — S — Depends: SRV-010, NET-003 — Verify: L-unit
+- [ ] **SRV-012** DB game identity meta record + refusal (F00-T07) — S — Depends: REF-020 — Verify: L-unit
+- [ ] **SRV-020** Magic-effect system: active effects per actor (MGEF archetypes: value modifier, peak value modifier, restore, damage over time, script; duration, magnitude, conditions), ticking, persistence, client sync (`EffectsUpdate`) — L — Depends: SRV-010, ESPM-009 — Verify: L-unit (F20)
+- [ ] **SRV-021** Perk engine: ranks, requirements, entry-point evaluation (damage, crit, AP cost, prices, crafting gates, lockpick/hack levels) with conditions — XL — Depends: SRV-010, ESPM-009, ESPM-011 — Verify: L-unit (F19, F11)
+- [ ] **SRV-022** OMOD stat resolver: compute weapon/armor instance stats (damage per type, fire rate, magazine, range, accuracy, ammo, DR/ER/RR, weight, value, keywords) from base + OMOD property entries (MUL/ADD/SET, ordered) — L — Depends: ESPM-007 — Verify: L-unit (F16, F09, F11)
+- [ ] **SRV-023** Shot registry & lag compensation: per-shooter fire log (seq, ts, weapon instance, ammo), movement-history rewind ≤ 250 ms, hit-claim matching, statistical anomaly tracking — L — Depends: F01-T05 — Verify: L-unit (F09)
+- [ ] **SRV-030** FO4 Papyrus VM integration in `WorldState` (script storages: data dir, BA2, standard stubs; GameProfile-gated native classes; ADR-011 script stripping/allow-list) — M — Depends: PVM-013, ESPM-014 — Verify: L-unit
+- [ ] **SRV-040** SpSnippet routing to the hoster for NPC targets (I16) — S — Depends: — — Verify: L-unit
+- [ ] **SRV-050** Metrics for new systems (shots/s, hit rejects, AV corrections, workshop object counts) — S — Depends: — — Verify: L-int
+- [ ] **SRV-060** Per-player profile record (ADR-010): progression, discovered locations, workshop permissions, settings; keyed by `profileId` — M — Depends: REF-020 — Verify: L-unit (F19, F26)
+- [ ] **SRV-070** Server clock service (game time, timescale, day count) shared by Papyrus timers, respawn timers, weather and vendors — S — Depends: — — Verify: L-unit (F25)
+- [ ] **SRV-080** World-reset service: cell reset timers (respawn of enemies/loot per FO4 rules), corpse cleanup, dropped-item lifetime — M — Depends: SRV-070 — Verify: L-unit (F14)
