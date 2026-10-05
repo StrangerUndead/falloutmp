@@ -145,6 +145,7 @@ struct Fo4ActorState
   bool npcInitialized = false;
   FormId npcBaseId = 0;   // resolved NPC_
   uint32_t npcFlags = 0;  // ACBS flags (essential, protected, ...)
+  FormId npcDeathItem = 0; // INAM leveled list added on death
   std::vector<NpcData::Faction> factions;
 };
 

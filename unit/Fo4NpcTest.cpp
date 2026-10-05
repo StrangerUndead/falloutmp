@@ -256,6 +256,26 @@ TEST_CASE("Fo4Server: essential NPCs can't die, invulnerable take nothing",
   REQUIRE(raider.avs.GetCurrent(Av::Health) == Catch::Approx(1.f));
   REQUIRE(!raider.avs.IsDead());
 
+  // A non-essential raider with a death item drops it on death
+  constexpr ActorId kGrunt = 0x0001A002;
+  constexpr FormId kDeathList = 0x410, kCaps = 0xF;
+  LeveledListData deathList;
+  deathList.id = kDeathList;
+  deathList.entries = { { 1, kCaps, 7 } };
+  d->AddLeveledList(deathList);
+  NpcData grunt;
+  grunt.id = 0x120;
+  grunt.deathItem = kDeathList;
+  d->AddNpc(grunt);
+  host.base[kGrunt] = 0x120;
+  host.pos[kGrunt] = { 100, 0, 0 };
+  auto& gr = server.Actor(kGrunt);
+  gr.avs.SetCurrent(Av::Health, 1.f);
+  REQUIRE(gr.inventory.CountBase(kCaps) == 0);
+  shootAt(kGrunt);
+  REQUIRE(gr.avs.IsDead());
+  REQUIRE(gr.inventory.CountBase(kCaps) == 7);
+
   auto& g = server.Actor(kGhost);
   float hp = g.avs.GetCurrent(Av::Health);
   shootAt(kGhost);

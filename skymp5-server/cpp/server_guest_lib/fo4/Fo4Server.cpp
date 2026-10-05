@@ -158,6 +158,7 @@ void Fo4Server::InitNpc(ActorId npc)
   }
   st.npcBaseId = r->baseId;
   st.npcFlags = r->flags;
+  st.npcDeathItem = r->deathItem;
   st.factions = r->factions;
   st.level = r->level;
   st.actorLevelForXp = r->level;
@@ -975,6 +976,14 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
       Neighbours(target, d, true);
       host.SendTo(target, d, true);
       SendActorValues(target);
+      if (killed && tst.npcDeathItem) {
+        // Death item: rolled once, lootable from the corpse (F06)
+        LeveledListResolver lists(*data);
+        for (auto& c : lists.Resolve(tst.npcDeathItem, 1, tst.level, rng)) {
+          tst.inventory.AddSimple(c.componentId, c.count);
+        }
+        tst.npcDeathItem = 0;
+      }
       if (killed) {
         AwardKillXp(shooter, target);
         host.OnActorKilled(target, shooter);

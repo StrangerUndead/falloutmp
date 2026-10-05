@@ -24,7 +24,8 @@
 | Effects (F20-T03): `EffectsUpdate` (92) owner full and neighbour visual subset, pushed on use, expiry and join; `getEffects`/`cureAddictions`/`addRads`; client `EffectsService` | Done | `Fo4ServerTest` [F20], `Fo4MessagesTest`, client effects test |
 | NPC hosting (F13), first slice: upstream host election (`Host`/`HostStart`/`HostStop`) kept; hosted NPC movement, fire (fire rate enforced, ammo unlimited), hit claims (`HitReport.shooterIdx`) and bounded AV reports (C1) validated like players; owner copies routed to the host; neighbour sends skip the host; Fallout 4 movement refreshes the upstream host-timeout clock; client hosting in movement, combat and actor values | Done | `Fo4ServerTest` [F13], client `hosting.test.ts` |
 | F13 NPC data: libespm NPC_/OTFT readers; `NpcResolver` (per-aspect templates via TPTA/TPLT, leveled NPC picks once per spawn, PC level mult with calc min/max, leveled loadout and outfit); NPCs seeded on first touch (level, health, inventory, best gun, outfit, factions); essential/protected/invulnerable damage rules; hosted fire limited to carried guns | Done | `Fo4EspmTest` NPC_ case, `Fo4NpcTest` |
-| F13 remainder: `NpcAiState` (111) threat/detection, host migration re-seed, hostility matrix, legendary rolls, death items | Not started | — |
+| F13 death items: the INAM leveled list is rolled once on death and lootable from the corpse | Done | `Fo4NpcTest` |
+| F13 remainder: `NpcAiState` (111) threat/detection, host migration re-seed, hostility matrix, legendary rolls | Not started | — |
 | T2 systems (companions, VATS, stealth, quests, survival) | Not started | — |
 
 Test totals at the last commit: C++ 248 test cases and about 2100 assertions (`./unit/unit "~[espm]"`); client 59 tests.
@@ -33,7 +34,7 @@ Guides: [guides/server-admin.md](guides/server-admin.md), [guides/gamemode-api.m
 
 ## Next actions (for the next session)
 1. M2: PEX FO4 reader (PVM-001…006), so server Papyrus can run Fallout 4 scripts.
-2. F13 remainder: `NpcAiState` (111), legendary rolls (LTPT/LTPC), death items, hostility from factions.
+2. F13 remainder: `NpcAiState` (111), legendary rolls (LTPT/LTPC), hostility from factions.
 3. Windows work for the user or CI: PLAT-001+ (the F4SE plugin implementing `falloutPlatform.ts`), then the G-self checks in the verification table below.
 4. Still open from planning: user answers to Q-01…Q-19 (05-risks-open-questions.md §2).
 
