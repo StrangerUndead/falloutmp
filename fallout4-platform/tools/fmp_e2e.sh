@@ -53,9 +53,15 @@ for (const [name, bot] of [["A", a], ["B", b]]) {
 }
 // B left first: A must have removed its puppet
 if (a.puppetsDeleted < 1) fail.push("A kept the puppet of B after B left");
+// F03: new characters get the editor; B sees A's face (profile 1: male)
+if (!a.looksMenuOpened || !b.looksMenuOpened) fail.push("the editor did not open for new characters");
+if (!b.puppets.some((p) => p.appearance && p.appearance.hairColorId === 0x1001)) fail.push("B did not get A's appearance");
+// F02: A's walk variables and jump events reach B's puppet of A
+if (!b.puppets.some((p) => p.graphWrites > 0)) fail.push("B got no graph variables from A");
+if (!b.puppets.some((p) => (p.animEvents || []).includes("jumpStart"))) fail.push("B did not replay A's jump");
 // B stood still and must have seen A walk
 if (!b.puppets.some((p) => p.moves > 10)) fail.push("B did not see A move");
 console.log(JSON.stringify({ a, b }, null, 1));
 if (fail.length) { console.error("FAIL: " + fail.join("; ")); process.exit(1); }
-console.log("PASS: two clients joined, saw each other and synced movement");
+console.log("PASS: two clients joined, saw each other, synced movement, appearance and animation");
 JS

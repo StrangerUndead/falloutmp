@@ -80,8 +80,17 @@ public:
                   Json& result) override;
   void Log(const std::string& level, const std::string& text) override;
 
-  // Seconds since the plugin started (monotonic).
+  // Milliseconds since the plugin started (monotonic).
   double NowMs() const;
+
+  // Observes every platform event on the main thread as it goes to the
+  // script (the probe records them).
+  void OnEmitted(std::function<void(const std::string&, const Json&)> fn);
+
+  // Set at plugin load (F4SE LoadInterface).
+  void SetVersions(std::string runtime, std::string f4se);
+  const std::string& RuntimeVersion() const { return runtimeVersion; }
+  const std::string& F4seVersion() const { return f4seVersion; }
   uint64_t FrameCount() const { return frame; }
 
 private:
@@ -93,6 +102,8 @@ private:
   std::unordered_map<std::string, NativeFn> natives;
   std::vector<std::function<void(float)>> frameCallbacks;
   std::vector<std::function<void()>> beforeSave, afterSave;
+  std::vector<std::function<void(const std::string&, const Json&)>> taps;
+  std::string runtimeVersion, f4seVersion;
 
   struct Queued
   {

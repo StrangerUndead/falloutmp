@@ -72,9 +72,16 @@ F4SE_PLUGIN_VERSION = []() noexcept {
 
 F4SE_PLUGIN_LOAD(const F4SE::LoadInterface* a_f4se)
 {
-  F4SE::Init(a_f4se, { .logName = "FalloutMP" });
+  // A trampoline for call-site hooks (REL::GetTrampoline())
+  F4SE::Init(a_f4se, { .logName = "FalloutMP",
+                       .trampoline = true,
+                       .trampolineSize = 1024 });
   REX::INFO("FalloutMP {}.{}.{} loading", FMP_VERSION_MAJOR, FMP_VERSION_MINOR,
             FMP_VERSION_PATCH);
+  fmp::Platform::Get().SetVersions(a_f4se->RuntimeVersion().string(),
+                                   F4SE::GetF4SEVersion().string());
+  REX::INFO("Fallout 4 {}, F4SE {}", fmp::Platform::Get().RuntimeVersion(),
+            fmp::Platform::Get().F4seVersion());
   auto messaging = F4SE::GetMessagingInterface();
   if (!messaging || !messaging->RegisterListener(OnMessage)) {
     REX::ERROR("Unable to register for F4SE messages");

@@ -26,6 +26,9 @@ struct Puppet
   json spawn;
   std::array<double, 3> pos{};
   int moves = 0;
+  json appearance;
+  int graphWrites = 0;
+  std::vector<std::string> animEvents;
 };
 
 class FakeGame : public fmp::Game
@@ -44,6 +47,10 @@ public:
   std::map<uint32_t, Puppet> puppets;
   uint32_t nextPuppet = 0xff800000;
   int teleports = 0;
+  int looksMenuOpened = 0;
+  bool emitLooksMenuClosed = false;
+  double nextAnimEventMs = 3000;
+  std::vector<std::pair<std::string, json>> pendingEvents;
   int puppetsSpawned = 0;
   int puppetsDeleted = 0;
   std::vector<std::string> notifications;
@@ -107,6 +114,46 @@ public:
     } else if (name == "showNotification") {
       notifications.push_back(a.at(0));
       Log("info", "[notification] " + a.at(0).get<std::string>());
+    } else if (name == "getAppearanceFo4") {
+      // A face for this profile: hair colour and sex differ per bot
+      r = { { "isFemale", profile % 2 == 0 },
+            { "raceId", 0x13746 },
+            { "hairColorId", 0x1000 + profile },
+            { "facialHairColorId", 0 },
+            { "headTextureSetId", 0 },
+            { "headPartIds", json::array({ 0x2000, 0x2001 }) },
+            { "bodyMorph", { 0.3, 0.3, 0.4 } },
+            { "morphRegions", json::array() },
+            { "morphSliders", json::array({ { { "key", 7 }, { "value", 0.5 } } }) },
+            { "faceRegions", json::array() },
+            { "faceMorphIntensity", 1.0 },
+            { "tints", json::array() },
+            { "skinTone", 0xFFCCAA88 } };
+    } else if (name == "applyAppearanceFo4") {
+      if (auto it = puppets.find(a.at(0).get<uint32_t>()); it != puppets.end()) {
+        it->second.appearance = a.at(1);
+      }
+      r = true;
+    } else if (name == "openLooksMenu") {
+      ++looksMenuOpened;
+      emitLooksMenuClosed = true; // the bot "edits" instantly
+    } else if (name == "closeLooksMenu") {
+    } else if (name == "getGraphVariables") {
+      r = json::array();
+      if (a.at(0).get<uint32_t>() == 0x14) {
+        double speed = walk ? 300.0 : 0.0;
+        r.push_back({ { "name", "Speed" }, { "type", 0 }, { "value", speed } });
+        r.push_back({ { "name", "IsSneaking" }, { "type", 2 }, { "value", 0 } });
+      }
+    } else if (name == "setGraphVariables") {
+      if (auto it = puppets.find(a.at(0).get<uint32_t>()); it != puppets.end()) {
+        ++it->second.graphWrites;
+      }
+    } else if (name == "notifyAnimationGraph") {
+      if (auto it = puppets.find(a.at(0).get<uint32_t>()); it != puppets.end()) {
+        it->second.animEvents.push_back(a.at(1));
+      }
+      r = true;
     } else if (name == "setMovementFlags" || name == "setAimAngles") {
       // nothing to show headless
     } else {
@@ -178,6 +225,17 @@ int main(int argc, char** argv)
       break;
     }
     game.nowMs = elapsed;
+    if (game.emitLooksMenuClosed) {
+      game.emitLooksMenuClosed = false;
+      runtime.Emit("platformEvent", { { "name", "looksMenuClosed" },
+                                      { "data", json::object() } });
+    }
+    if (game.walk && game.placed && elapsed >= game.nextAnimEventMs) {
+      game.nextAnimEventMs = elapsed + 2000;
+      runtime.Emit("platformEvent",
+                   { { "name", "animationEvent" },
+                     { "data", { { "actor", 0x14 }, { "name", "jumpStart" } } } });
+    }
     runtime.Tick(elapsed);
     std::this_thread::sleep_for(std::chrono::milliseconds(16));
   }
@@ -191,11 +249,17 @@ int main(int argc, char** argv)
                    { "puppetsSpawned", game.puppetsSpawned },
                    { "puppetsDeleted", game.puppetsDeleted },
                    { "jsErrors", runtime.Js().ErrorCount() },
+                   { "looksMenuOpened", game.looksMenuOpened },
                    { "notifications", game.notifications },
                    { "puppets", json::array() } };
   for (auto& [ref, p] : game.puppets) {
     summary["puppets"].push_back(
-      { { "ref", ref }, { "pos", p.pos }, { "moves", p.moves } });
+      { { "ref", ref },
+        { "pos", p.pos },
+        { "moves", p.moves },
+        { "appearance", p.appearance },
+        { "graphWrites", p.graphWrites },
+        { "animEvents", p.animEvents } });
   }
   std::cout << summary.dump() << std::endl;
   return 0;

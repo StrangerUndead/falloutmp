@@ -108,6 +108,18 @@ void Platform::OnFrame(std::function<void(float)> fn)
   frameCallbacks.push_back(std::move(fn));
 }
 
+void Platform::OnEmitted(
+  std::function<void(const std::string&, const Json&)> fn)
+{
+  taps.push_back(std::move(fn));
+}
+
+void Platform::SetVersions(std::string runtime, std::string f4se)
+{
+  runtimeVersion = std::move(runtime);
+  f4seVersion = std::move(f4se);
+}
+
 void Platform::OnBeforeSave(std::function<void()> fn)
 {
   beforeSave.push_back(std::move(fn));
@@ -152,6 +164,9 @@ void Platform::Drain()
     try {
       switch (q.kind) {
         case Queued::Kind::Event:
+          for (auto& tap : taps) {
+            tap(q.name, q.data);
+          }
           runtime->Emit("platformEvent",
                         Json{ { "name", q.name }, { "data", q.data } });
           break;
