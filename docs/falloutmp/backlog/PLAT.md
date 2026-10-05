@@ -39,7 +39,7 @@ Context: [reference/commonlib-port-map.md](../reference/commonlib-port-map.md) (
 - [ ] **PLAT-021** `TESModPlatform.psc` for FO4 (native declarations only, `Native` script, FO4 type names) compiled with BUILD-005 and shipped to `Data/Scripts` — S — Depends: BUILD-005 — Verify: W-ci
 
 ## C. Papyrus reflection ("SP3 for FO4")
-- [ ] **PLAT-030** Hook `IVirtualMachine::BindNativeMethod` (vtable slot **0x1B**, installed before the VM is created; needs PLAT-002's vtable finder) and record all bound natives (game + F4SE + other plugins) — M — Depends: PLAT-002 — Verify: G-self
+- [ ] **PLAT-030** Hook `IVirtualMachine::BindNativeMethod` (vtable slot **0x1B**, installed before the VM is created via `F4SEPlugin_Preload` (F4SE 0.7+); fall back to xSE PluginPreloader F4 only if preload runs too late; needs PLAT-002's vtable finder) and record all bound natives (game + F4SE + other plugins) — M — Depends: PLAT-002 — Verify: G-self
   - Accept: the self-test lists more than 800 natives including F4SE ones.
 - [ ] **PLAT-031** Port `CallNative`/`VmProvider`/`GetNativeFunctionAddr`:
   - FO4 `StackFrame` (0x40, no inline args; use `Stack::GetStackFrameVariable`);
@@ -99,3 +99,4 @@ Context: [reference/commonlib-port-map.md](../reference/commonlib-port-map.md) (
 - [ ] **PLAT-089** `MpClientPlugin.dll` loading from `Data/F4SE/Plugins` with the protocol prefix (`CreateClientEx`) — S — Depends: NET-001 — Verify: G-self
 - [ ] **PLAT-090** Multi-runtime support (OG 1.10.163 / NG 1.10.984) via dual ID tables — XL — Depends: M8 — Verify: G-self on each runtime — (post-1.0, optional)
 - [ ] **PLAT-091** Self-test hooks: `[Debug] bSelfTest=1` runs the QA-010 suite after the first load and writes `falloutmp-selftest-<sha>.json` — S — Depends: PLAT-010 — Verify: G-self
+- [ ] **PLAT-095** Dependency detection (ADR-021): enumerate loaded F4SE plugins and versions via `F4SEInterface::GetPluginInfo`, detect Buffout 4 NG, High FPS Physics Fix, LooksMenu, MCM, HUDFramework; report in the self-test JSON and in the connect manifest; show an in-game prompt listing missing required/recommended mods — S — Depends: PLAT-001, PLAT-091 — Verify: G-self

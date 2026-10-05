@@ -23,6 +23,7 @@
 | R17 | Users' extra mods conflict with sync | M | M | Server-defined load order and manifest check; documented "clean install" | F00-T09 |
 | R18 | Power armor on Actor puppets is unsolved by prior art | M | H | Dedicated prototype in F17; engine enter sequence on remote copy | F17 |
 | R19 | Leveled-actor determinism across clients | M | M | Server evaluates and sends the resolved base; TPTA handled server-side | F14, F13 |
+| R21 | A recommended mod (LooksMenu, Buffout 4, High FPS Physics Fix, MCM) lags behind a Bethesda patch or changes its API | M | M | Native fallbacks for sync-critical paths; version ranges in the manifest; compatibility matrix updated per release | PLAT-095, SRV-003, DOCS-005 |
 | R20 | Rate limits / usage caps interrupt long agent research or implementation sessions | M | L | Smaller agent batches; resume agents; commit often | process |
 
 L/I = likelihood/impact: H high, M medium, L low, C certain.
@@ -47,6 +48,7 @@ L/I = likelihood/impact: H high, M medium, L low, C certain.
 | Q-15 | Fast-travel default: `discoveredOnly` (F26) or off (SkyMP parity)? | `discoveredOnly` | F26 |
 | Q-16 | Sleep/wait: allow the T2 option "everyone sleeping advances the clock"? | Off; instant rest disabled | F25 |
 | Q-17 | Quests: shared world quest state only, or also per-player instanced? | Shared only for T2; instancing later | F27 |
+| Q-18 | Companion-mod policy: OK to **require** Buffout 4 NG, High FPS Physics Fix and LooksMenu on the client (vs recommend only)? | Recommend; require only F4SE + Address Library | 07-dependencies-and-mods.md |
 | Q-13 | Upstream fixes to SkyMP (requires signing their CLA: copyright assignment)? | Don't upstream | ENV-016 |
 
 ## 3. Decisions log

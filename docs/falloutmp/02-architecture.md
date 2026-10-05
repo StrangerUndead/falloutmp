@@ -214,3 +214,10 @@ Status legend: **Accepted** (implement), **Proposed** (default plan; confirm wit
 - XP, level, SPECIAL and perks are server-authoritative.
 - Client menus (LevelUpMenu/PerkChart) become *requests* that the server validates.
 - Perk entry points that affect damage, prices, etc. are evaluated on the server.
+
+### ADR-021 Third-party mod dependencies — *Accepted*
+- **Decision:** FalloutMP may require or recommend existing Fallout 4 mods instead of re-implementing what they do. Policy, candidates and tasks are in [07-dependencies-and-mods.md](07-dependencies-and-mods.md).
+- Required: F4SE and the Address Library. Strongly recommended: Buffout 4 NG (crash logs, stability), High FPS Physics Fix (consistent physics across clients), LooksMenu (appearance API and presets), MCM (settings UI).
+- Any F4SE plugin that registers Papyrus natives becomes available to FalloutMP scripts through reflection (ADR-006) at no extra cost.
+- **Constraints:** dependencies are user-installed unless redistribution is permitted; the client manifest verifies them; core sync keeps a native fallback where a dependency is closed source; the server allow/deny-lists client DLL mods (SRV-003).
+- **Why:** it cuts platform work (appearance, settings UI, stability), and it matches how the Fallout 4 modding ecosystem already works.

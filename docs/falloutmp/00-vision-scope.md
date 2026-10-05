@@ -107,7 +107,7 @@ The "SkyMP level" column uses the L0–L4 scale from [01-sync-standard.md](01-sy
 
 | Metric | Target | How measured |
 |---|---|---|
-| Concurrent players per server | ≥ 100 (SkyMP default `maxPlayers` is 100) | Bot load test (`QA-020`) |
+| Concurrent players per server | 32 at the M8 alpha; ≥ 100 at 1.0 (SkyMP default `maxPlayers` is 100). FO4 actors are heavier than Skyrim's, so 100 is a measured goal, not an assumption | Bot load test (`QA-020`) |
 | Server tick cost | p95 < 10 ms at 100 players, 300 hosted NPCs | Prometheus metrics, load test |
 | Remote movement smoothness | No visible teleporting at RTT ≤ 150 ms, 2% loss | `G-manual` scenario plus jitter injection |
 | Hit registration | Server validates hits with rewind ≤ 250 ms; false-reject rate < 2% at RTT 150 ms | `L-int` simulation plus `G-manual` |
@@ -116,7 +116,11 @@ The "SkyMP level" column uses the L0–L4 scale from [01-sync-standard.md](01-sy
 | Client stability | No crash in a 2 h session with 10 players; recoverable reconnect | `G-manual` soak test |
 | Version support | Fallout 4 AE 1.11.x (pinned list); clear error on unsupported runtimes | `G-self` |
 
-## 8. Supported platforms
+## 8. Companion mods
+
+FalloutMP may require or recommend existing Fallout 4 mods rather than re-implement them (ADR-021, [07-dependencies-and-mods.md](07-dependencies-and-mods.md)). Required: F4SE and the Address Library. Strongly recommended: Buffout 4 NG, High FPS Physics Fix, LooksMenu and MCM. Dependencies are user-installed and verified by the client manifest.
+
+## 9. Supported platforms
 
 - **Client:** Windows 10/11, Fallout 4 Steam/GOG **AE 1.11.x** (exact builds pinned in ADR-001), F4SE 0.7.x, Address Library for F4SE.
 - **Server:** Linux x64 (primary, Docker) and Windows x64, Node.js 22, same as SkyMP.

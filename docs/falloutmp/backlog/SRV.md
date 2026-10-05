@@ -17,3 +17,4 @@ Context: [reference/fo4-systems-combat-character.md](../reference/fo4-systems-co
 - [ ] **SRV-060** Per-player profile record (ADR-010): progression, discovered locations, workshop permissions, settings; keyed by `profileId` — M — Depends: REF-020 — Verify: L-unit (F19, F26)
 - [ ] **SRV-070** Server clock service (game time, timescale, day count) shared by Papyrus timers, respawn timers, weather and vendors — S — Depends: — — Verify: L-unit (F25)
 - [ ] **SRV-080** World-reset service: cell reset timers (respawn of enemies/loot per FO4 rules), corpse cleanup, dropped-item lifetime — M — Depends: SRV-070 — Verify: L-unit (F14)
+- [ ] **SRV-003** Client-mod policy (ADR-021): settings `clientMods.required`, `clientMods.recommended`, `clientMods.denied` (name + min/max version); validated against the client manifest at login; refusal text names the missing/denied mod; gamemode event `onClientModsReported` — S — Depends: SRV-002, F00-T09 — Verify: L-unit, L-int

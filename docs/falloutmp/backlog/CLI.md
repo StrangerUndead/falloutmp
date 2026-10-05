@@ -22,3 +22,4 @@ Context: [reference/skymp-sync-inventory.md](../reference/skymp-sync-inventory.m
 - [ ] **CLI-060** `BrowserService` FO4 menu list (hide the browser on Pip-Boy, container, barter, workshop, looks, terminal, loading, pause, console), key bindings (F1/F2/F6) — S — Depends: CLI-001, PLAT-061 — Verify: G-manual
 - [ ] **CLI-070** `SpSnippetService` FO4 (class/function mapping via `sp3`, Struct/Var args) — S — Depends: PLAT-032 — Verify: L-ts, G-self
 - [ ] **CLI-071** `GamemodeUpdateService`/`GamemodeEventSourceService`: pass the `falloutPlatform` module as `ctx.sp`; keep the signature verification — S — Depends: CLI-001 — Verify: L-ts
+- [ ] **CLI-080** MCM settings page (ADR-021): server address/port, offline profile, keybinds (nameplates, browser focus), debug overlays; falls back to `falloutmp-client-settings.txt` when MCM is absent — S — Depends: CLI-002, PLAT-095 — Verify: G-manual

@@ -72,7 +72,7 @@ FalloutMP turns this SkyMP fork into an open-source, server-authoritative multip
 **Non-goals.** Co-op of the vanilla main quest; Game Pass, Epic, VR and consoles; peer-to-peer hosting.
 
 **Quality targets (proposed).**
-- At least 100 players per server, with a server tick p95 under 10 ms at 300 hosted NPCs.
+- 32 players per server at the alpha and at least 100 at 1.0 (a measured goal), with a server tick p95 under 10 ms at 300 hosted NPCs.
 - No rubber-banding at 150 ms RTT.
 - Hit false-reject rate under 2%.
 - At most 20 KB/s per client with 30 actors visible.
@@ -164,10 +164,27 @@ The server and shared libraries stay one codebase behind a GameProfile seam, and
 | 018 | Ship a public default gamemode | Accepted |
 | 019 | Shared world loot by default; instanced loot as an option | Proposed |
 | 020 | Server-authoritative XP, SPECIAL and perks | Proposed |
+| 021 | Require/recommend existing mods (F4SE, Address Library, Buffout 4 NG, High FPS Physics Fix, LooksMenu, MCM) instead of re-implementing them | Accepted |
+
+## Companion mods and dependencies
+
+FalloutMP leans on existing, maintained Fallout 4 mods instead of rebuilding what they already do (ADR-021, [07-dependencies-and-mods.md](07-dependencies-and-mods.md)). Dependencies are installed by the player, verified by the client at connect, and every sync-critical path keeps a native fallback.
+
+| Mod | Role in FalloutMP | Status |
+| --- | --- | --- |
+| F4SE 0.7.x | Script extender; loads the FalloutMP plugin | Required |
+| Address Library for F4SE Plugins | Engine addresses by ID for the pinned game builds | Required |
+| Buffout 4 NG | Crash logs for in-game test reports; engine memory and stability fixes | Strongly recommended |
+| High FPS Physics Fix | Same physics at any frame rate, so projectiles, ragdolls and movement match across clients | Strongly recommended |
+| LooksMenu | Face/body editor API, body morphs, appearance preset JSON as a candidate appearance format | Strongly recommended; native fallback kept |
+| Mod Configuration Menu | In-game settings page | Recommended |
+| HUDFramework, PrismaUI, Garden of Eden natives, Transfer Settlements, Workshop Framework | HUD widgets, alternative UI backend, extra script natives, settlement blueprint format, workshop hooks | Evaluate |
+
+Any F4SE plugin that registers Papyrus natives is callable from FalloutMP scripts through runtime reflection, so adding a native-extending mod costs almost nothing. The server defines the load order and can allow or deny client DLL mods (SRV-003).
 
 ## Milestones
 
-Until M6 the work runs on two parallel tracks. The server track is Linux-only. The platform track needs Windows CI and in-game tests. See [03-milestones.md](03-milestones.md).
+Run strictly in sequence the milestone ranges add up to 63–101 weeks; with the two tracks in parallel, a realistic single-developer-plus-Claude schedule is about 14–20 months to 1.0, with the parity alpha (M8) around month 8–11. Until M6 the work runs on two parallel tracks. The server track is Linux-only. The platform track needs Windows CI and in-game tests. See [03-milestones.md](03-milestones.md).
 
 ![Milestones](img/milestones.png)
 
@@ -291,6 +308,7 @@ See [05-risks-open-questions.md](05-risks-open-questions.md).
 - Q-06: priorities.
 - Q-07: the template save.
 - Q-10: the startup hook.
+- Q-18: require (not just recommend) Buffout 4 NG, High FPS Physics Fix and LooksMenu?
 - Also Q-01, Q-04, Q-05 and Q-15–Q-17.
 
 ## Lessons from prior projects

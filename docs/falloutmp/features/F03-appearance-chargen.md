@@ -217,6 +217,8 @@ A no-change close (data equal to the stored appearance) is accepted as a no-op: 
   - Accept: an `L-int` bot completes onboarding; surgery charges 100 caps once.
 - [ ] **F03-T09** Persistence: `looksMenuMode`, `appearanceRev`, per-field defensive parse of the FO4 dump, unknown-id handling → editor `remake` — S — Depends: F03-T01, REF-020 — Verify: L-unit — Files: MpChangeForms.{h,cpp}; unit/AppearanceFo4Test.cpp
 - [ ] **F03-T10** Optional BodyGen (LooksMenu mod) capture/apply behind `appearance.bodyGen.enabled` with a manifest requirement — S — Depends: F03-T06, F00-T09 — Verify: G-manual — Files: falloutmp-client/src/sync/bodyGen.ts
+- [ ] **F03-T12** LooksMenu integration (ADR-021): evaluate LooksMenu's preset JSON (head parts, morph sliders, region morphs, tints, body morphs) as the `AppearanceFo4` schema and its F4SE/Papyrus API to apply presets to the player and to remote actors; if viable, route capture/apply through it with the PLAT-082 native path as fallback when the plugin is absent or the API fails — M — Depends: PLAT-095, F03-T06 — Verify: G-self — Files: falloutmp-client/src/sync/appearanceLooksMenu.ts, fallout4-platform natives
+  - Accept: a face created in LooksMenu round-trips through the server and appears identical on a second client; without LooksMenu the native path produces the same result for vanilla fields.
 - [ ] **F03-T11** Range calibration: dump LooksMenu slider min/max and default recipes per race×sex into GameProfile data — S — Depends: F03-T05 — Verify: G-self — Files: skymp5-server/cpp/server_guest_lib/game_profile/fallout4/chargen_ranges.json
 - [ ] **F03-T12** `G-manual` script and sign-off — S — Depends: F03-T07, F03-T08 — Verify: G-manual — Files: docs/falloutmp/test-scripts/F03-appearance.md
 

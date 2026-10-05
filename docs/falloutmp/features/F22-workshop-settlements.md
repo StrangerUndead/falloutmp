@@ -302,3 +302,4 @@ Every rejection sends `RequestResult{ok=false, error}` plus the state needed to 
 - Refund rules for scrapping player-built objects and repair costs are `[inference]`.
 - The daily update re-implements `WorkshopScript.DailyUpdate`; golden tests guard against balance drift (world-economy §5 item 9).
 - The save-policy deviation (§4.2) must be recorded as an S-checklist deviation in the review.
+- [ ] **F22-T26** Blueprint import/export (ADR-021): evaluate the Transfer Settlements blueprint JSON schema as the server's settlement export/import and backup format; admin command to export/import a settlement; validation against budget and ownership on import — M — Depends: F22-T10 — Verify: L-unit, G-manual

@@ -2,6 +2,8 @@
 
 Each milestone lists the work it contains and its **exit criteria**. A milestone is done when every exit criterion has linked evidence in STATUS.md (test output, CI run, self-test JSON, user test report).
 
+**Overall timeline (realism check).** The milestone ranges add up to about 63–101 weeks if run strictly one after another. The server track (M1, M2, and later Linux-only parts of M6–M9) runs in parallel with the platform track (M3–M5), so a realistic single-developer-plus-Claude schedule is **about 14–20 months to 1.0**, with the T0 alpha (M8) at roughly month 8–11. The biggest schedule risks are the animation probe outcome (M4) and CommonLibF4 AE gaps (M3). Re-estimate at every milestone boundary and record it in STATUS.md.
+
 Estimates are for one experienced developer working with Claude:
 - Linux-verifiable work is fast.
 - Platform/RE work is gated by Windows CI and in-game tests the user runs.
@@ -51,7 +53,7 @@ Server-side milestones (M1, M2) and platform milestones (M3–M5) can run in par
 
 ## M3 — Platform alive in Fallout 4 (est. 4–8 weeks) — Windows CI + G-self
 - **Build and CI:** BUILD-002, BUILD-004, BUILD-005, ENV-011, ENV-012 (optional).
-- **Platform core:** PLAT-001…PLAT-005, PLAT-010…PLAT-012, PLAT-020, PLAT-021, PLAT-041, PLAT-060, PLAT-061, PLAT-089, PLAT-091.
+- **Platform core:** PLAT-001…PLAT-005, PLAT-010…PLAT-012, PLAT-020, PLAT-021, PLAT-041, PLAT-060, PLAT-061, PLAT-089, PLAT-091, PLAT-095 (dependency detection: Buffout 4, High FPS Physics Fix, LooksMenu, MCM).
 - **QA:** QA-010 (first checks), QA-012.
 - **In parallel:** F02-T01, the animation probe. It needs PLAT-001 and PLAT-002 and BUILD-002.
 
@@ -63,7 +65,8 @@ Server-side milestones (M1, M2) and platform milestones (M3–M5) can run in par
 
 ## M4 — Reflection, connect & spawn (est. 4–6 weeks)
 - **Platform:** PLAT-030…PLAT-036, PLAT-040, PLAT-042, PLAT-050…PLAT-052.
-- **Client:** CLI-001, CLI-002, CLI-003, CLI-010, CLI-012, CLI-050, CLI-070, CLI-071.
+- **Client:** CLI-001, CLI-002, CLI-003, CLI-010, CLI-012, CLI-050, CLI-070, CLI-071, CLI-080 (MCM settings page).
+- **Server:** SRV-003 (client-mod allow/deny lists in the manifest).
 - **Feature:** F00 (all tasks).
 - **Gamemode:** GM-001, GM-010.
 - **Animation probe:** F02-T01 must report by the end of M4.
@@ -149,6 +152,7 @@ Server-side milestones (M1, M2) and platform milestones (M3–M5) can run in par
 3. Beta release.
 
 ## M12 — 1.0 (est. 8–12 weeks)
+- **Dependencies & compatibility (ADR-021):** DOCS-005 compatibility matrix finalized; SRV-003 client-mod allow/deny lists documented.
 - **Features:** F22 T2 (attacks, supply lines), F27 (quest framework), the rest of F28 (radio sync options).
 - **Release work:** OPS-001…OPS-003, OPS-010, DOCS-001…DOCS-011, BUILD-008, PLAT-069 resolved, QA-030 soak test, GM-020, GM-040.
 
