@@ -23,6 +23,7 @@ The plan is written for **future Claude Code sessions**, which start in a fresh,
 | File | Purpose | When to read |
 |---|---|---|
 | [STATUS.md](STATUS.md) | Live progress tracker, decisions log, next steps | Every session |
+| [PLAN.md](PLAN.md) | One-file master summary of the whole plan (also shared as a doc) | For an overview, or to share |
 | [00-vision-scope.md](00-vision-scope.md) | What "fully functional FalloutMP" means; scope tiers; parity matrix SkyMP→FO4; non-goals; quality targets | Once, and whenever scope is unclear |
 | [01-sync-standard.md](01-sync-standard.md) | **The SkyMP Sync Standard (SSS)**: the contract every synced feature must meet, Definition-of-Done levels L0–L4, review checklist | Before designing or reviewing any feature |
 | [02-architecture.md](02-architecture.md) | Target architecture, repo layout, component responsibilities, Architecture Decision Records (ADRs) | Before structural changes |
