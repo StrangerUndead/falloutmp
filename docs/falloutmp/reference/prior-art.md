@@ -616,6 +616,7 @@ Source: the user-supplied Nexus file "CO - Server" 107542, version 1.1.0, dated 
 - **No license file.** Treat it as facts only: no code reuse.
 - The package also ships `server/iroh-state/{host.key,admin.token,bans.txt}`. These were deliberately not read and are not reproduced here.
 - Provenance tag: `[src: CO-srv-1.1.0:<path>]`. Nothing was executed.
+- **Reuse permission (2026-10-05):** the user states this download is open source and that its code may be used. The package has no license file. Before copying code verbatim into the GPL/AGPL repo, record the license from the mod's Nexus permissions page in `THIRD_PARTY_LICENSES` (DOCS-010). Facts and design patterns can be used freely now.
 
 **Architecture (correcting §3.5).** Gameplay runs through a **Python pass-through relay** that does schema normalization, not server simulation. [src: CO-srv-1.1.0:server/relay_safety.py, hardened_relay.py, relay_broadcasts.py]
 - Wire format: newline-delimited compact JSON over TCP (default port 7777), each frame ≤ 16 KiB.
@@ -660,6 +661,20 @@ Source: the user-supplied Nexus file "CO - Server" 107542, version 1.1.0, dated 
 - They **re-snap time when local game time resumes after a freeze**: menus, Pip-Boy, dialogue, loading, save/load and wait/sleep pause the local clock.
 - Server GUI overrides: time goes to all clients; weather is applied by the host with `ForceWeather` and then relayed.
 - They removed execution of network-supplied console text as a security fix.
+
+**Second pass (all files read).**
+- `combatHit` and `npcState` are only feature-detected in `hardened_relay.py` (`_legacy_supports_*`). The shipped legacy core contains no combat or NPC routing, so this 1.1.0 server relays transforms, world state and disconnects only.
+- `co-tunnel.exe` ships without its Rust source.
+- Server-side config holds no secrets in plaintext: the password goes to a separate file passed to the sidecar, and the admin channel is token-authenticated.
+
+**Reusable from the package** (once the license is recorded):
+| Asset | Use in FalloutMP | Where |
+|---|---|---|
+| `fake_player.py` dev scripts (idle, walk-to-player, circle, jump, sneak toggle, leave/return cell, teleport) | Model for the bot scenario library | QA-020 (port the idea to our C++/TS bots; Python itself not used) |
+| `directory_server.py` + `directory_registration.py` + the security tests (`test_directory_security.py`, `test_directory_policy.py`) | Reference design and test cases for the server list | OPS-002 |
+| `relay_safety.py` limits and normalizers, plus their tests | Test vectors for NET-013 rate limits and input validation | NET-013, NET-008 |
+| Iroh sidecar pattern (`iroh_sidecar.py` driving `co-tunnel.exe`: invite = EndpointId, local TCP bridge, admin channel) | Design for optional NAT-free hosting. FalloutMP uses UDP RakNet, so it would need a UDP-capable tunnel or a QUIC transport | OPS-011 |
+| `world_state_presets.py` weather ids (Clear 0x2B52A, Cloudy 0x1CC186, Overcast 0x1C8556, Fog 0x1C3473, Rain 0x1CA7E4, Radstorm 0x1C3D5E, Glowing Sea 0xF1033) | Seed values for F25 weather tests. Verify by EDID (D-real) | F25 |
 
 **What this means for FalloutMP**
 1. **Confirms ADR-008 / F02 strategy D in practice.** A shipped FO4 MP mod drives remote proxies from ActorState words, curated graph variables and an action whitelist, not from event replay or bones.
