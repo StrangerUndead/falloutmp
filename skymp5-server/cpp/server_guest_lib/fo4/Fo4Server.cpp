@@ -3,6 +3,7 @@
 #include "MsgType.h"
 #include <algorithm>
 #include <cmath>
+#include <set>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -196,6 +197,14 @@ void Fo4Server::SendFullState(ActorId actor)
   SendProgression(actor);
   SendEquipment(actor);
   SendMapMarkers(actor, true);
+  SendPartyState(actor, 0, "");
+  uint32_t space = host.GetActorWorldOrCell(actor);
+  for (auto& [id, w] : workshops.All()) {
+    if (w.worldOrCell == space &&
+        (!w.objects.empty() || !w.scrappedPrePlaced.empty())) {
+      SendWorkshopSnapshot(actor, id);
+    }
+  }
   if (powerArmor.GetWorn(actor)) {
     auto snap = powerArmor.Snapshot(actor);
     PowerArmorStateMessage m;
@@ -581,7 +590,9 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
       relay.seq = r.seq;
       relay.weaponBaseId = st.equippedWeapon->baseId;
       relay.origin = host.GetActorPos(sender);
+      relay.clientShotId = 0; // the shooter's own id is private
       host.SendToNeighbours(sender, relay, false);
+      relay.clientShotId = m.clientShotId;
       host.SendTo(sender, relay, false); // seq for later hit claims
       return;
     }
@@ -683,6 +694,10 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
         workshops.ExitBuildMode(sender);
       }
       host.SendTo(sender, reply, true);
+      if (reply.allowed) {
+        SendWorkshopSnapshot(sender, m.workshopRefId);
+        SendWorkshopState(sender, m.workshopRefId);
+      }
       return;
     }
     case MsgType::WorkshopPlace: {
@@ -788,27 +803,7 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
       }
       Result(host, sender, m.nonce, type, r.Ok(),
              WorkshopErrorToString(r.error));
-      if (auto w = workshops.Find(m.workshopRefId)) {
-        WorkshopStateMessage s;
-        s.workshopRefId = w->workbenchRefId;
-        s.version = w->version;
-        s.ownerType = static_cast<uint8_t>(w->owner.type);
-        s.ownerId = w->owner.id;
-        s.yourPerms = workshops.GetPerms(*w, a);
-        s.budgetCurrent = w->budget.current;
-        s.budgetMax = w->budget.max;
-        s.objects = w->budget.objects;
-        s.maxObjects = w->budget.maxObjects;
-        s.food = w->ratings.food;
-        s.water = w->ratings.water;
-        s.safety = w->ratings.safety;
-        s.beds = w->ratings.beds;
-        s.power = w->ratings.power;
-        s.powerLoad = w->ratings.powerLoad;
-        s.population = w->ratings.population;
-        s.happiness = w->ratings.happiness;
-        host.SendTo(sender, s, true);
-      }
+      SendWorkshopState(sender, m.workshopRefId);
       return;
     }
     case MsgType::Barter: {
@@ -902,6 +897,18 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
       auto& m = As<PartyActionMessage>(msg);
       ProfileId me = host.GetProfileId(sender);
       int64_t now = host.NowMs();
+      // Everyone whose party view can change: the old and new members of
+      // the parties involved, plus the target of a kick.
+      std::set<ProfileId> affected;
+      auto addMembersOf = [&](std::optional<PartyId> pid) {
+        if (auto p = pid ? parties.Find(*pid) : nullptr) {
+          affected.insert(p->members.begin(), p->members.end());
+        }
+      };
+      addMembersOf(parties.GetPartyOf(me));
+      if (m.op == PartyActionMessage::kAccept) {
+        addMembersOf(m.partyId);
+      }
       PartyError e = PartyError::None;
       switch (m.op) {
         case PartyActionMessage::kInvite:
@@ -918,6 +925,7 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
           break;
         case PartyActionMessage::kKick:
           e = parties.Kick(me, m.targetProfileId);
+          affected.insert(m.targetProfileId);
           break;
         case PartyActionMessage::kPromote:
           e = parties.Promote(me, m.targetProfileId);
@@ -928,18 +936,30 @@ void Fo4Server::OnMessage(ActorId sender, MsgType type,
         default:
           e = PartyError::UnknownParty;
       }
-      PartyActionMessage reply;
-      reply.nonce = m.nonce;
-      reply.op = PartyActionMessage::kState;
-      reply.error = e == PartyError::None ? "" : PartyErrorToString(e);
-      if (auto pid = parties.GetPartyOf(me)) {
-        auto p = parties.Find(*pid);
-        reply.partyId = p->id;
-        reply.leader = p->leader;
-        reply.members = p->members;
+      addMembersOf(parties.GetPartyOf(me));
+      SendPartyState(sender, m.nonce,
+                     e == PartyError::None ? "" : PartyErrorToString(e));
+      if (e != PartyError::None) {
+        return;
       }
-      reply.value = parties.IsFlagged(me);
-      host.SendTo(sender, reply, true);
+      if (m.op == PartyActionMessage::kInvite) {
+        if (auto invitee = FindPlayerByProfile(m.targetProfileId)) {
+          PartyActionMessage invite;
+          invite.op = PartyActionMessage::kInvite;
+          invite.partyId = parties.GetPartyOf(me).value_or(0);
+          invite.targetProfileId = me; // who invited
+          host.SendTo(*invitee, invite, true);
+        }
+      }
+      if (m.op != PartyActionMessage::kSetPvpFlag &&
+          m.op != PartyActionMessage::kDecline) {
+        for (ProfileId p : affected) {
+          auto actor = p == me ? std::nullopt : FindPlayerByProfile(p);
+          if (actor) {
+            SendPartyState(*actor, 0, "");
+          }
+        }
+      }
       return;
     }
     default:
@@ -1045,6 +1065,109 @@ void Fo4Server::SendMapMarkers(ActorId actor, bool full)
     }
   }
   host.SendTo(actor, m, true);
+}
+
+std::optional<ActorId> Fo4Server::FindPlayerByProfile(ProfileId profile) const
+{
+  if (profile < 0) {
+    return std::nullopt;
+  }
+  for (auto& [id, st] : actors) {
+    if (!host.IsNpc(id) && host.GetProfileId(id) == profile) {
+      return id;
+    }
+  }
+  return std::nullopt;
+}
+
+void Fo4Server::SendPartyState(ActorId to, uint32_t nonce,
+                               const std::string& error)
+{
+  ProfileId profile = host.GetProfileId(to);
+  PartyActionMessage m;
+  m.nonce = nonce;
+  m.op = PartyActionMessage::kState;
+  m.error = error;
+  if (auto pid = parties.GetPartyOf(profile)) {
+    auto p = parties.Find(*pid);
+    m.partyId = p->id;
+    m.leader = p->leader;
+    m.members = p->members;
+  }
+  m.value = parties.IsFlagged(profile);
+  host.SendTo(to, m, true);
+}
+
+void Fo4Server::SendWorkshopState(ActorId to, FormId workshopRefId)
+{
+  auto w = workshops.Find(workshopRefId);
+  if (!w) {
+    return;
+  }
+  WorkshopActor a{ to, host.GetProfileId(to), -1, host.GetActorPos(to),
+                   nullptr, host.NowMs() };
+  WorkshopStateMessage s;
+  s.workshopRefId = w->workbenchRefId;
+  s.version = w->version;
+  s.ownerType = static_cast<uint8_t>(w->owner.type);
+  s.ownerId = w->owner.id;
+  s.yourPerms = workshops.GetPerms(*w, a);
+  s.budgetCurrent = w->budget.current;
+  s.budgetMax = w->budget.max;
+  s.objects = w->budget.objects;
+  s.maxObjects = w->budget.maxObjects;
+  s.food = w->ratings.food;
+  s.water = w->ratings.water;
+  s.safety = w->ratings.safety;
+  s.beds = w->ratings.beds;
+  s.power = w->ratings.power;
+  s.powerLoad = w->ratings.powerLoad;
+  s.population = w->ratings.population;
+  s.happiness = w->ratings.happiness;
+  host.SendTo(to, s, true);
+}
+
+void Fo4Server::SendWorkshopSnapshot(ActorId to, FormId workshopRefId)
+{
+  auto w = workshops.Find(workshopRefId);
+  if (!w) {
+    return;
+  }
+  using Obj = WorkshopObjectsMessage::Object;
+  std::vector<Obj> all;
+  all.reserve(w->objects.size());
+  for (auto& [id, o] : w->objects) {
+    uint16_t flags = 0;
+    if (o.destroyed) {
+      flags |= Obj::kDestroyed;
+    }
+    if (o.powered) {
+      flags |= Obj::kPowered;
+    }
+    all.push_back({ o.refId, o.baseId, o.pos, o.rot, o.scale, flags });
+  }
+  const size_t perChunk = std::max<size_t>(1, settings.workshopSnapshotChunk);
+  const size_t chunks = std::max<size_t>(1, (all.size() + perChunk - 1) / perChunk);
+  for (size_t c = 0; c < chunks; ++c) {
+    WorkshopObjectsMessage m;
+    m.workshopRefId = workshopRefId;
+    m.version = w->version;
+    m.kind = 0;
+    m.chunk = static_cast<uint16_t>(c);
+    m.chunkCount = static_cast<uint16_t>(chunks);
+    auto begin = all.begin() + std::min(all.size(), c * perChunk);
+    auto end = all.begin() + std::min(all.size(), (c + 1) * perChunk);
+    m.added.assign(begin, end);
+    if (c == 0) {
+      m.scrappedPrePlaced.assign(w->scrappedPrePlaced.begin(),
+                                 w->scrappedPrePlaced.end());
+      for (auto& wire : w->wires) {
+        m.wires.push_back(
+          { wire.wireRefId, wire.a, wire.b, wire.splineBaseId });
+      }
+    }
+    host.SendTo(to, m, true);
+  }
 }
 
 void Fo4Server::SendContainer(ActorId to, FormId refId, bool alsoNeighbours)

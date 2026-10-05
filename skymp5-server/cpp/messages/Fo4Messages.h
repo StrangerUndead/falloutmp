@@ -161,6 +161,9 @@ struct WeaponFireMessage : public MessageBase<WeaponFireMessage>
   uint32_t weaponBaseId = 0;
   std::array<float, 3> origin = { 0, 0, 0 };
   std::array<float, 3> direction = { 0, 0, 0 };
+  // Shooter's own shot id, echoed back to the shooter only so it can map
+  // its local shots to server sequence numbers for hit claims.
+  uint32_t clientShotId = 0;
 
   template <class A>
   void Serialize(A& a)
@@ -170,7 +173,8 @@ struct WeaponFireMessage : public MessageBase<WeaponFireMessage>
       .Serialize("seq", seq)
       .Serialize("weaponBaseId", weaponBaseId)
       .Serialize("origin", origin)
-      .Serialize("direction", direction);
+      .Serialize("direction", direction)
+      .Serialize("clientShotId", clientShotId);
   }
 };
 
@@ -677,6 +681,11 @@ struct WorkshopObjectsMessage : public MessageBase<WorkshopObjectsMessage>
   FO4_MSG_TYPE(WorkshopObjects)
   struct Object
   {
+    enum Flags : uint16_t
+    {
+      kDestroyed = 1 << 0,
+      kPowered = 1 << 1,
+    };
     uint32_t refId = 0;
     uint32_t baseId = 0;
     std::array<float, 3> pos = { 0, 0, 0 };

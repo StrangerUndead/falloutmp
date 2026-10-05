@@ -76,6 +76,28 @@ public:
     return true;
   }
 
+  // Last message of a type sent to an actor's neighbours
+  nlohmann::json LastToNeighbours(ActorId a, MsgType t)
+  {
+    for (auto it = sent.rbegin(); it != sent.rend(); ++it) {
+      if (it->to == a && it->neighbours && it->type == int(t)) {
+        return it->json;
+      }
+    }
+    return nullptr;
+  }
+
+  std::vector<nlohmann::json> AllTo(ActorId a, MsgType t)
+  {
+    std::vector<nlohmann::json> out;
+    for (auto& s : sent) {
+      if (s.to == a && !s.neighbours && s.type == int(t)) {
+        out.push_back(s.json);
+      }
+    }
+    return out;
+  }
+
   // Last message of a type sent to an actor (not to neighbours)
   nlohmann::json Last(ActorId a, MsgType t)
   {
@@ -225,9 +247,14 @@ TEST_CASE("Fo4Server: shots, hits, damage, kill XP and party sharing",
 
   WeaponFireMessage fire;
   fire.direction = { 1, 0, 0 };
+  fire.clientShotId = 77;
   w.server->OnMessage(kAlice, MsgType::WeaponFire, fire);
   auto relay = w.host.Last(kAlice, MsgType::WeaponFire);
   REQUIRE(relay["seq"] == 1);
+  // The shooter's own shot id comes back to the shooter only
+  REQUIRE(relay["clientShotId"] == 77);
+  REQUIRE(w.host.LastToNeighbours(kAlice, MsgType::WeaponFire)
+            ["clientShotId"] == 0);
   REQUIRE(w.host.SentToNeighbours(kAlice, MsgType::WeaponFire));
   REQUIRE(alice.equippedWeapon->ammoLoaded == 11);
 
@@ -557,4 +584,108 @@ TEST_CASE("Fo4Server: map discovery, fast travel and the clock",
   Fo4Server other(w.data, w.host);
   other.LoadWorld(world);
   REQUIRE(other.Clock().TimeScale() == 0.f);
+}
+
+TEST_CASE("Fo4Server: party changes reach invitees and all members",
+          "[fo4][Fo4Server]")
+{
+  ServerWorld w;
+  w.server->Actor(kBob); // Bob is online
+
+  PartyActionMessage invite;
+  invite.nonce = 5;
+  invite.op = PartyActionMessage::kInvite;
+  invite.targetProfileId = 2;
+  w.server->OnMessage(kAlice, MsgType::PartyAction, invite);
+  auto mine = w.host.Last(kAlice, MsgType::PartyAction);
+  REQUIRE(mine["nonce"] == 5);
+  REQUIRE(mine["op"] == PartyActionMessage::kState);
+  REQUIRE(mine["error"] == "");
+  uint32_t partyId = mine["partyId"];
+  REQUIRE(partyId != 0);
+  // Bob is told who invited him to which party
+  auto inv = w.host.Last(kBob, MsgType::PartyAction);
+  REQUIRE(inv["op"] == PartyActionMessage::kInvite);
+  REQUIRE(inv["partyId"] == partyId);
+  REQUIRE(inv["targetProfileId"] == 1);
+
+  // Bob accepts: Alice gets a pushed state with both members
+  PartyActionMessage accept;
+  accept.nonce = 9;
+  accept.op = PartyActionMessage::kAccept;
+  accept.partyId = partyId;
+  w.server->OnMessage(kBob, MsgType::PartyAction, accept);
+  auto push = w.host.Last(kAlice, MsgType::PartyAction);
+  REQUIRE(push["nonce"] == 0);
+  REQUIRE(push["members"].size() == 2);
+  REQUIRE(w.host.Last(kBob, MsgType::PartyAction)["nonce"] == 9);
+
+  // Alice kicks Bob: Bob is told he is out
+  PartyActionMessage kick;
+  kick.nonce = 6;
+  kick.op = PartyActionMessage::kKick;
+  kick.targetProfileId = 2;
+  w.server->OnMessage(kAlice, MsgType::PartyAction, kick);
+  auto out = w.host.Last(kBob, MsgType::PartyAction);
+  REQUIRE(out["nonce"] == 0);
+  REQUIRE(out["partyId"] == 0);
+
+  // A failed request is not pushed to anyone else
+  size_t bobMessages = w.host.AllTo(kBob, MsgType::PartyAction).size();
+  PartyActionMessage badKick = kick;
+  badKick.nonce = 7;
+  w.server->OnMessage(kAlice, MsgType::PartyAction, badKick);
+  REQUIRE(w.host.Last(kAlice, MsgType::PartyAction)["error"] ==
+          "TargetNotInParty");
+  REQUIRE(w.host.AllTo(kBob, MsgType::PartyAction).size() == bobMessages);
+}
+
+TEST_CASE("Fo4Server: settlement snapshots on build mode and on join",
+          "[fo4][Fo4Server]")
+{
+  ServerWorld w;
+  w.server->settings.workshopSnapshotChunk = 2;
+  Workshop shop;
+  shop.workbenchRefId = kShopRef;
+  shop.worldOrCell = 0x3c;
+  shop.owner = { WorkshopOwner::Type::Profile, 1 };
+  for (FormId i = 0; i < 5; ++i) {
+    PlacedObject o;
+    o.refId = 0xFF300000 + i;
+    o.baseId = 0x1001;
+    o.pos = { float(i), 0, 0 };
+    o.destroyed = i == 0;
+    shop.objects[o.refId] = o;
+  }
+  shop.scrappedPrePlaced = { 0x0001A000 };
+  shop.wires.push_back({ 0xFF3000FF, 0xFF300000, 0xFF300001, 0x1D971 });
+  shop.version = 12;
+  w.server->Workshops().AddWorkshop(shop);
+
+  WorkshopModeMessage mode;
+  mode.workshopRefId = kShopRef;
+  w.server->OnMessage(kAlice, MsgType::WorkshopMode, mode);
+  REQUIRE(w.host.Last(kAlice, MsgType::WorkshopMode)["allowed"] == true);
+  auto chunks = w.host.AllTo(kAlice, MsgType::WorkshopObjects);
+  REQUIRE(chunks.size() == 3); // 5 objects, 2 per chunk
+  size_t objects = 0;
+  for (auto& c : chunks) {
+    REQUIRE(c["kind"] == 0);
+    REQUIRE(c["chunkCount"] == 3);
+    REQUIRE(c["version"] == 12);
+    objects += c["added"].size();
+  }
+  REQUIRE(objects == 5);
+  REQUIRE(chunks[0]["wires"].size() == 1);
+  REQUIRE(chunks[0]["scrappedPrePlaced"][0] == 0x0001A000);
+  REQUIRE(chunks[0]["added"][0]["flags"] ==
+          WorkshopObjectsMessage::Object::kDestroyed);
+  REQUIRE(w.host.Last(kAlice, MsgType::WorkshopState)["yourPerms"] ==
+          WorkshopPerm::All);
+
+  // Joining in the same worldspace sends the snapshot too
+  w.host.sent.clear();
+  w.server->SendFullState(kBob);
+  REQUIRE(w.host.AllTo(kBob, MsgType::WorkshopObjects).size() == 3);
+  REQUIRE(w.host.Last(kBob, MsgType::PartyAction)["partyId"] == 0);
 }

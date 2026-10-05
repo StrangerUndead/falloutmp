@@ -20,6 +20,7 @@
 #include "WorldServices.h"
 #include <functional>
 #include <map>
+#include <optional>
 #include <memory>
 #include <nlohmann/json_fwd.hpp>
 #include <random>
@@ -77,6 +78,8 @@ struct Fo4ServerSettings
   ContainerSettings containers;
   MapSettings map;
   int64_t timeWeatherIntervalMs = 10000;
+  // Objects per WorkshopObjects snapshot chunk (about 40 bytes each).
+  uint32_t workshopSnapshotChunk = 200;
   // Biped slots outer apparel may not use over a power armor frame
   // (body armor slots 41-45 in FO4's first-person flags) [verify G-self]
   uint32_t powerArmorBlockedBipedSlots = 0x3E00;
@@ -143,6 +146,13 @@ public:
   // Equip/unequip validation and broadcast (F05)
   std::string Equip(ActorId actor, const ItemKey& item, bool equip);
   void SendEquipment(ActorId actor);
+  // Settlement objects as a chunked snapshot plus the settlement state
+  // (on build-mode entry and on join for settlements in the same space).
+  void SendWorkshopSnapshot(ActorId to, FormId workshopRefId);
+  void SendWorkshopState(ActorId to, FormId workshopRefId);
+  // Party state of `to`'s profile (nonce 0 for pushes).
+  void SendPartyState(ActorId to, uint32_t nonce, const std::string& error);
+  std::optional<ActorId> FindPlayerByProfile(ProfileId profile) const;
   DamageModel& Damage() { return damageModel; }
   std::map<std::string, PerkChartEntry>& PerkChart() { return perkChart; }
   // Effect definitions applied to every actor's effect system

@@ -1,0 +1,18 @@
+{
+  "name": "falloutmp-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "FalloutMP client: Fallout 4 sync services on top of the falloutPlatform native API",
+  "license": "GPL-3.0-only",
+  "main": "build/src/index.js",
+  "types": "build/src/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsc -p tsconfig.test.json && node --test 'build/test/**/*.test.js'"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3"
+  }
+}
