@@ -16,6 +16,10 @@ struct Fo4SettingsParseResult
 {
   Fo4ServerSettings settings;
   std::string worldStatePath = "world/fo4-world.json";
+  // fo4.npc: human NPCs are off by default
+  bool humanNpcs = false;
+  std::vector<std::string> blockedNpcRaces = { "HumanRace",
+                                               "HumanChildRace" };
   // Paths like "fo4.workshop.maxObjcts" that no setting matches
   std::vector<std::string> unknownKeys;
 };

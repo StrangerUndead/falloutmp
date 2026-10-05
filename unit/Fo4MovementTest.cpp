@@ -7,9 +7,16 @@ namespace {
 constexpr ActorId kActor = 0xFF000001;
 constexpr uint32_t kWorld = 0x3c;
 
+MovementSettings Enforced()
+{
+  MovementSettings s;
+  s.enforceSpeed = true;
+  return s;
+}
+
 struct Walker
 {
-  MovementValidator v;
+  MovementValidator v{ Enforced() };
   std::array<float, 3> serverPos = { 0, 0, 0 };
   uint32_t serverCell = kWorld;
   int64_t now = 1000;
@@ -220,4 +227,26 @@ TEST_CASE("Movement: history gives positions for lag compensation",
   REQUIRE((*w.v.PositionAt(kActor, 9999))[0] == 100.f);
   w.v.Forget(kActor);
   REQUIRE(!w.v.PositionAt(kActor, 1250));
+}
+
+TEST_CASE("Movement: speed limits are off by default", "[fo4][Movement]")
+{
+  MovementValidator v;
+  REQUIRE(!v.settings.enforceSpeed);
+  MovementContext ctx;
+  std::array<float, 3> p{ 0, 0, 0 };
+  MovementSample s{ 1, kWorld, p, 0, 0 };
+  REQUIRE(v.Validate(kActor, s, ctx, p, kWorld, 100).verdict ==
+          MovementVerdict::Accepted);
+  // 50,000 units in 100 ms: accepted while limits are off
+  s.seq = 2;
+  s.pos = { 50000, 0, 9000 };
+  auto r = v.Validate(kActor, s, ctx, p, kWorld, 200);
+  REQUIRE(r.verdict == MovementVerdict::Accepted);
+  REQUIRE(v.violationCount == 0);
+  // Cell changes still go through the server
+  s.seq = 3;
+  s.worldOrCell = 0x1234;
+  REQUIRE(v.Validate(kActor, s, ctx, s.pos, kWorld, 300).verdict ==
+          MovementVerdict::Correct);
 }

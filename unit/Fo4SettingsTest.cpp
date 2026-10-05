@@ -86,3 +86,24 @@ TEST_CASE("Fo4 settings: misspelt keys are reported, bad values rejected",
                       Catch::Matchers::ContainsSubstring("must be an object"));
   REQUIRE_THROWS(bad(R"({ "worldStatePath": "" })"));
 }
+
+TEST_CASE("Fo4 settings: human NPCs are off by default", "[fo4][Fo4Settings]")
+{
+  auto d = ParseFo4Settings(nlohmann::json());
+  REQUIRE(!d.humanNpcs);
+  REQUIRE(d.blockedNpcRaces ==
+          std::vector<std::string>{ "HumanRace", "HumanChildRace" });
+  REQUIRE(!d.settings.movement.enforceSpeed);
+
+  auto on = ParseFo4Settings(
+    nlohmann::json::parse(R"({ "npc": { "humanNpcs": true } })"));
+  REQUIRE(on.blockedNpcRaces.empty());
+
+  auto more = ParseFo4Settings(nlohmann::json::parse(
+    R"({ "npc": { "blockedRaces": ["HumanRace", "GhoulRace"] } })"));
+  REQUIRE(more.blockedNpcRaces.size() == 2);
+  REQUIRE_THROWS_WITH(
+    ParseFo4Settings(
+      nlohmann::json::parse(R"({ "npc": { "blockedRaces": [1] } })")),
+    Catch::Matchers::ContainsSubstring("array of strings"));
+}

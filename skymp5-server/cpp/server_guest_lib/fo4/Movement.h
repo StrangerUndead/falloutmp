@@ -52,6 +52,9 @@ struct MovementSettings
   float jumpUpSpeed = 450.f;       // vertical speed of a jump
   float jetpackUpSpeed = 900.f;
   float terminalFallSpeed = 6000.f;
+  // Off until the speeds are measured in game: samples are not checked
+  // against the speed model (sequence, death and cell rules still apply).
+  bool enforceSpeed = false;
   float speedTolerance = 1.25f;    // multiplier on every limit
   float distanceSlack = 96.f;      // units allowed on top of the limit
   int64_t jitterMs = 150;          // packet bunching allowance

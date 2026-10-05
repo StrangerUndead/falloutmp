@@ -14,6 +14,7 @@
 #include "fo4/Fo4GamemodeApi.h"
 #include "fo4/Fo4PartOneGlue.h"
 #include "fo4/Fo4Settings.h"
+#include "fo4/NpcSpawnFilter.h"
 #include "condition_functions/ConditionFunctionFactory.h"
 #include "formulas/DamageMultConditionalFormula.h"
 #include "formulas/DamageMultFormula.h"
@@ -412,15 +413,34 @@ ScampServer::ScampServer(const Napi::CallbackInfo& info)
     partOne->worldState.AttachScriptStorage(
       ScriptStorageFactory::Create(serverSettings));
 
-    partOne->AttachEspm(espm);
-
-    if (partOne->worldState.GetGameProfile().GetGameId() == GameId::Fallout4) {
-      auto parsed = fo4::ParseFo4Settings(serverSettings.contains("fo4")
-                                            ? serverSettings["fo4"]
-                                            : nlohmann::json());
+    const bool isFallout4 =
+      partOne->worldState.GetGameProfile().GetGameId() == GameId::Fallout4;
+    fo4::Fo4SettingsParseResult parsed;
+    if (isFallout4) {
+      parsed = fo4::ParseFo4Settings(serverSettings.contains("fo4")
+                                       ? serverSettings["fo4"]
+                                       : nlohmann::json());
       for (auto& key : parsed.unknownKeys) {
         logger->warn("Unknown server setting '{}' (ignored)", key);
       }
+      // Before AttachEspm: the filter decides which NPCs load
+      if (!parsed.blockedNpcRaces.empty()) {
+        auto filter = std::make_shared<fo4::NpcSpawnFilter>(
+          espm->GetBrowser(), parsed.blockedNpcRaces);
+        partOne->worldState.npcSpawnFilter = [filter](uint32_t baseId) {
+          return filter->IsAllowed(baseId);
+        };
+        std::string races;
+        for (auto& r : parsed.blockedNpcRaces) {
+          races += (races.empty() ? "" : ", ") + r;
+        }
+        logger->info("Fallout 4 NPCs of these races are off: {}", races);
+      }
+    }
+
+    partOne->AttachEspm(espm);
+
+    if (isFallout4) {
       auto fo4 = partOne->GetFo4();
       fo4->ApplySettings(parsed.settings);
       fo4->SetWorldStatePath(parsed.worldStatePath);

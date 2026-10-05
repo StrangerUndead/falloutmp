@@ -68,6 +68,7 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 ## Decisions log
 | Date | Decision | By | Affects |
 |---|---|---|---|
+| 2026-10-05 | Movement speed limits off by default; human NPCs off by default; ownership models for wasteland buildings under discussion (rent in cities like Keizaal Online) | User | F01, F13, F22 |
 | 2026-10-05 | Review pass applied (plan v1.1). Scope: 1.0 = T0+T1, T2 → 1.x. Estimates now computed from the task list (03 capacity model, `tools/falloutmp-plan-stats.py`): ~18–26 months to 1.0. New spec F32 parties/PvP (`PartyAction` 120). Lockpick/hack outcomes server-rolled (F24-T15). Hosted-NPC AV reports bounded (F08-T15). PLAT-020 split a/b; F27-T01 pulled into M4; F13-T01…T04 into M5; GM-013 split from GM-010. New tasks: PLAT-006 patch runbook, SRV-004 signing keys, SRV-005 anomaly scoring, SRV-013 schema migration, CLI-090 actor budget, OPS-004/005, QA-013, DOCS-006, FRONT-007, ENV-017, F00-T11, F09-T14, F31-T11. Risks R23–R26, Q-19 | Claude (planning) | all |
 | 2026-10-05 | User states the Commonwealth Online 1.1.0 server package is open source and its code may be used. The package has no license file, so record the Nexus permissions in THIRD_PARTY_LICENSES before verbatim reuse | User | prior-art §3.5.1, OPS-002, OPS-011, QA-020 |
 | 2026-10-05 | Scale target corrected to SkyMP parity: ~1,000 concurrent players at 1.0 (compile cap `MAX_PLAYERS=1000`; user has seen 1,200 on SkyMP servers), staged 64 → 300 → 1,000. Added SRV-090…094 and QA-022 | User + Claude | 00 §7, 03, SRV, QA, R22 |
@@ -126,7 +127,8 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 - F32: party pushes reuse `PartyAction` (op `State` with nonce 0, op `Invite` to the invitee). There is no separate message.
 - F22: `WorkshopObjects` snapshots are chunked at `fo4.workshopSnapshotChunk` (200) objects. Wires and scrapped pre-placed refs ride in chunk 0.
 - F17: fusion core drain carries a signed sub-step remainder (`pendingDrain`) because 10 Hz movement drains less than one condition step per sample. The remainder isn't persisted (at most 0.1% of a core lost on restart).
-- F01: movement speeds are generous defaults (`fo4.movement.*`) until measured in game; `CreateActorFo4` doesn't carry the last flags yet.
+- F01: speed limits are off by default (`fo4.movement.enforceSpeed`, user decision 2026-10-05) until speeds are measured in game. Sequence, death and cell-change rules still apply. `CreateActorFo4` doesn't carry the last flags yet.
+- F13: human NPCs are off by default (`fo4.npc.humanNpcs`, user decision 2026-10-05). The race comes from the traits template chain, and a leveled template counts as human if any entry is.
 - F13: a hosted NPC may only fire guns it carries from its data. Only NPCs whose data has no gun at all take the host's word (`npcTrustHostWeapons`). NPC ammo is unlimited, but fire rate, range and the shot log still apply.
 - F13: an NPC's level uses the highest-level player within `npcLevelScanRadius` when it is first touched (vanilla uses the single player). NPC health without DNAM uses `npcHealthBase + npcHealthPerLevel × level` [verify].
 - F13: essential NPCs stop at 1 HP, protected NPCs can't be killed by other NPCs, and invulnerable NPCs take no damage.

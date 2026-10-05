@@ -167,19 +167,24 @@ MovementResult MovementValidator::Validate(
   float allowedDown = settings.terminalFallSpeed * dtAllowed +
     settings.distanceSlack;
 
-  if (h > allowedH) {
+  // Speed limits are off by default until they are measured in game
+  // (fo4.movement.enforceSpeed). Sequence, death and cell rules still apply.
+  if (settings.enforceSpeed && h > allowedH) {
     return violate("too fast", h / allowedH);
   }
-  if (dz > allowedUp) {
+  if (settings.enforceSpeed && dz > allowedUp) {
     return violate("rising too fast", dz / allowedUp);
   }
-  if (-dz > allowedDown) {
+  if (settings.enforceSpeed && -dz > allowedDown) {
     return violate("falling too fast", -dz / allowedDown);
   }
 
   // Sustained speed over the window: the jitter allowance is granted once
   // per window, not once per sample.
   for (auto& e : s.history) {
+    if (!settings.enforceSpeed) {
+      break;
+    }
     int64_t elapsedMs = nowMs - e.serverMs;
     if (elapsedMs > settings.windowMs || e.worldOrCell != s.worldOrCell) {
       continue;

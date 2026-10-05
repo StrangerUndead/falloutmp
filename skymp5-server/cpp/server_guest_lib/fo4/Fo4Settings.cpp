@@ -1,4 +1,5 @@
 #include "Fo4Settings.h"
+#include <algorithm>
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 #include <set>
@@ -56,6 +57,15 @@ public:
     } else if constexpr (std::is_same_v<T, std::string>) {
       if (!it->is_string()) {
         Fail(key, "a string");
+      }
+    } else if constexpr (std::is_same_v<T, std::vector<std::string>>) {
+      if (!it->is_array()) {
+        Fail(key, "an array of strings");
+      }
+      for (auto& e : *it) {
+        if (!e.is_string()) {
+          Fail(key, "an array of strings");
+        }
       }
     }
     out = it->get<T>();
@@ -266,8 +276,22 @@ Fo4SettingsParseResult ParseFo4Settings(const nlohmann::json& block)
     cs.Get("markStolen", s.containers.markStolen);
   });
 
+  root.Child("npc", [&](Section& ns) {
+    ns.Get("humanNpcs", res.humanNpcs);
+    ns.Get("blockedRaces", res.blockedNpcRaces);
+  });
+  if (res.humanNpcs) {
+    auto& r = res.blockedNpcRaces;
+    r.erase(std::remove_if(r.begin(), r.end(),
+                           [](const std::string& e) {
+                             return e == "HumanRace" || e == "HumanChildRace";
+                           }),
+            r.end());
+  }
+
   root.Child("movement", [&](Section& mv) {
     auto& m = s.movement;
+    mv.Get("enforceSpeed", m.enforceSpeed);
     mv.GetPositive("walkSpeed", m.walkSpeed);
     mv.GetPositive("sprintSpeed", m.sprintSpeed);
     mv.GetPositive("encumberedSpeed", m.encumberedSpeed);

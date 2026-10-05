@@ -452,6 +452,15 @@ bool WorldState::AttachEspmRecord(const espm::CombineBrowser& br,
     return false;
   }
 
+  if (isNpc && npcSpawnFilter && !npcSpawnFilter(baseId)) {
+    if (optionalOutTrace) {
+      *optionalOutTrace << fmt::format(
+        "AttachEspmRecord - the server skips NPC base {:x} (npc filter)\n",
+        baseId);
+    }
+    return false;
+  }
+
   uint32_t formId = espm::utils::GetMappedId(record->GetId(), mapping);
 
   if (isNpc) {

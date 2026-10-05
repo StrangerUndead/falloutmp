@@ -254,6 +254,9 @@ public:
   bool isPapyrusHotReloadEnabled = false;
 
   bool npcEnabled = false;
+  // Extra per-game NPC filter (Fallout 4: race blocklist, fo4.npc). Returns
+  // false to skip a reference whose base is this NPC.
+  std::function<bool(uint32_t baseId)> npcSpawnFilter;
   std::unordered_map<std::string, NpcSettingsEntry> npcSettings;
   NpcSettingsEntry defaultSetting;
   bool enableConsoleCommandsForAll = false;

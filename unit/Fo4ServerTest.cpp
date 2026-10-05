@@ -815,6 +815,7 @@ TEST_CASE("Fo4Server: movement is validated, relayed and corrected",
           "[fo4][Fo4Server][F01]")
 {
   ServerWorld w;
+  w.server->Movement().settings.enforceSpeed = true;
   w.server->Actor(kAlice);
   uint16_t seq = 0;
   auto move = [&](std::array<float, 3> p, uint16_t flags = 0) {

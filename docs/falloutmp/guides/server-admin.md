@@ -161,10 +161,20 @@ PvP zones (`safe`, `open`, `flagged`) are added by the gamemode with `mp.fo4.add
 | `reach` | 364 | Container reach |
 | `markStolen` | true | Items taken from owned containers are marked stolen |
 
+**`npc`**
+
+| Key | Default | Meaning |
+|---|---|---|
+| `humanNpcs` | false | Spawn human NPCs from the load order (settlers, raiders, named characters) |
+| `blockedRaces` | `["HumanRace", "HumanChildRace"]` | Race editor ids that never spawn; add `"GhoulRace"` or synth races to block more |
+
+NPCs only load when SkyMP's top-level `"npcEnabled": true` is set. With it on, creatures, robots and super mutants spawn, but human NPCs don't unless `humanNpcs` is true. The race is read through each NPC's template chain, so templated raiders and settlers are caught too.
+
 **`movement`** (anti-cheat speed model, F01)
 
 | Key | Default | Meaning |
 |---|---|---|
+| `enforceSpeed` | false | Check movement against the speed limits below. Off until the speeds are measured in game |
 | `walkSpeed` | 200 | Walking speed |
 | `sprintSpeed` | 700 | Fastest normal movement (sprint) |
 | `encumberedSpeed` | 200 | Limit while carrying too much |
@@ -180,7 +190,7 @@ PvP zones (`safe`, `open`, `flagged`) are added by the gamemode with `mp.fo4.add
 | `teleportGraceMs` | 2000 | Old packets ignored after a teleport or door |
 | `speedMultAvId` | 0 | Actor value scaling the limits (chems, perks); 0 = look up `SpeedMult` in the load order |
 
-Speeds are in game units per second and are generous upper bounds until they are measured in game. A sample outside the model is dropped and scored, and sustained speed is also checked over the last second. Once the score passes the threshold, the player is teleported back to the last accepted position. Cell changes only happen through the server (doors, fast travel, respawn), so a client-side cell change is corrected at once.
+Speed limits are off by default (`enforceSpeed: false`). Out-of-order packets, dead actors and client-side cell changes are still rejected. When limits are on, speeds are in game units per second. A sample outside the model is dropped and scored, and sustained speed is also checked over the last second. Once the score passes the threshold, the player is teleported back to the last accepted position. Cell changes only happen through the server (doors, fast travel, respawn), so a client-side cell change is corrected at once.
 
 **`map`**
 
