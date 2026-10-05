@@ -128,3 +128,11 @@ test("remote faces apply to puppets now or on stream-in, newest revision wins", 
   assert.equal(h.platform.appearances.get(kPuppet)?.isFemale, true);
   assert.equal(applied, 1);
 });
+
+test("appearance comparison ignores field order", async () => {
+  const { sameAppearance } = await import("../src/services/services/appearanceService");
+  const a = face();
+  const reordered = JSON.parse(JSON.stringify(Object.fromEntries(Object.entries(a).reverse()))) as AppearanceFo4;
+  assert.ok(sameAppearance(a, reordered));
+  assert.ok(!sameAppearance(a, { ...a, isFemale: !a.isFemale }));
+});
