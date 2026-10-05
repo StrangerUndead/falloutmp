@@ -58,7 +58,7 @@ Players trade with vendors (Diamond City traders, caravans, settlement stores) t
 |---|---|---|---|---|
 | Vendor stock + vendor caps | `Inventory` | merchant container (`VENC`) `MpChangeFormREFR.inv` | yes (`inv`) | CONT `CNTO`/LVLI (F14) |
 | `VendorState{lastRestockGameDay, investedCaps, inventoryVersion}` | struct | `MpChangeFormREFR.vendor` (new optional, on the merchant container) | yes (`vendor`) | restock day = first load |
-| Per-player stock (T2) `profileId → Inventory + lastRestockGameDay` | map | `MpChangeFormREFR.privateInventories` (new optional) | yes | rolled on first open |
+| Per-player stock (T2) `profileId → Inventory + lastRestockGameDay` | map | reuses F06's `MpChangeFormREFR.privateInventories` (new optional) | yes | rolled on first open |
 | Vendor index (vendor faction → container, VENV hours/radius/flags, buy/sell FLST keywords) | cache | `VendorService` (new) | no | ESM FACT |
 | Open barter sessions `actorId → {vendorId, invVersion, opened ms}` | map | `VendorService` | no | — |
 | Player caps + items | `Inventory` | actor `inv` | yes | — |
@@ -208,7 +208,7 @@ Every rejection sends `Barter result{ok=false}` + `SetInventoryFo4` + current ve
   - Accept: every §6 reject asserts the correction set; the atomicity test passes.
 - [ ] **F23-T06** Restock service (lazy + sweep) on the server clock, `onVendorRestock`, deferred with open sessions — S — Depends: F23-T02, SRV-070, SRV-080, F14 — Verify: L-unit
 - [ ] **F23-T07** Cap Collector investment — S — Depends: F23-T05, SRV-021 — Verify: L-unit
-- [ ] **F23-T08** Atomic multi-form flush for transactions (save batch per driver, or a trade journal record) — M — Depends: REF-020, QA-040 — Verify: L-unit, L-int — Files: viet/include/save_storages/*, skymp5-server/cpp/server_guest_lib/database_drivers/*
+- [ ] **F23-T08** Atomic multi-form flush for transactions: cross-cutting, implemented as SRV-092's batch upsert + a trade journal record; this task owns the F23 integration and tests — M (the driver work is in SRV-092) — Depends: REF-020, QA-040 — Verify: L-unit, L-int — Files: viet/include/save_storages/*, skymp5-server/cpp/server_guest_lib/database_drivers/*
   - Accept: a fault-injected crash between the two writes never yields dup or loss after restart.
 - [ ] **F23-T09** Platform BarterMenu hooks (`CompleteTrade`, `ConfirmInvestment`, refresh) and `ShowBarterMenu` wrapper — M — Depends: PLAT-042, PLAT-080 — Verify: W-ci, G-self — Files: fallout4-platform/src/.../BarterApi.cpp
 - [ ] **F23-T10** Client `barterService.ts`: open flow, chest fill, capture, reconcile — M — Depends: F23-T01, F23-T09, CLI-050 — Verify: L-ts, G-manual — Files: falloutmp-client/src/services/services/barterService.ts

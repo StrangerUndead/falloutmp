@@ -52,7 +52,7 @@ Vanilla follower scripts are blocked (ADR-011). The parts we need are re-impleme
 | Affinity | map profileId → {value f32, threshold u8, perkGranted bool} | `affinity` (new) | yes | 0 |
 | Passive-gain clock | per owner last tick ms | transient | no | — |
 | Follower AVs | `FollowerState/Distance/Stance` | F08 store | `fo4Avs` | ESM |
-| Downed | bool | F12 `isDowned` | no (transient) | false |
+| Bleedout | enum | F12 `lifeState == bleedout` (F12 owns the enum) | no (transient) | alive |
 | Inventory/equipment | existing | `inv`, equipment | yes | ESM `CNTO` |
 | Companion catalogue | base → {kind human/robot/dog, reactionTable} | `CompanionService` (from GameProfile + ESM VMAD) | no | ESM |
 
@@ -109,7 +109,7 @@ Vanilla follower scripts are blocked (ADR-011). The parts we need are re-impleme
 - **Trade/equip:** only the owner (or `companions.othersCanTrade`); F06/F05 validation applies (weights: companion carry weight AV; equip slot rules; ammo).
 - **Essential/downed:** a companion with an owner is essential:
   - F12 puts it into downed instead of dead;
-  - it gets up when the host reports combatState 0 for 10 s (F13 `NpcAiState`), restoring `companions.getUpHealthPct` (25 %);
+  - it gets up when the host reports combatState 0 for 10 s (F13 `NpcAiState`), restoring F12 `death.bleedoutRecoverHealthPct` (default 25 %; no separate companion setting);
   - revive by `UseItem` (stimpak) from any player within reach (`companions.othersCanRevive` true);
   - the survival rule: an unhealed companion goes home after the fight;
   - PvP damage to companions: `companions.pvpDamage` (default false: hits from non-hostile players are rejected by F11).
@@ -144,7 +144,7 @@ Companions *are* hosted NPCs. Their hits, movement and actions use F13's host-va
 - **Server restart:** the state is persisted. The passive-gain clock resets (acceptable).
 
 ### 4.11 Performance budget
-- At most `maxPerPlayer` extra hosted NPCs per player (≤ 100 at 100 players) inside F13's budget.
+- At most `maxPerPlayer` extra hosted NPCs per player (≤ 1,000 extra across 1,000 players, counted in the 2,000-NPC budget) inside F13's budget.
 - `CompanionState` ≤ 48 B.
 - Affinity evaluation ≤ 5 µs per event.
 

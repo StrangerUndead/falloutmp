@@ -6,6 +6,8 @@ The plan is written for **future Claude Code sessions**, which start in a fresh,
 
 ---
 
+**Plan statistics and ID check:** run `python3 tools/falloutmp-plan-stats.py` from the repo root at every milestone boundary (QA-001). It fails on duplicate or undefined task IDs.
+
 ## 1. Session start checklist (do this every time)
 
 1. **Read this file**, then [STATUS.md](STATUS.md). STATUS.md gives the current milestone, the tasks in progress, blockers, and the decisions still waiting on the user.

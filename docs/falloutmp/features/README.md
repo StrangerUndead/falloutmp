@@ -36,6 +36,9 @@ Every gameplay system has one spec, written with [_TEMPLATE.md](_TEMPLATE.md) an
 | F29 | [Stealth](F29-stealth.md) | T2 | L3 | — | M10 |
 | F30 | [Chat, commands, admin](F30-chat-commands-admin.md) | T0 | L4 | Chat (gamemode), console (L3) | M6 |
 | F31 | [Names, custom properties, gamemode extensibility](F31-names-properties-extensibility.md) | T0 | L4 | Nicknames, properties (L3–L4) | M5 |
+| F32 | [Parties, teams & PvP rules](F32-parties-pvp.md) | T1 | L4 | — (SweetPie gamemode only) | M8/M9 |
+
+**Candidate features without a spec yet** (add a spec before scheduling; none blocks 1.0): physics grab/carry of objects (`Z` grab, class B owner-validated like F06 drop); scripted transit (elevator cars with riders, Vertibird travel as validated fast travel through F26); admin spectator/free-camera mode (F30 extension); emotes (F02 whitelisted idle events); service NPCs (doctors, barbers via F23/F03); per-player stash containers (F06 `perPlayer` mode on a tagged container); radiant encounters (gamemode content on F13/F14 spawn API); voice chat (out of process, proximity data from F01; Mumble-style positional plugin); screenshot/photo mode (client-only, D).
 
 **How to work a feature:**
 1. Read the spec.

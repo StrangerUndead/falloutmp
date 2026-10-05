@@ -141,7 +141,7 @@ Accepted state is relayed to grid neighbours, excluding the sender (unless `show
 - [ ] **F05-T04** Hosted-NPC equipment updates + FO4 `EquipBestWeapon` — M — Depends: F05-T03, F13 (hosting) — Verify: L-unit — Files: MpActor.cpp (`EquipBestWeapon`), ActionListener.cpp
   - Accept: host update accepted; non-host rejected; best-weapon cases pass without Skyrim `weapData`.
 - [ ] **F05-T05** Equipment–inventory consistency: auto-unequip on removal, worn `ItemKey` replacement on OMOD change, race-change re-evaluation — S — Depends: F05-T03, F04-T09 — Verify: L-unit
-- [ ] **F05-T06** PA interplay hooks for F17: apparel lock while worn, server-placed PA pieces exempt from client sets — S — Depends: F05-T03, F17 — Verify: L-unit
+- [ ] **F05-T06** (M10) PA interplay hooks for F17: apparel lock while worn, server-placed PA pieces exempt from client sets — S — Depends: F05-T03, F17-T01 — Verify: L-unit
 - [ ] **F05-T07** Platform: `equipItemInstance`/`unequipItemInstance`/`getEquipmentFo4`, readied-weapon filter, thrown slot — M — Depends: PLAT-081, F04-T07 — Verify: W-ci, G-self — Files: fallout4-platform/src/platform_fo4/EquipApi.cpp
   - Accept: self-test equips a modded weapon and armor instance on a ghost and reads back the same keys.
 - [ ] **F05-T08** Client capture + send (fork of `sync/equipment.ts`, `sendInputsService` equipment part) — M — Depends: F05-T01, F05-T07, CLI-050 — Verify: L-ts — Files: falloutmp-client/src/sync/equipment.ts, falloutmp-client/src/services/services/sendInputsService.ts

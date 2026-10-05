@@ -5,7 +5,7 @@
 | Tier | T1 (server lock state, keys, lockpicking, terminals with menu actions, hacking with plausibility validation, notes/holotapes read state). T2: server-authoritative hacking (server word list), robot hacking, Automatron lock module |
 | Target level | L4 |
 | SkyMP analogue | None that works. The SkyMP client **unlocks every locked reference locally** (`skymp5-client/src/extensions/objectReferenceEx.ts:58-59`, `self.lock(false, false)`), so Skyrim locks are effectively removed (B17). Terminals: ESM `TERM` refs are never loaded by the server (B8, `WorldState.cpp:391-437`). SkyMP level L0 |
-| Milestone | M9 (spec scope); PLAT-085 is scheduled in M10 (see §8) |
+| Milestone | M9 (lock state field F24-T02 is pulled into M6 for F07) |
 | Workstreams | SRV, PLAT, CLI, ESPM, PVM, NET, GM |
 | Depends on | F04 (KEYM/NOTE as items, ESPM-012), F06 (containers), F07 (activation, doors, terminal furniture occupancy), F14 + SRV-080 (cell-reset relock), F19 + SRV-021 (Locksmith/Hacker, XP), F25 (clock), F13/F29 (crime witness), F10 (turrets toggled by terminals), F28 (Pip-Boy holotape playback), PVM (server VM for TERM fragments, ADR-011), PLAT-085, PLAT-036, ESPM-010, ESPM-011, REF-012, SRV-060, NET-007 |
 | References | reference/fo4-systems-world-economy.md **S8, S9, S10**, §1 (B6, B8, B17), §3.3–3.6; reference/fo4-data-formats.md §4.3 (`XLOC`), §4.11 (KEYM/NOTE), §4.16 (TERM), §4.21 (VMAD fragments); reference/prior-art.md §3.1.10, §5.1 C12; reference/papyrus-api-map.md §1.2 ObjectReference (Lock natives, `OnHolotapePlay`), Terminal (`OnMenuItemRun`); reference/commonlib-port-map.md §4.2 (`LocksPicked`, `TerminalHacked`), §4.3 (menu names); reference/fo4-systems-combat-character.md §11 (XP) |
@@ -45,7 +45,7 @@ Doors, safes and containers keep their Fallout 4 locks for everyone. A player op
 
 ### 4.1 Authority model
 - **Class A:** lock state (level, locked, key), pin consumption, Locksmith/Hacker gates, hacked state, lockouts and attempt counts, terminal menu effects, XP, note read/played sets.
-- **Class B (bounded):** minigame outcomes (lockpick success, hack success). The minigames stay local (latency makes a server sweet spot impractical). The server validates plausibility (rank, pins, time, attempts) and may reject. T2 makes hacking class A with a server-generated word list.
+- **Class A (server-rolled outcome, review finding C3):** lockpick and hack *outcomes*. The minigame stays local as presentation, but success is decided by the server: per attempt it rolls from a GameProfile table (lock level, Locksmith/Hacker rank, Perception; width ≈ the vanilla sweet spot), consumes a bobby pin per failed roll, and returns the result in `LockpickAttempt{outcome}` / `TerminalAction{outcome}`. A client-reported `success` that the server did not roll is rejected (`Implausible`) and counted in the anomaly metric. Previously planned as class B with a timer check only; that was exploitable. Remaining class-B field: elapsed time (rate limit only). Original text: The server validates plausibility (rank, pins, time, attempts) and may reject. T2 makes hacking class A with a server-generated word list.
 - **Class D:** minigame visuals, terminal text/image pages, holotape audio/program playback.
 
 ### 4.2 Server state & persistence
@@ -214,7 +214,7 @@ Every failure sends the outcome op (`ok=false`, `error`) plus the correction set
 
 ## 7. Tasks
 - [ ] **F24-T01** Messages `LockpickAttempt` (99), `TerminalAction` (100), `NoteAction` (110) + TS mirrors — S — Depends: NET-002 — Verify: L-unit, L-ts — Files: skymp5-server/cpp/messages/{LockpickAttemptMessage.h,TerminalActionMessage.h,NoteActionMessage.h}, Messages.h; falloutmp-client/src/services/messages/
-- [ ] **F24-T02** `LockState` ChangeForm field + built-in `lock` property + `CreateActorFo4` prop; ESM `XLOC` default — S — Depends: ESPM-005, REF-020 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/{MpChangeForms.{h,cpp},MpObjectReference.{h,cpp}}, property bindings
+- [ ] **F24-T02** (M6, with F07) `LockState` ChangeForm field + built-in `lock` property + `CreateActorFo4` prop; ESM `XLOC` default — S — Depends: ESPM-005, REF-020 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/{MpChangeForms.{h,cpp},MpObjectReference.{h,cpp}}, property bindings
 - [ ] **F24-T03** `LockService`: activation branch (key, refusal levels, perk gate, pins), sessions, pick result, XP, crime flag, `onLockpick`/`onUnlock`, corrections — M — Depends: F24-T01, F24-T02, SRV-021, F19, F07-T04, NET-007 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/locks/LockService.{h,cpp}, gamemode_events/LockpickEvent.{h,cpp}
   - Accept: every lock case in §6 passes.
 - [ ] **F24-T04** Relock rules: cell-reset restore (SRV-080), DOOR reloot exclusion — S — Depends: F24-T02, SRV-080 — Verify: L-unit
@@ -227,11 +227,12 @@ Every failure sends the outcome op (`ok=false`, `error`) plus the correction set
   - Accept: the self-test opens both menus on a test ref and reports hook payloads.
 - [ ] **F24-T11** Client `lockService.ts`/`terminalService.ts`/`noteService.ts`; remove the unlock in `objectReferenceEx.ts` (FO4 fork); apply the `lock` property — M — Depends: F24-T01, F24-T10, CLI-050 — Verify: L-ts, G-manual — Files: falloutmp-client/src/services/services/{lockService,terminalService,noteService}.ts, falloutmp-client/src/extensions/objectReferenceEx.ts
 - [ ] **F24-T12** `G-manual` locks/terminals scenario script and sign-off — S — Depends: F24-T11 — Verify: G-manual — Files: docs/falloutmp/test-scripts/F24-locks-terminals.md
-- [ ] **F24-T13** (T2) Server-authoritative hacking (word list, `guess`/`likeness`, custom UI) — L — Depends: F24-T06, FRONT-002 — Verify: L-unit, G-manual
+- [ ] **F24-T15** Server-rolled outcomes (C3): GameProfile success tables for lockpick (level × Locksmith rank × Perception) and hacking (level × Hacker rank), per-attempt roll, pin consumption per failed roll, `outcome` in `LockpickAttempt`/`TerminalAction`, `Implausible` error, anomaly metric; client minigame driven by the server outcome (vanilla minigame kept as presentation where possible) — M — Depends: F24-T03, SRV-021 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/LockService.{h,cpp}, HackService.{h,cpp}, unit/LockServiceTest.cpp
+  - Accept: a client sending `success` without a server roll is rejected with correction; 10,000-roll test matches the table within 2%; pins decrement only on failed rolls.
+- [ ] **F24-T13** (T2) Custom hacking UI only (server authority is in F24-T15): word list, `guess`/`likeness`, custom UI — L — Depends: F24-T06, FRONT-002 — Verify: L-unit, G-manual
 - [ ] **F24-T14** (T2) Robot hacking (Robotics Expert) and the Automatron lockpick module — M — Depends: F21, F24-T03 — Verify: L-unit, G-manual
 
 ## 8. Open questions & risks
-- **Milestone mismatch:** F24 is in M9, but PLAT-085 (lock/terminal natives) is listed under M10 in 03-milestones.md. Either move PLAT-085 to M9 or accept server-only F24 work in M9.
 - Is a reliable hack success/failure signal available from `TerminalMenu` mode transitions or `TerminalHacked::Event` (lx getter exists, commonlib-port-map §4.2)? Is the failure/lockout state observable?
 - Lock XP values may already include INT; hack XP tiers are `[inference]` (G-self logging, F19).
 - Which terminal fragments matter most for the native action table, before server-VM fragments are available: measure on D-real (`TERM` VMAD scan).

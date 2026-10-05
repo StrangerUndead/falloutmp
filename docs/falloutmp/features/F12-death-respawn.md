@@ -72,7 +72,7 @@ None for death decisions. The client keeps the local player (and hosted NPCs) ou
 - **Reconnect while dead:** SkyMP behaviour kept: `RespawnWithDelay` on load/login.
 
 ### 4.6 Validation & anti-cheat
-1. Only the server kills: Health 0 from F11/F08 (damage, Rads ≥ 1000, fall damage reported by the owner as an AV decrease), `mp.set(isDead)`, Papyrus `Kill`.
+1. Only the server kills: Health 0 from F11 damage, F20 effects (Rads ≥ 1000), the owner's *own* fall damage reported as an AV decrease (F08), `mp.set(isDead)`, Papyrus `Kill`. A **host can never kill a hosted NPC through the AV path** (F08 §4.8 / F08-T15 clamps NPC Health to ≥ 1 and Rads to ≤ 999).
 2. Death resolution order at Health ≤ 0: protected/essential NPC (ESM flag or override, F21 companions) → `bleedout` (Health 1, recovers after `death.bleedoutRecoverySeconds` out of combat unless `NoBleedoutRecovery`); player with `death.downedSeconds > 0` (and PvP/PvE scope `death.downedScope`) → `downed` with `downedPool`; else **dead**.
 3. Damage to a downed actor reduces `downedPool`; 0 → dead. Downed deadline → dead.
 4. Revive (`UseItem` with a stimpak on a downed/bleeding target, F20): healer alive and not downed, owns the item, distance ≤ `death.reviveDistance` (200 u, rewound positions), target downed → consume item (S13), clear downed, apply the stimpak effect, `onRevive` (blockable → `SetInventoryFo4` correction). Wrong state → correction.
@@ -85,14 +85,14 @@ None for death decisions. The client keeps the local player (and hosted NPCs) ou
 
 ### 4.8 NPC parity
 - NPC death: same decision path; the host plays the death; the host's last movement sample sets the corpse position, after which movement for a dead NPC is ignored except ragdoll settle for 3 s.
-- **NPCs do not use `RespawnWithDelay`** in the FO4 profile: they stay dead (lootable corpse) until F14's cell reset (SRV-080) respawns them from ESM. Gamemode-spawned NPCs (`mp.createActor`) keep SkyMP semantics (`spawnDelay` respected) unless `respawn.npcMode = "cellReset"`.
+- **NPCs do not use `RespawnWithDelay`** in the FO4 profile: they stay dead (lootable corpse) until F14's cell reset (SRV-080) respawns them from ESM. Gamemode-spawned NPCs (`mp.createActor`) keep SkyMP semantics (`spawnDelay` respected) unless `npcRespawn.mode (owned by F14) = "cellReset"`.
 - Death items: at death the server evaluates the NPC_ death item LVLI (F14) into the corpse inventory, then the corpse is a container for F06.
 - Essential NPCs and companions (F21) use bleedout; companion revive uses the same `UseItem` path.
 
 ### 4.9 Gamemode API & server Papyrus
 - Properties: `isDead` (rw, existing), `lifeState` (r), `spawnPoint`, `spawnDelay` (rw, existing), `essential` (rw override).
 - Events: `onDeath(actorId, killerId)` (blockable, existing), `onRespawn(actorId)` (existing), `onDowned(actorId, attackerId)` (blockable → dead instead), `onRevive(targetId, healerId)` (blockable), `onBleedout(actorId)`.
-- Settings: `death.downedSeconds` (0 = off), `death.downedHealth` (50), `death.downedScope` (`pve|pvp|all`), `death.reviveDistance` (200), `death.bleedoutRecoverySeconds` (10), `death.playerDrop` (`none|bag|all`, default `none`), `death.bagLifetimeMinutes` (30), `death.respawnMode` (`resurrect|reload`), `respawn.clearRads` (true), `respawn.clearEffects` (`negative|all|none`, default `negative`), `respawn.npcMode` (`cellReset|delay`).
+- Settings: `death.downedSeconds` (0 = off), `death.downedHealth` (50), `death.downedScope` (`pve|pvp|all`), `death.reviveDistance` (200), `death.bleedoutRecoverySeconds` (10), `death.playerDrop` (`none|bag|all`, default `none`), `death.bagLifetimeMinutes` (30), `death.respawnMode` (`resurrect|reload`), `respawn.clearRads` (true), `respawn.clearEffects` (`negative|all|none`, default `negative`), `npcRespawn.mode (owned by F14)` (`cellReset|delay`).
 - Papyrus: `OnDying`, `OnDeath(akKiller)` on the victim; `OnKill(akVictim)` on the killer; `OnEnterBleedout`; `OnPlayerHealTeammate` on the healer; natives `Kill`, `KillSilent`, `KillEssential`, `Resurrect`, `ResetHealthAndLimbs`, `SetEssential`, `SetProtected`, `IsBleedingOut`, `IsDead` (PVM-014).
 
 ### 4.10 Edge cases & failure modes
@@ -129,7 +129,7 @@ Death/respawn are rare events: one `DeathStateContainerFo4` (≤ 400 B with AV m
 
 ## 7. Tasks
 - [ ] **F12-T01** FO4 death pipeline in `MpActor` (life-state machine alive/bleedout/downed/dead, kill reasons, ledger hand-off to F19 kill XP) — M — Depends: F08-T01, F11-T07 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/MpActor.{h,cpp}, fo4/Fo4LifeState.{h,cpp}; unit/Fo4DeathTest.cpp
-- [ ] **F12-T02** Client HP funnel clamp + deferred-kill guard for the local player and hosted NPCs — M — Depends: PLAT-002, PLAT-040 — Verify: W-ci, G-self — Files: fallout4-platform/src/.../hooks/HealthFunnelHook.cpp
+- [ ] **F12-T02** Client HP funnel clamp + deferred-kill guard for the local player and hosted NPCs — L — Depends: PLAT-002, PLAT-040 — Verify: W-ci, G-self — Files: fallout4-platform/src/.../hooks/HealthFunnelHook.cpp
   - Accept: the self-test survives 10× lethal engine damage at 1 HP until the server kills.
 - [ ] **F12-T03** `isDead`/`lifeState` `UpdateProperty` to all listeners on death and respawn (I14), client long-id routing via CLI-031 — S — Depends: F12-T01, CLI-031 — Verify: L-unit, L-ts
   - Accept: neighbour receives `isDead=true` without any movement packet.
@@ -145,6 +145,7 @@ Death/respawn are rare events: one `DeathStateContainerFo4` (≤ 400 B with AV m
 - [ ] **F12-T12** `G-manual` death/respawn/revive script — S — Depends: F12-T10 — Verify: G-manual — Files: docs/falloutmp/test-scripts/F12-death-respawn.md
 
 ## 8. Open questions & risks
+- **Life-state vocabulary (owned here, review finding M6):** `lifeState ∈ {alive, downed, bleedout, dead}`. `bleedout` = essential NPCs and companions (server-invulnerable, recover after `death.bleedoutRecoverySeconds` with `death.bleedoutRecoverHealthPct`, default 25%). `downed` = the optional player state (`death.downedSeconds`). Protected NPCs are mortal to players only (`npc.protectedPolicy`, F13). F21 uses `lifeState == bleedout`, not a separate `isDowned`.
 - `Resurrect` on the FO4 player may be unusable (FO4_Wrld); the reload fallback costs a loading screen per death.
 - Should PvP deaths drop items by default? Default `none` (SkyMP parity); gamemode decides (Q-06 PvP/PvE focus).
 - Corpse ragdoll positions differ per client; only the server position is authoritative for looting distance.

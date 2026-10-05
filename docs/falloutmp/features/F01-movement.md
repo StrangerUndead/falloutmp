@@ -39,6 +39,7 @@ Class B: owner (or host) authoritative, server-validated **before** relay (I1). 
 |---|---|---|---|---|
 | Position, rotation (yaw), worldOrCell | float3, float3, FormDesc | `MpObjectReference` / ChangeForm `position`,`angle`,`worldOrCellDesc` | yes (≤ 30 s throttle; immediate on cell change) | ESM placement / spawn point |
 | Last movement sample (ring buffer, 1 s @ 10 Hz) | struct | `MpActor::movementHistory` (new) | no | — |
+| Coarse track (1 Hz × 16 s) for F26 discovery and F25 rest checks | struct | `MpActor::recentPositions` (new) | no | — |
 | Flags (sneak, sprint, sighted, drawn, jump, swim, PA, furniture) | bitfield | `MpActor::lastMovementFlags` (new) | no (derived on respawn) | 0 |
 | Speed bounds context | — | from GameProfile + actor state (PA, chems, encumbrance) | — | — |
 
@@ -131,7 +132,7 @@ Hosts send `UpdateMovementFo4` for hosted NPCs, with the same validation. Hostin
   - Accept: binary and JSON round trip, ≤ 64 B binary.
 - [ ] **F01-T02** Platform natives `getMovementState`, `getAimState`, `setActorTransform` — M — Depends: PLAT-030 — Verify: W-ci, G-self — Files: fallout4-platform/.../MovementApi.cpp
   - Accept: the self-test reads velocity while walking and teleports an NPC smoothly without physics jitter.
-- [ ] **F01-T03** Remote-actor AI/motion suppression (engine hooks + template NPC package) — M — Depends: PLAT-070 — Verify: G-self — Files: fallout4-platform hooks
+- [ ] **F01-T03** Remote-actor AI/motion suppression (engine hooks + template NPC package) — L — Depends: PLAT-070 — Verify: G-self — Files: fallout4-platform hooks
   - Accept: a spawned remote actor does not wander, flee or react to combat for 5 minutes while positioned by the client.
 - [ ] **F01-T04** Client capture `movementGetFo4.ts` + send service (100 ms, flags-change trigger, seq/ts) — M — Depends: F01-T01, F01-T02 — Verify: L-ts — Files: falloutmp-client/src/sync/movementGet.ts, services/movementService.ts
 - [ ] **F01-T05** Server: validate-before-relay, seq, speed model from GameProfile (incl. the jetpack allowance when bit 12 is set), `movementHistory` ring buffer, relay rewriting of `ts`/`healthPercentage`, metrics — M — Depends: F01-T01, REF-010 — Verify: L-unit — Files: ActionListener.cpp (FO4 handler), MovementValidation.cpp, MpActor.h
@@ -142,5 +143,6 @@ Hosts send `UpdateMovementFo4` for hosted NPCs, with the same validation. Hostin
 - [ ] **F01-T09** `G-manual` movement scenario script and sign-off — S — Depends: F01-T06 — Verify: G-manual — Files: docs/falloutmp/test-scripts/F01-movement.md
 
 ## 8. Open questions & risks
+- Movement speed and fall physics vary with frame rate in vanilla FO4; **High FPS Physics Fix** (07-dependencies-and-mods.md) is recommended so the server speed model matches clients.
 - The exact source of player velocity/direction in first person needs the F02-T01 prototype.
 - Character-controller warp stability with physics (falling, stairs) on remote actors. Fallback: keyframed motion type while remote (FO4 keyframed motion type is 2, not SP's 4; papyrus-api-map §5).

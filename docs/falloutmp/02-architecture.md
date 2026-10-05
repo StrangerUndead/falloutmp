@@ -62,7 +62,7 @@ CMake selects the game with `-DGAME=skyrim|fallout4` (task BUILD-001). It contro
 | `GameProfile` (C++, server) | skymp5-server | All game-specific server rules: load order defaults, worldspace/spawn, actor-value catalogue, damage formula, equipment slots, inventory extra-data schema, crafting rules, condition functions, NPC spawn filters, reloot defaults, standard scripts and native classes, animation→state map, protocol prefix | REF-010…REF-030 |
 | `espm::Game` | libespm | Detect the game from TES4 HEDR/form version; select record layouts; ESL-aware ID mapping | ESPM-001… |
 | PEX format flag | papyrus-vm | Per-script format (TES5 BE / FO4 LE) and feature gates (structs, Var, opcodes ≥ 0x24) | PVM-001… |
-| Message schema | messages / client | Shared message structs with optional game-specific fields, plus new FO4 messages (MsgType ≥ 34) | NET-001… |
+| Message schema | messages / client | Shared message structs with optional game-specific fields, plus new FO4 messages (MsgType 64–122; 34–63 reserved for upstream) | NET-001… |
 | `falloutPlatform` TS module | fallout4-platform | Same surface as `skyrimPlatform` where the concepts match, generated from the FO4 VM dump | PLAT-030… |
 | Client services | falloutmp-client | Forked services; shared pieces (networking, model, DI) are kept as close to upstream as possible for easy porting | CLI-001… |
 
@@ -198,6 +198,7 @@ Status legend: **Accepted** (implement), **Proposed** (default plan; confirm wit
 - Reuse code from prior-art projects only if its license is compatible (see reference/prior-art.md).
 
 ### ADR-017 Master server & auth — *Proposed*
+> Portability note: in offline mode `profileId` is per server, so progression does not follow a player between servers. Cross-server identity needs the master server (online mode) and an explicit export/import, which is out of scope for 1.0.
 - Offline mode (`profileId`) through M8.
 - Afterwards, a FalloutMP master service (server list, sessions) compatible with the existing `MasterClient`/`login.ts` protocol, or a Discord-only login.
 - `gateway.skymp.net` belongs to SkyMP and must not be used.
@@ -218,6 +219,6 @@ Status legend: **Accepted** (implement), **Proposed** (default plan; confirm wit
 ### ADR-021 Third-party mod dependencies — *Accepted*
 - **Decision:** FalloutMP may require or recommend existing Fallout 4 mods instead of re-implementing what they do. Policy, candidates and tasks are in [07-dependencies-and-mods.md](07-dependencies-and-mods.md).
 - Required: F4SE and the Address Library. Strongly recommended: Buffout 4 NG (crash logs, stability), High FPS Physics Fix (consistent physics across clients), LooksMenu (appearance API and presets), MCM (settings UI).
-- Any F4SE plugin that registers Papyrus natives becomes available to FalloutMP scripts through reflection (ADR-006) at no extra cost.
+- Any F4SE plugin that registers Papyrus natives becomes available to client-side JS through reflection if ADR-006 is accepted (PLAT-030); under the fallback they must be listed explicitly. Server-side code is unaffected.
 - **Constraints:** dependencies are user-installed unless redistribution is permitted; the client manifest verifies them; core sync keeps a native fallback where a dependency is closed source; the server allow/deny-lists client DLL mods (SRV-003).
 - **Why:** it cuts platform work (appearance, settings UI, stability), and it matches how the Fallout 4 modding ecosystem already works.

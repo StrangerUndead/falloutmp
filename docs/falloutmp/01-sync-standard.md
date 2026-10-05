@@ -144,7 +144,7 @@ Two sub-ranges:
 | Id | Name | Twin of / new | Dir | Rel | Owner spec | Purpose |
 |---|---|---|---|---|---|---|
 | 64 | `CreateActorFo4` | CreateActor (33) | S→C | R | F00 | Snapshot with FO4 appearance, equipment (OMOD instances), AV map, anim state, PA state |
-| 65 | `UpdateMovementFo4` | UpdateMovement (2) | both | U | F01 | pos/rot/worldOrCell, speed/direction, flags bitfield (sneak, sprint, sighted, weapon drawn, jump, PA, swim, furniture, dead), aim pitch/yaw, health % |
+| 65 | `UpdateMovementFo4` | UpdateMovement (2) | both | U | F01 | pos/rot/worldOrCell, speed/direction, flags bitfield (sneak, sprint, sighted, weapon drawn, jump, PA, swim, furniture, dead, blocking, encumbered, bit 11 lightOn, bit 12 jetpackActive), aim pitch/yaw, health % |
 | 66 | `UpdateAppearanceFo4` | UpdateAppearance (4) | both | R | F03 | FO4 appearance (morph sliders, regions, tints, head parts, body morph) |
 | 67 | `UpdateEquipmentFo4` | UpdateEquipment (5) | both | R | F05 | Worn items as item instances (base + OMODs), weapon/grenade slots, numChanges |
 | 68 | `SetInventoryFo4` | SetInventory (28) | S→C | R | F04 | Inventory with FO4 extra data (OMOD list, legendary, health, name). Optional `refId` + `version` fields carry container/workshop contents (F06, F15, F22) |
@@ -153,13 +153,13 @@ Two sub-ranges:
 | 71 | `DropItemFo4` | DropItem (19) | C→S | R | F06 | Drop item instance |
 | 72 | `ChangeValuesAv` | ChangeValues (16) | both | R | F08 | Map of AV form id → current/percentage (incl. AP, Rads, limb conditions); idx-scoped for hosted NPCs (I13) |
 | 73 | `DeathStateContainerFo4` | DeathStateContainer (18) | S→C | R | F12 | Death/respawn bundle with AV map |
-| 74 | `UpdateActions` | UpdateAnimation (3) | both | U/R | F02 | Anim-state keyframe + BGSAction replay + whitelisted events with sequence numbers and timestamps |
+| 74 | `UpdateActions` | UpdateAnimation (3) | both | R ordered (keyframes may be coalesced) | F02 | Anim-state keyframe + BGSAction replay + whitelisted events with sequence numbers and timestamps |
 | 75 | `UpdateGraphVariables` | UpdateAnimVariables (24) | both | U | F02 | Name-resolved behaviour-graph variable snapshot/delta |
 | 76 | `CraftItemFo4` | CraftItem (13) | C→S | R | F15 | Craft by COBJ id at a workbench (server consumes components) |
 | 77–79 | reserved twins | | | | | |
 | 80 | `WeaponFire` | new | C→S, S→C relay | U+seq | F09 | Shot(s) fired: weapon instance, origin, dir, timestamp, seq; full-auto batched |
 | 81 | `WeaponReload` | new | both | R | F09 | Reload start/complete, magazine count |
-| 82 | `HitReport` | new (supersedes OnHit 17 for FO4) | C→S | R | F09/F10/F11 | Hit claim with rewind timestamp, limb, projectile/explosion id |
+| 82 | `HitReport` | new (supersedes OnHit 17 for FO4) | C→S | R | F09/F10/F11/F18 | Hit claim with rewind timestamp, limb, projectile/explosion id |
 | 83 | `DamageApplied` | new | S→C | R | F11 | Authoritative damage result: target, per-type amounts, limb, crit, kill |
 | 84 | `ExplosionEvent` | new | both | R | F10 | Thrown/placed explosive lifecycle (spawn, arm, detonate) |
 | 85 | `ModItem` | new | C→S | R | F16 | Attach/detach OMODs on an inventory item at a workbench |
@@ -197,7 +197,9 @@ Two sub-ranges:
 | 117 | `ContainerPeek` | new | C→S | R | F06 | Start/stop a quick-loot peek subscription on a container/corpse (`target`, 0 = stop); contents come back as `SetInventoryFo4` with `refId` |
 | 118 | `SetFavorites` | new | C→S | R | F04 | Owner's 12 favorite slots (`ItemKey`) and tagged components (T1), persisted in the player profile |
 | 119 | `PickpocketAttempt` | new | both | R | F29 | Pickpocket request (target, item key) and authoritative result |
-| 120–122 | free | | | | | Allocate in specs; update this table in the same commit. If the range runs out, discuss a 2-byte type extension (NET) |
+| 120 | `PartyAction` | new | both | R | F32 | Party lifecycle ops (create/invite/accept/leave/kick/promote/settings/PvP flag) and authoritative party state |
+| 121 | reserved | | | | F04 | Delta form of `SetInventoryFo4` (per-entry add/remove/update), allocate when F04-T04 measures that full snapshots exceed budget |
+| 122 | free | | | | | Last free ID. If the range runs out, discuss a 2-byte type extension (NET) |
 
 Rules for adding a message:
 1. Follow recipe (a) in reference/skymp-sync-inventory.md §4.5.
@@ -212,6 +214,11 @@ Rules for adding a message:
 | Stream | Default rate | Reliability | Budget |
 |---|---|---|---|
 | Movement (player, hosted NPCs) | every 100 ms (SkyMP 130 ms; FO4 gunplay needs tighter) plus on flag change | U | ≤ 64 B/msg |
+
+Rates are maxima for the sender. SRV-091 may lower the *relay* rate per recipient (distance, occlusion, hot-spot cap) without changing the sender rate.
+
+| Stream | Default rate | Reliability | Budget |
+|---|---|---|---|
 | Graph variables / aim | ≤ 10 Hz while changing | U | ≤ 96 B/msg |
 | Animation/action events | on event | U (state-critical ones R) | ≤ 48 B/msg |
 | Weapon fire | per shot (coalesce full-auto bursts into ≤ 20 Hz batches) | U with sequence numbers; ammo reconciled reliably | ≤ 64 B/batch |

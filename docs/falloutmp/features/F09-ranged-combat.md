@@ -51,7 +51,7 @@ Ammo model [inference, revisit after R3]: the inventory count of the ammo item i
 ### 4.3 Protocol
 | Message | Dir | Fields | Reliability | Rate / trigger | New or reused |
 |---|---|---|---|---|---|
-| `WeaponFire` (80) | C→S | `idx`, `seq` u16, `ts` u32 (client ms), `instanceHash` u32 (CRC32 of the F04 canonical `ItemKey` encoding of the equipped weapon; also the SRV-022 cache key), `ammoFormId` u32, `flags` u8 (sighted, automatic, vats, chargeRelease, empty), `firstShotId` u16, `vatsSeq` u16 (present only when `flags.vats`, F18), `shots[] {dtMs u8, originOfs i16[3] (1/32 u from the shooter's position at `ts`), dir i16[2] (yaw, pitch), power u8, projectiles u8, cranks u8}` | U + seq | batched ≤ 50 ms (≤ 20 Hz); ≤ 64 B for ≤ 3 shots, larger batches split | registry 80 |
+| `WeaponFire` (80) | C→S | `idx`, `seq` u16, `ts` u32 (client ms), `instanceHash` u32 (CRC32 of the F04 canonical `ItemKey` encoding of the equipped weapon; also the SRV-022 cache key), `flags` u8 (sighted, automatic, vats, chargeRelease, empty), `firstShotId` u16, `vatsSeq` u16 (present only when `flags.vats`, F18), `shots[] {dtMs u8, originOfs i16[3] (1/32 u from the shooter's position at `ts`), dir i16[2] (yaw, pitch), power u8, projectiles u8, cranks u8}` | U + seq | batched ≤ 50 ms (≤ 20 Hz); ≤ 64 B for ≤ 3 shots (ammo form derived server-side from `instanceHash`, M10), larger batches split | registry 80 |
 | `WeaponFire` (80) | S→C relay | `idx`, `serverTs`, `instanceHash`, `flags`, `shots[] {dtMs, originOfs, dir, projectiles}` (no ammo data) | U | after validation | registry 80 |
 | `WeaponReload` (81) | C→S | `idx`, `seq`, `ts`, `instanceHash`, `phase` u8 (start, complete, crank, cancel), `clientLoaded` u16 | R | on event | registry 81 |
 | `WeaponReload` (81) | S→C (owner/host) | `idx`, `instanceHash`, `kind` u8 (ack, correction), `loaded` u16, `total` u32 | R | on reload complete; on every ammo/cadence reject (this is the ammo correction, S12) | registry 81 |
@@ -81,7 +81,7 @@ Server checks, in order. Every failure is logged, raises the shooter's anomaly s
 6. Projectiles per shot ≤ instance `uNumProjectiles` (+1 Two Shot); `power ≤ min(1, hold/fullPowerSeconds) + tol` using the F02 `ActionGunChargeStart` timestamp; cranks ≤ capacitor max.
 7. Origin within `hitValidation.originToleranceUnits` (150) of the shooter's rewound position; `|dir| = 1`.
 8. Accepted shots → `ShotRegistry`, relay to neighbours, `onWeaponFire` (blockable: blocked → no relay, no ammo committed, `WeaponReload correction` restores the client's counts).
-9. **Hit (`hitValidation.level = rewind`):** shot exists with hits left (pellets, penetration) or `shotDesc` passes 1–7; `t = clamp(rewindTs, now − rtt − maxRewindMs, now)`; target capsule from RACE bounds (× PA scale, F17) at `MovementHistory.Sample(t)`, inflated by `speed × jitter + 30 u`; ray/hitscan/Beam/fast Missile: the ray passes the capsule; Lobber/slow Missile: time of flight `|hitPos − origin| / speed ≈ hitTime − shotTime` with gravity; Flame/Cone: within cone and range; distance ≤ PROJ range and weapon max range × 1.1; angle(dir, hitPos − origin) ≤ cone/2 + tol; limb consistent with the hit height; same cell/world (SkyMP check). Reject → `DamageApplied result=rejected` to the shooter.
+9. **Hit (`hitValidation.level = rewind`):** shot exists with hits left (pellets, penetration) or `shotDesc` passes 1–7; `t = clamp(rewindTs, now − rtt − maxRewindMs, now)`; target capsule from RACE bounds (× PA scale, F17) at `MovementHistory.Sample(t)`, inflated by `speed × jitter + 30 u`; ray/hitscan/Beam/fast Missile: the ray passes the capsule; Lobber/slow Missile: time of flight `|hitPos − origin| / speed ≈ hitTime − shotTime` with gravity; Flame/Cone: within cone and range; distance ≤ PROJ range and weapon max range × 1.1; angle(dir, hitPos − origin) ≤ cone/2 + tol; limb consistent with the hit height; same `worldOrCell` (the worldspace for exteriors, so cross-cell shots are allowed; SkyMP check). Reject → `DamageApplied result=rejected` to the shooter.
 10. `basic` level = SkyMP checks + steps 2–7 + range, no rewind. `off` = SkyMP checks only.
 11. **No line of sight** (no server geometry, risk R6). Statistical anomaly detection: hit ratio per range bucket, headshot ratio vs distance, aim-snap (dir angular velocity spike then hit < 100 ms), hits through known-closed doors (F07 state). Scores feed the metric `combat_anomaly_score` and gamemode `onCombatAnomaly` (gamemode decides kick/ban).
 
@@ -100,7 +100,7 @@ Hosts send `WeaponFire`/`WeaponReload`/`HitReport` for hosted NPCs with the same
 ### 4.10 Edge cases & failure modes
 - Lost `WeaponFire` batch: the hit's `shotDesc` registers it; ammo stays consistent because the server decrements on registration.
 - Weapon switch mid-reload: reload cancelled, `loaded` unchanged.
-- Dropped weapon keeps `ammoLoaded` (mirrors `ExtraAmmo`); picked up by another player as is.
+- **Transfers (drop/put/sell/scrap/trade):** the server moves `ammoLoaded` AMMO items out of the source inventory *with* the weapon (a companion AMMO stack in the dropped/transferred entry, mirroring vanilla `ExtraAmmo`), so rounds are never duplicated (review finding C4). If the source lacks the rounds (desync), `ammoLoaded` is set to 0. On merge of two stacks of the same weapon key, `ammoLoaded = min(values)` (F04). QA-040 includes a drop/pick-up ammo duplication test (F06-T13).
 - Shooter disconnects with shots in flight: registry entries stay valid for 2 s (late hits from the shooter are impossible; nothing to do).
 - VATS shots (F18) carry `flags.vats` and are resolved by the server; their `HitReport`s are ignored.
 - Explosive projectiles (missiles, Fat Man): the shot spawns an explosive entity; detonation and area damage are F10.
@@ -151,7 +151,10 @@ Hosts send `WeaponFire`/`WeaponReload`/`HitReport` for hosted NPCs with the same
   - Accept: false-reject rate < 2 % at RTT 150 ms, 2 % loss; result recorded in STATUS.md.
 - [ ] **F09-T13** `G-self` research checks R1/R3 and `G-manual` gunfight script — S — Depends: F09-T09 — Verify: G-self, G-manual — Files: docs/falloutmp/test-scripts/F09-ranged-combat.md
 
+- [ ] **F09-T14** (1.x) Navmesh/cell-geometry line-of-sight check for hit validation (R6): load NAVM/collision proxies server-side, ray test from the rewound shooter position; `hitValidation.level = 3` — L — Depends: F09-T07, ESPM-017 — Verify: L-unit
+
 ## 8. Open questions & risks
+- Fire cadence and time-of-flight checks assume frame-rate-independent physics: **High FPS Physics Fix** is recommended (07-dependencies-and-mods.md); servers may require it via SRV-003 (`clientMods.required`) for PvP.
 - R6: no line of sight on the server. Later option: server navmesh/heightfield LOS from ESM NAVM (out of scope here).
 - R1–R3 (cadence formula, PROJ classification, ammo decrement timing) must be measured before tolerances are tightened.
 - Victim-side LOS confirmation (target client raycasts and flags impossible hits) is a possible T2 extension; it only flags, never decides.

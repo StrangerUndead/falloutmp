@@ -173,7 +173,7 @@ There is nothing new to persist: detection is transient, and effects persist thr
 - [ ] **F29-T01** `DetectionState` (106) message + client mirror — S — Depends: NET-002 — Verify: L-unit — Files: skymp5-server/cpp/messages/DetectionStateMessage.h, Messages.h; falloutmp-client/src/services/messages/detectionStateMessage.ts
 - [ ] **F29-T02** `StealthService`: ingest `NpcAiState.detections` (F13), per-pair history, aggregation and send policy — M — Depends: F13-T06, F29-T01 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/StealthService.{h,cpp}; unit/StealthTest.cpp
 - [ ] **F29-T03** Approximation model + plausibility cap + anomaly metric + F13 election penalty — M — Depends: F29-T02, F01-T05, F13-T05 — Verify: L-unit
-- [ ] **F29-T04** `IsSneakAttackValid` for F11 (NPC and PvP rules), replacing the client flag (I9) — S — Depends: F29-T02, F11, F10-T04 — Verify: L-unit
+- [ ] **F29-T04** (M8, with F11; the rest of F29 is 1.x) `IsSneakAttackValid` for F11 (NPC and PvP rules), replacing the client flag (I9) — S — Depends: F29-T02, F11, F10-T04 — Verify: L-unit
 - [ ] **F29-T05** Invisibility/Chameleon rules with F20; puppet visuals and host AV application — M — Depends: F20-T02, F08 — Verify: L-unit, G-manual
 - [ ] **F29-T06** Host capture: per-target detection reader and puppet sneak-state/AV setters — L — Depends: PLAT-040, F13-T08 — Verify: G-self — Files: fallout4-platform/src/platform_fo4/StealthApi.cpp, falloutmp-client/src/services/services/npcHostingService.ts
 - [ ] **F29-T07** Owner meter override (HUD hook or overlay fallback) + `SetNotShowOnStealthMeter` on puppets — M — Depends: F29-T01, PLAT-060 — Verify: G-self — Files: falloutmp-client/src/services/services/stealthMeterService.ts

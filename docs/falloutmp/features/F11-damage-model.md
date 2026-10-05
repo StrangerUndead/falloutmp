@@ -64,6 +64,8 @@ None for damage: hits come from F09/F10 `HitReport` and `ExplosionEvent`. The cl
 - Stream-in/reconnect: state comes from F08 snapshots; no replay of past hits.
 
 ### 4.6 Validation & anti-cheat
+
+**Step 0 — target immunity table (review finding M8).** Before any damage math the server returns `result=immune` when: the target's character editor is open (`isRaceMenuOpen`, F03 `appearance.protectWhileEditing`); the target NPC is in a special untargetable state reported and verified by F13 (`burrowed`, `inTransit`); the target is a companion and `companions.pvpDamage` is false for a non-hostile attacker (F21); the target has the god-mode/invulnerable AVIF flag or `lifeState == bleedout` with `death.bleedoutInvulnerable`; the attacker and target are party members and friendly fire is off (F32). Tests cover each row.
 The damage computation itself is the main control: clients cannot influence any input except through validated hits.
 
 `Fo4DamageFormula : IDamageFormula`, input `HitContext {aggressor, target, weaponInstance, ammo, projectileIndex, projectileCount, power, cranks, limb, distance, flags (power, bash, blocked, sneak, crit, explosion, ricochet — all **server-derived**), explosionDistance, innerR, outerR}`:
@@ -101,7 +103,7 @@ NPC targets and NPC aggressors use the same function. NPC perks come from NPC_ `
 - GMST missing from a modded load order: use the vanilla default and log.
 
 ### 4.11 Performance budget
-≤ 30 µs per hit with ≤ 6 damage types and ≤ 20 perk entries; perk entry lists cached per actor and invalidated on perk/effect change. `DamageApplied` full ≤ 48 B, fx ≤ 16 B.
+≤ 30 µs per hit with ≤ 6 damage types and ≤ 20 perk entries; perk entry lists cached per actor and invalidated on perk/effect change. `DamageApplied` full ≤ 96 B (amounts[] capped at 3 damage types per message; M10), fx ≤ 16 B.
 
 ## 5. Engine / platform work required
 - Client HP funnel detour (prior-art C8): clamp Health ≥ 1 for the local player and hosted NPCs, record engine deltas for the drift metric — shared with F12-T02.

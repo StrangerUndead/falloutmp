@@ -3,13 +3,13 @@
 > Update this file at the end of every session (see README §1). Newest entries go at the top of each log.
 
 ## Current position
-- **Plan version:** 1.0 (2026-10-05)
+- **Plan version:** 1.1 (2026-10-05) — after two adversarial reviews (feature specs, core plan)
 - **Working branch:** `claude/fallout4-port-research`
 - **Current milestone:** **M0 — Foundations & decisions** (not started)
 - **Code changes so far:** none. The repo is upstream SkyMP `f926944` plus plan docs.
 
 ## Next actions (for the next session)
-1. Get answers from the user to the open questions in [05-risks-open-questions.md §2](05-risks-open-questions.md). The most important are Q-02 (runtime), Q-06 (priorities), Q-08 (CI), Q-09 (in-game testing cadence) and Q-10 (SessionStart hook).
+1. Get answers from the user to the open questions in [05-risks-open-questions.md §2](05-risks-open-questions.md). The most important are Q-02 (runtime), Q-06 (priorities), Q-08 (CI), Q-09 (in-game testing cadence), Q-10 (SessionStart hook), Q-11 (xwin cross-compile, now the R23 fallback) and Q-19 (two instances / second tester).
 2. ENV-001/ENV-002/ENV-003: commit the bootstrap script, the asset script and the build.sh fix. Verify on a fresh container.
 3. REF-000/REF-001: baseline test matrix, then tag the 33 data-dependent tests so `ctest` is green without data.
 4. ENV-016: add the `upstream` remote; first merge.
@@ -40,11 +40,12 @@ _(none)_
 - Every in-game verification (G-self/G-manual) requires the user (Q-09).
 
 ## Decisions awaiting user
-Q-01 … Q-18 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confirmation: 001, 002, 003, 005, 006, 007, 008, 010–014, 016, 017, 019, 020.
+Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confirmation: 001, 002, 003, 005, 006, 007, 008, 010–014, 016, 017, 019, 020.
 
 ## Decisions log
 | Date | Decision | By | Affects |
 |---|---|---|---|
+| 2026-10-05 | Review pass applied (plan v1.1). Scope: 1.0 = T0+T1, T2 → 1.x. Estimates now computed from the task list (03 capacity model, `tools/falloutmp-plan-stats.py`): ~18–26 months to 1.0. New spec F32 parties/PvP (`PartyAction` 120). Lockpick/hack outcomes server-rolled (F24-T15). Hosted-NPC AV reports bounded (F08-T15). PLAT-020 split a/b; F27-T01 pulled into M4; F13-T01…T04 into M5; GM-013 split from GM-010. New tasks: PLAT-006 patch runbook, SRV-004 signing keys, SRV-005 anomaly scoring, SRV-013 schema migration, CLI-090 actor budget, OPS-004/005, QA-013, DOCS-006, FRONT-007, ENV-017, F00-T11, F09-T14, F31-T11. Risks R23–R26, Q-19 | Claude (planning) | all |
 | 2026-10-05 | User states the Commonwealth Online 1.1.0 server package is open source and its code may be used. The package has no license file, so record the Nexus permissions in THIRD_PARTY_LICENSES before verbatim reuse | User | prior-art §3.5.1, OPS-002, OPS-011, QA-020 |
 | 2026-10-05 | Scale target corrected to SkyMP parity: ~1,000 concurrent players at 1.0 (compile cap `MAX_PLAYERS=1000`; user has seen 1,200 on SkyMP servers), staged 64 → 300 → 1,000. Added SRV-090…094 and QA-022 | User + Claude | 00 §7, 03, SRV, QA, R22 |
 | 2026-10-05 | ADR-021 Accepted: FalloutMP may require/recommend existing mods (F4SE, Address Library, Buffout 4 NG, High FPS Physics Fix, LooksMenu, MCM); policy in 07-dependencies-and-mods.md. Realism pass: overall timeline stated as ~14–20 months to 1.0 | Claude (planning) + user direction | 02, 03, 07, PLAT-095, SRV-003, CLI-080, F03-T12, F22-T26, DOCS-005 |
@@ -82,6 +83,9 @@ Q-01 … Q-18 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 - F07 uses `activationReach` = 300 u + 64 u slack with per-type overrides (SkyMP: 512 containers / 256 furniture).
 - F13 spawns essential NPCs as server-invulnerable instead of skipping them (needs Q-14).
 - F03 keeps `SetRaceMenuOpen` (29) frozen; the editor mode is an owner-only `looksMenuMode` property.
+- F26 `discoveredOnly` fast travel differs from SkyMP (fast travel off); default confirmed by Q-15.
+- F24 lockpick/hack outcomes are server-rolled (class A) instead of client minigame results (review C3).
+- F08 hosted-NPC AV reports are cause-bounded and can never kill (review C1).
 
 ## Evidence log
 | Date | Task | Evidence |
@@ -96,3 +100,4 @@ Q-01 … Q-18 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 | Date | Session summary |
 |---|---|
 | 2026-10-05 | Research (11 references) + full plan v1 written: vision, sync standard, architecture/ADRs, milestones, backlog, 32 feature specs, testing, risks. No code changes. |
+| 2026-10-05 | Plan v1.1: two adversarial reviews applied (5 + 5 critical, 15 + 12 major findings). 33 specs, 645 tasks. Added `tools/falloutmp-plan-stats.py`. No code changes. |

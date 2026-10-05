@@ -28,3 +28,7 @@ Feature implementation tasks live in each feature spec (`features/Fxx-*.md`, IDs
 ```
 
 Sizes, verification codes and status markers are defined in [../README.md](../README.md) §3–4.
+
+**Ownership rules:**
+- One owner per piece of work. A feature task may *use* an infrastructure task (list it under `Depends:`) but never re-specify it. When a spec and a backlog entry describe the same change, the backlog entry owns it and the spec task becomes "integrate + test".
+- Before a task in the current or next milestone is started it must carry `Accept:`, `Verify:` and `Files:` lines. Backfill them when a milestone opens (README §1 step 4).

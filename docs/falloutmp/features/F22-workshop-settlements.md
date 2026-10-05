@@ -264,7 +264,7 @@ Every rejection sends `RequestResult{ok=false, error}` plus the state needed to 
 **T1 — core build**
 - [ ] **F22-T01** ESPM gaps: `BNDS`, REFR `XPRM`/`XWPG`/`XWPN`/`XPLK`, base-object `PRPS`, workshop keywords by EDID — M — Depends: ESPM-005, ESPM-010, ESPM-016 — Verify: L-fixture — Files: libespm/include/libespm/fo4/{BNDS.h,REFR.h}, libespm/src/fo4/*
   - Accept: fixture refs expose primitive, grid and spline data.
-- [ ] **F22-T02** `MpWorkshop` record, `workshops` save-storage collection, JSON schema with defaults, coalesced save policy — M — Depends: REF-020, F00-T07 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/workshop/MpWorkshop.{h,cpp}, viet/include/save_storages/ISaveStorage.h (collection), database_drivers/*
+- [ ] **F22-T02** `MpWorkshop` record, `workshops` save-storage collection, JSON schema with defaults, coalesced save policy — L — Depends: REF-020, F00-T07 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/fo4/workshop/MpWorkshop.{h,cpp}, viet/include/save_storages/ISaveStorage.h (collection), database_drivers/*
   - Accept: round trip, backward-compatible load, 3k objects < 50 ms.
 - [ ] **F22-T03** Workshop discovery: workbench refs, linked container, build-area primitives, `areaCells`, pre-placed scrappable index (lazy, REF-012) — M — Depends: F22-T01, REF-012 — Verify: L-unit, D-real — Files: fo4/workshop/WorkshopRegistry.{h,cpp}
 - [ ] **F22-T04** Messages 93–97, 108, 109 + TS mirrors, protocol bump — M — Depends: NET-002, NET-003, F15-T01 — Verify: L-unit, L-ts — Files: skymp5-server/cpp/messages/Workshop*Message.h, Messages.h; falloutmp-client/src/services/messages/
@@ -294,7 +294,10 @@ Every rejection sends `RequestResult{ok=false, error}` plus the state needed to 
 - [ ] **F22-T24** DLC objects: logic gates/pressure plates as power-graph signals, manufacturing machine timers, cosmetic conveyors, cages/arenas, Vault 88 multi-workbench, raider outposts/vassals, PKIN expansion — XL — Depends: F22-T11, F22-T22 — Verify: L-unit, G-manual
 - [ ] **F22-T25** Settlement stores: vendor stalls make an assigned settler a vendor (F23), daily store income — S — Depends: F22-T13, F23 — Verify: L-unit
 
+- [ ] **F22-T26** Blueprint import/export (ADR-021): evaluate the Transfer Settlements blueprint JSON schema as the server's settlement export/import and backup format; admin command to export/import a settlement; validation against budget and ownership on import — M — Depends: F22-T10 — Verify: L-unit, G-manual
+
 ## 8. Open questions & risks
+- **Companion-mod compatibility (ADR-021):** Workshop Framework, Place Everywhere and Scrap Everything change build-mode behaviour; they are deny-by-default in `workshop.clientMods` until tested (F22-T05 settings); Transfer Settlements' blueprint schema is evaluated in F22-T26.
 - **R7 scale:** decor snapshots and the per-frame placement budget must hold at 2k objects; verify in F22-T16/T20.
 - **Placement trust:** the server has no collision. Objects can be placed inside doors or walls. Mitigations: area bounds, optional AABB overlap check, ACL scoping, gamemode reporting.
 - **Engine vs server power** may disagree visually (risk 2). `setPowered` needs RE; otherwise accept engine visuals and keep gameplay server-side.
@@ -302,4 +305,3 @@ Every rejection sends `RequestResult{ok=false, error}` plus the state needed to 
 - Refund rules for scrapping player-built objects and repair costs are `[inference]`.
 - The daily update re-implements `WorkshopScript.DailyUpdate`; golden tests guard against balance drift (world-economy §5 item 9).
 - The save-policy deviation (§4.2) must be recorded as an S-checklist deviation in the review.
-- [ ] **F22-T26** Blueprint import/export (ADR-021): evaluate the Transfer Settlements blueprint JSON schema as the server's settlement export/import and backup format; admin command to export/import a settlement; validation against budget and ownership on import — M — Depends: F22-T10 — Verify: L-unit, G-manual

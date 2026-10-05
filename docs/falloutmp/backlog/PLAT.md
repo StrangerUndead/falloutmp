@@ -18,7 +18,10 @@ Context: [reference/commonlib-port-map.md](../reference/commonlib-port-map.md) (
   - add an RTTI-based vtable finder for vtables whose IDs are still pre-AE (blocker R1).
   - L — Depends: PLAT-001 — Verify: G-self — Files: game/Offsets.h, game/VTableFinder.*
   - Accept: the self-test resolves every ID/vtable and logs `OK`/`FAIL` per symbol.
-- [ ] **PLAT-003** Runtime allow-list and refusal UX: on an unsupported runtime or a missing Address Library, show a message box, log, and disable cleanly — S — Depends: PLAT-001 — Verify: G-manual
+- [ ] **PLAT-003** Runtime allow-list and refusal UX: on an unsupported runtime or a missing Address Library, show a message box, log, and disable cleanly; detect NG (1.10.984) and OG (1.10.163) binaries explicitly, including downgrader-produced ones (Simple Fallout 4 Downgrader, BackPorter), and point to the runbook (PLAT-006) — S — Depends: PLAT-001 — Verify: G-manual
+  - Accept: each of the three runtimes yields the matching message text in a G-manual check; an unknown version shows the generic refusal.
+- [ ] **PLAT-006** Runtime-update runbook (R3): steps to re-pin libxse/CommonLibF4 and the Address Library, re-run the ID self-test (PLAT-002) and record `verified`/`inferred` deltas, bump the client allow-list, cut a platform release (OPS-010); target ≤ 7 days from a Bethesda patch; server setting `clientVersion.required` so a server can refuse mismatched clients; player guidance for downgraders while waiting — S — Depends: PLAT-002, PLAT-003, OPS-010 — Verify: G-self + docs — Files: docs/falloutmp/runbooks/runtime-update.md
+  - Accept: the runbook has been executed once end to end on a simulated patch (changed Address Library version), with timings recorded in STATUS.
 - [ ] **PLAT-004** Two-DLL layout: both DLLs in `Data/F4SE/Plugins` (ADR-003 constraint); libnode and CEF in `Data/Platform/Distribution/RuntimeDependencies` added to the DLL search path; start without the `WinMain` dependency (use the F4SE plugin-load hook path, commonlib map §2) — M — Depends: PLAT-001 — Verify: G-self
 - [ ] **PLAT-005** Logging/diagnostics contract (dev-environment §9): `[INIT] hooks=… papyrus_natives=… node=… cef=…`; crash-safe flush; log rotation — S — Depends: PLAT-001 — Verify: G-self
 
@@ -34,12 +37,16 @@ Context: [reference/commonlib-port-map.md](../reference/commonlib-port-map.md) (
   - `printConsole` via the FO4 `ConsoleLog`;
   - `findConsoleCommand` / console command override (FO4 script function table; commonlib map §1.14).
   - M — Depends: PLAT-010 — Verify: G-self
-- [ ] **PLAT-020** Tick model: `TickHandler` via the F4SE task interface, plus `TESModPlatform.Add` dispatched with `DispatchStaticCall` (FO4 signature with `std::function` arg filler) → JS `update` (Papyrus-safe) and `tick` events, exactly like SP's semantics — M — Depends: PLAT-021, PLAT-030 — Verify: G-self
+- [ ] **PLAT-020a** Tick model, part 1 (M3): `TickHandler` via the F4SE task interface → JS `tick` event every frame, with SP's semantics — S — Depends: PLAT-010 — Verify: G-self
+  - Accept: the self-test counts `tick` calls per second ≈ frame rate; exceptions in a tick handler are logged and do not stop later ticks.
+- [ ] **PLAT-020b** Tick model, part 2 (M4): `TESModPlatform.Add` dispatched with `DispatchStaticCall` (FO4 signature with `std::function` arg filler) → JS `update` (Papyrus-safe, runs with a live StackFrame) — M — Depends: PLAT-021, PLAT-030 — Verify: G-self
+  - Accept: a Papyrus native call from `update` succeeds while the same call from `tick` throws the SP-style "not in update" error.
   - Accept: `update` fires every frame in game. `tick` fires in the main menu. Papyrus calls from `update` succeed.
 - [ ] **PLAT-021** `TESModPlatform.psc` for FO4 (native declarations only, `Native` script, FO4 type names) compiled with BUILD-005 and shipped to `Data/Scripts` — S — Depends: BUILD-005 — Verify: W-ci
 
 ## C. Papyrus reflection ("SP3 for FO4")
 - [ ] **PLAT-030** Hook `IVirtualMachine::BindNativeMethod` (vtable slot **0x1B**, installed before the VM is created via `F4SEPlugin_Preload` (F4SE 0.7+); fall back to xSE PluginPreloader F4 only if preload runs too late; needs PLAT-002's vtable finder) and record all bound natives (game + F4SE + other plugins) — M — Depends: PLAT-002 — Verify: G-self
+  - Accept: natives registered by a plugin that loads *before* FalloutPlatform (test with a tiny dummy plugin named `AAA_dummy.dll`) are still captured; the dump lists game, F4SE and plugin natives separately.
   - Accept: the self-test lists more than 800 natives including F4SE ones.
 - [ ] **PLAT-031** Port `CallNative`/`VmProvider`/`GetNativeFunctionAddr`:
   - FO4 `StackFrame` (0x40, no inline args; use `Stack::GetStackFrameVariable`);
@@ -85,8 +92,8 @@ Context: [reference/commonlib-port-map.md](../reference/commonlib-port-map.md) (
 - [ ] **PLAT-071** AI/motion suppression for remote actors in the engine (ActorProcess/SetPosition/Rotate/RunDetection hooks; prior-art Adopt 2) — M — Depends: PLAT-070 — Verify: G-self
 - [ ] **PLAT-072** `setActorTransform` (character-controller warp) and keyframed motion helper — M — Depends: PLAT-070 — Verify: G-self
 - [ ] **PLAT-073** DoNothing-style AI package template for remote NPC bases (FO4 form id lookup) — S — Depends: PLAT-070 — Verify: G-self
-- [ ] **PLAT-075** Animation hooks and `AnimApi` (see F02-T03/T04) — tracked in F02.
-- [ ] **PLAT-076** hkb/ActorMediator/BGSActionData local types (see F02-T02) — tracked in F02.
+- [-] **PLAT-075** Animation hooks and `AnimApi` — tracked in F02-T03/F02-T04 (no separate size; do not start here).
+- [-] **PLAT-076** hkb/ActorMediator/BGSActionData local types — tracked in F02-T02 (no separate size; do not start here).
 - [ ] **PLAT-080** Inventory API: read `BGSInventoryList` (stacks, extra lists, `BGSObjectInstanceExtra` OMODs) → JS; `setInventory` with item instances; `addItemEx` (instance + health + name) — L — Depends: PLAT-031 — Verify: G-self (F04)
 - [ ] **PLAT-081** Equip API: `ActorEquipManager::EquipObject/UnequipObject` (NG/AE 2231392/2231395) with a real `BGSObjectInstance` (OMODs kept); filter the transient readied-weapon unequip; strip auto-added ammo — M — Depends: PLAT-080 — Verify: G-self (F05)
 - [ ] **PLAT-082** Appearance natives: write the TESNPC face block (head parts, morph sliders, region sliders, facial-bone sliders, body morph weights, tints, hair/skin colour) + `Actor::Reset3D` (NG/AE 2229913) with `bUseFaceGenPreprocessedHeads=0` — L — Depends: PLAT-070 — Verify: G-self (F03)
@@ -99,4 +106,4 @@ Context: [reference/commonlib-port-map.md](../reference/commonlib-port-map.md) (
 - [ ] **PLAT-089** `MpClientPlugin.dll` loading from `Data/F4SE/Plugins` with the protocol prefix (`CreateClientEx`) — S — Depends: NET-001 — Verify: G-self
 - [ ] **PLAT-090** Multi-runtime support (OG 1.10.163 / NG 1.10.984) via dual ID tables — XL — Depends: M8 — Verify: G-self on each runtime — (post-1.0, optional)
 - [ ] **PLAT-091** Self-test hooks: `[Debug] bSelfTest=1` runs the QA-010 suite after the first load and writes `falloutmp-selftest-<sha>.json` — S — Depends: PLAT-010 — Verify: G-self
-- [ ] **PLAT-095** Dependency detection (ADR-021): enumerate loaded F4SE plugins and versions via `F4SEInterface::GetPluginInfo`, detect Buffout 4 NG, High FPS Physics Fix, LooksMenu, MCM, HUDFramework; report in the self-test JSON and in the connect manifest; show an in-game prompt listing missing required/recommended mods — S — Depends: PLAT-001, PLAT-091 — Verify: G-self
+- [ ] **PLAT-095** Dependency detection (ADR-021): enumerate loaded F4SE plugins and versions via `F4SEInterface::GetPluginInfo`, detect Buffout 4 NG, High FPS Physics Fix, LooksMenu, MCM, HUDFramework; report in the self-test JSON and in the connect manifest; show an in-game prompt listing missing required/recommended mods — M — Depends: PLAT-001, PLAT-091 — Verify: G-self

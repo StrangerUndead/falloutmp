@@ -125,7 +125,7 @@ This performs the race switch to `PowerArmorRace` and a real PA skeleton, so rem
 
 ### 4.6 Validation & anti-cheat
 **Enter**, in order. Each failure → `ok:false` + correction:
-1. ownership of `actorIdx` (own actor or hosted NPC/companion);
+1. ownership of `actorIdx`: own actor, or a **companion** via `CompanionCommand{enterPA}` (F21). Plain hosted NPCs cannot be put into frames by their host (review finding M14); NPC power armor comes only from server-driven spawns (F13/F14);
 2. frame exists, is enabled, `paWornBy` empty, not in another transition;
 3. reach ≤ `activationReach` (F07, I15) using rewound position;
 4. actor alive, not in PA, not in furniture, not ragdolled;
@@ -259,7 +259,8 @@ At 0, auto-swap the next core from the actor inventory, vanilla style. The deple
 - [ ] **F17-T14** Drain-rate calibration (R8) and `G-manual` script — S — Depends: F17-T08 — Verify: G-self, G-manual — Files: docs/falloutmp/test-scripts/F17-power-armor.md
 
 ## 8. Open questions & risks
-- F01's `UpdateMovementFo4.flags` has `inPowerArmor` but no jetpack bit. F17 needs one; F01-T01 should add `jetpacking` (the u16 has spare bits).
+- Hold-breath (scoped aim) AP drain is an F08 AP rule (F08-T09), not a PA rule; PA only changes the drain multiplier.
+- Jetpack state travels as F01 flag bit 12 `jetpackActive` (already reserved in F01 §4.3).
 - Does `SwitchToPowerArmor` on a puppet need the frame to be a real persistent ref? If so, proxies must be persistent but skip-save (risk of the TEMPORARY-bit load hang; prior-art §3.1.8).
 - Drain-rate constants and GMST names are unknown (R8); the GameProfile table needs measurement.
 - Depleted-core and auto-swap behaviour must be verified in game.

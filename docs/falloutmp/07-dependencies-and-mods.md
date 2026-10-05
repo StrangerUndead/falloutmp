@@ -8,9 +8,9 @@ Provenance: mod names and roles are from the modding ecosystem research; Nexus I
 
 1. **Prefer an existing, maintained mod over new engine work** when it covers a need, is compatible with the target runtime (ADR-001: AE 1.11.x), and has a usable API (F4SE plugin interface, Papyrus natives, or a documented file format).
 2. **Dependencies are user-installed**, not bundled, unless the mod's permissions explicitly allow redistribution. The client **manifest check** (F00-T09, PLAT-095) verifies presence and version at connect and gives a clear error.
-3. **Any F4SE plugin that registers Papyrus natives is automatically available to FalloutMP scripts** through runtime reflection (ADR-006, PLAT-030/033). This makes "include a native-extending mod" nearly free, and it is the preferred route for one-off natives.
+3. **Any F4SE plugin that registers Papyrus natives becomes available to *client-side* JS** through runtime reflection, *provided ADR-006's reflection path is accepted* (PLAT-030 prototype; the hook must also capture natives bound by plugins that load before FalloutPlatform). Under ADR-006's fallback (a fixed native list), such natives must be listed explicitly. Server Papyrus and gamemode code never see client natives. Where it holds, this makes "include a native-extending mod" nearly free for client features.
 4. **Core sync must not hard-depend on a closed-source mod.** Where a mod is used for a sync-critical path (e.g. appearance), keep a native fallback or a reduced mode.
-5. **Server-defined load order.** ESM/ESP/ESL mods are allowed only if the server lists them. Client-side DLL mods are allowed by default unless the server denies them (`SRV-003` allow/deny list). Gameplay-affecting DLL mods (damage, spawns, AI) should be denied by default on PvP servers.
+5. **Server-defined load order.** ESM/ESP/ESL mods are allowed only if the server lists them (the manifest hash check is enforceable because the server computes it from the records the client must have). Client-side DLL mods are allowed by default unless the server denies them (`SRV-003` allow/deny list). Gameplay-affecting DLL mods (damage, spawns, AI) should be denied by default on PvP servers. **The DLL list is client-reported (PLAT-095), so it is a cooperation check for honest players, not anti-cheat**; a modified client can omit entries. Gameplay security rests on server-side validation (01 §1) and anomaly scoring (SRV-005).
 6. **Compatibility is tracked** in a matrix (DOCS-005): mod, version, runtime, role, status (required / recommended / optional / incompatible), owner feature.
 
 ## 2. Required client dependencies
@@ -48,6 +48,10 @@ Provenance: mod names and roles are from the modding ecosystem research; Nexus I
 - **UI replacers** (DEF_UI, FallUI): the overlay and menu-pause policy (F28) must not break them. Test early.
 - **Scrapping/settlement mods** (Scrap Everything, Sim Settlements 2): they change workshop behaviour; server authority (F22) must either reject or model their actions. Default: deny on servers that enable settlements until tested.
 - **Weapon/armor packs** (ESP/ESL): fine if in the server load order; the server needs the records to compute stats (SRV-022).
+- **D3D11/DXGI wrappers** (ENB, ReShade, upscaler bridges, Steam/Discord/Nvidia overlays): they contend with the CEF overlay's `Present`/`Renderer::End` hook (PLAT-060). Very common in FO4 installs. Test early in PLAT-060 with ReShade and ENB installed; document the supported hook order; PrismaUI stays the fallback (ADR-005).
+- **Mod Organizer 2 virtual file system**: `Data/Platform/Plugins` hot reload, `Data/Platform/Logs` and `sp.storage` live under a virtual Data directory with MO2. Test in PLAT-010/PLAT-005; DOCS-001 states "install the client into the real Data folder (manual or Vortex); MO2 works only with the documented profile setup".
+- **Downgraders** (Simple Fallout 4 Downgrader, BackPorter): widespread; PLAT-003 detects NG/OG binaries and points to the runtime-update runbook (PLAT-006).
+- **High FPS Physics Fix** patches the main loop and the loading flow (load accelerator) `[verify interaction]` with PLAT-050 template loading; **Buffout 4 NG** replaces the memory allocator `[verify]` that the Frida-gum/trampoline hooks coexist (one G-self check in PLAT-095).
 - **Animation replacers**: may change behaviour graph variables and events; F02 resolves variables by name at runtime to tolerate this, but hosted-NPC animation parity can suffer. Document as "cosmetic, at your own risk".
 
 ## 6. Developer tools (not shipped)

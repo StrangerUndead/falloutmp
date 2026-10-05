@@ -227,7 +227,7 @@ Rules:
   - Accept: `WaitGameTime(1)` at timescale 20 waits 180 s. The Skyrim profile behaviour is unchanged (gated by GameProfile).
 - [ ] **F25-T03** ESPM CLMT and REGN records plus WTHR UNAM views; GameProfile climate table per worldspace — M — Depends: ESPM-005, ESPM-010, ESPM-002 — Verify: L-fixture, D-real — Files: libespm/include/libespm/{CLMT,REGN}.h (new), libespm/src/, unit/Fo4ClimateRecordsTest.cpp
   - Accept: fixture weather lists and chances parse. D-real lists the Commonwealth climate and the radstorm weathers' UNAM spells.
-- [ ] **F25-T04** `WorldTimeWeather` (105) and `RestAction` (113) messages + client mirrors — S — Depends: NET-002 — Verify: L-unit — Files: skymp5-server/cpp/messages/{WorldTimeWeatherMessage,RestActionMessage}.h, Messages.h, falloutmp-client/src/services/messages/
+- [ ] **F25-T04** (M6: the clock message is needed before M9 so clients can show server time and run timers) `WorldTimeWeather` (105) and `RestAction` (113) messages + client mirrors — S — Depends: NET-002 — Verify: L-unit — Files: skymp5-server/cpp/messages/{WorldTimeWeatherMessage,RestActionMessage}.h, Messages.h, falloutmp-client/src/services/messages/
   - Accept: binary and JSON round trips. `WorldTimeWeather` ≤ 48 B.
 - [ ] **F25-T05** `WeatherService`: per-worldspace slots, seeded roll, transitions, forced weather, `onWeatherChange`, `mp.getWeather/setWeather/releaseWeather`, audience, persistence — M — Depends: F25-T01, F25-T03, F25-T04 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/WeatherService.{h,cpp} (new), unit/WeatherServiceTest.cpp
   - Accept: the `[Weather]` cases pass, including the late-joiner snapshot and a worldspace change.
@@ -245,6 +245,7 @@ Rules:
   - Accept: an admin changes the time and the weather and both clients follow within 2 s.
 
 ## 8. Open questions & risks
+- Bed/sleeping-bag reach for `RestAction` reuses F07's `activationReach` (300 u + slack); F25 does not define its own distance.
 - Global IDs 0x35–0x39 are inferred (world-economy §5 item 5). They must be verified before F25-T07 ships.
 - Do radstorm rads apply under roofs in exterior cells? Measure in vanilla (G-manual) before choosing the exterior-only rule.
 - `rest.mode` T2 "vote" (all players in a region asleep → advance the clock) affects every timer. Leave it to gamemodes via `mp.setWorldClock`, or build it in? Decide with the user.

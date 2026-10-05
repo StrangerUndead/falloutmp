@@ -5,9 +5,9 @@
 
 ## Overview
 
-FalloutMP turns this SkyMP fork into an open-source, server-authoritative multiplayer framework for Fallout 4 (Anniversary Edition 1.11.x). It reaches SkyMP parity at the M8 alpha, adds all Fallout 4 systems by the M11 beta, and ships 1.0 at M12.
+FalloutMP turns this SkyMP fork into an open-source, server-authoritative multiplayer framework for Fallout 4 (Anniversary Edition 1.11.x). It reaches SkyMP parity at the M8 alpha, adds the Fallout 4 systems every server needs (T1) by the M11 beta, ships 1.0 at M12, and adds the T2 systems (VATS-lite, companions, quests, stealth, settlement attacks, survival) in 1.x. The schedule is computed from the task list (03-milestones.md capacity model): about 18–26 months to 1.0.
 
-- **Repository:** `StrangerUndead/falloutmp`, branch `claude/fallout4-port-research`. The full plan is in `docs/falloutmp/`: 70+ files, 32 feature specs, and 606 tasks with IDs (406 feature tasks, 200 infrastructure tasks).
+- **Repository:** `StrangerUndead/falloutmp`, branch `claude/fallout4-port-research`. The full plan is in `docs/falloutmp/`: 70+ files, 33 feature specs, and 645 tasks with IDs (422 feature tasks, 223 infrastructure tasks; counts from `tools/falloutmp-plan-stats.py`).
 - **How sessions use it:** every session starts with `README.md` and `STATUS.md`, picks the next unblocked task of the current milestone, verifies it the way the task specifies, and updates STATUS.md.
 - **Current state:** planning is complete. No code has changed yet; the repo is upstream SkyMP `f926944` plus the plan. Current milestone: **M0 Foundations**.
 
@@ -133,7 +133,7 @@ Full text: [01-sync-standard.md](01-sync-standard.md).
 - IDs 1–33 stay byte-identical for Skyrim.
 - IDs 34–63 are reserved for upstream SkyMP.
 - IDs 64–79 are FO4 twins of existing messages.
-- IDs 80–119 are new FO4 messages.
+- IDs 80–122 are new FO4 messages (allocated through 120 `PartyAction`; 121 reserved for a delta `SetInventoryFo4`; 122 free).
 - FO4 uses the protocol prefix `fo4-1_`, so a Skyrim client can never join a Fallout server.
 
 ## Architecture and decisions
@@ -180,29 +180,30 @@ FalloutMP leans on existing, maintained Fallout 4 mods instead of rebuilding wha
 | Mod Configuration Menu | In-game settings page | Recommended |
 | HUDFramework, PrismaUI, Garden of Eden natives, Transfer Settlements, Workshop Framework | HUD widgets, alternative UI backend, extra script natives, settlement blueprint format, workshop hooks | Evaluate |
 
-Any F4SE plugin that registers Papyrus natives is callable from FalloutMP scripts through runtime reflection, so adding a native-extending mod costs almost nothing. The server defines the load order and can allow or deny client DLL mods (SRV-003).
+If ADR-006's reflection path holds (PLAT-030 prototype), any F4SE plugin that registers Papyrus natives is callable from client-side JS, so adding a native-extending mod costs almost nothing; under the fallback the natives are listed explicitly. The server defines the load order (enforceable by hash) and can allow or deny client DLL mods (SRV-003), which is a cooperation check for honest players; cheating is handled by server validation and anomaly scoring (SRV-005).
 
 ## Milestones
 
-Run strictly in sequence the milestone ranges add up to 63–101 weeks; with the two tracks in parallel, a realistic single-developer-plus-Claude schedule is about 14–20 months to 1.0, with the parity alpha (M8) around month 8–11. Until M6 the work runs on two parallel tracks. The server track is Linux-only. The platform track needs Windows CI and in-game tests. See [03-milestones.md](03-milestones.md).
+Estimates are computed from the task list with the capacity model in [03-milestones.md](03-milestones.md): size midpoints (S 1 day, M 1 week, L 4 weeks, XL 8 weeks), Linux-verifiable work at about 4× a solo developer, Windows-CI and in-game work at 1× and gated by the user's weekly test cadence. 1.0 covers T0 + T1; T2 systems ship in 1.x. With the two tracks in parallel that gives about 18–26 months to 1.0, with the parity alpha (M8) around month 9–12 and the beta (M11) at month 15–21. M1 runs beside M3 and M2 beside the platform half of M4; the M4 exit needs M1 and M2 done. The server track is Linux-only. The platform track needs Windows CI and in-game tests.
 
 ![Milestones](img/milestones.png)
 
-| Milestone | Exit criteria | Estimate |
+| Milestone | Exit criteria | Computed estimate |
 | --- | --- | --- |
 | M0 Foundations | A fresh-session bootstrap gives a green no-data test suite; fork CI builds fork code; every open question is answered or deferred | 1–2 weeks |
-| M1 Pluggable core | Skyrim behaviour and packets are byte-identical; the server boots with game = fallout4; clients with the wrong protocol are refused | 3–5 weeks |
-| M2 FO4 data | Synthetic fixture suites are green; Fallout4.esm and the DLCs load on the user's machine; FO4 compiled scripts execute | 4–6 weeks |
-| M3 Platform alive | The plugin loads on allow-listed runtimes; JS hot reload, update/tick and the overlay work; the client connects | 4–8 weeks |
-| M4 Connect and spawn | `falloutPlatform.ts` is generated; the player spawns at the persisted position; the animation probe is analysed and ADR-008 decided | 4–6 weeks |
-| M5 See each other | Two players see each other move and animate in 1st and 3rd person; vanilla actors are cleaned up | 4–6 weeks |
-| M6 Items and world | Inventory, equipment with mods, containers, corpse loot, doors and elevators reach their targets; the duplication suite is green | 5–8 weeks |
-| M7 Character | Actor values are server-owned; death and respawn are broadcast; chems, radiation and XP persist | 4–6 weeks |
-| M8 Combat (alpha) | Every parity row is at SkyMP level; gunfights work at 150 ms RTT; the 100-bot load test meets the targets | 6–10 weeks |
-| M9 Economy | Crafting, scrap, modding, perks, vendors, locks, terminals, time/weather and map reach their targets | 6–10 weeks |
-| M10 FO4 systems | Power armor works end to end; companions, VATS-lite, stealth and survival options are in | 6–10 weeks |
-| M11 Settlements (beta) | 500 objects per settlement × 10 settlements persist and scale; every T1 feature is at target | 8–12 weeks |
-| M12 Release (1.0) | Every feature is at target; the soak test passes; docs and the licensing audit are done | 8–12 weeks |
+| M1 Pluggable core | Skyrim behaviour and packets are byte-identical; the server boots with game = fallout4; clients with the wrong protocol are refused | 4–6 weeks |
+| M2 FO4 data | Synthetic fixture suites are green; Fallout4.esm and the DLCs load on the user's machine; FO4 compiled scripts execute | 5–8 weeks |
+| M3 Platform alive | The plugin loads on allow-listed runtimes; JS hot reload, `tick` and the overlay work; the client connects; the animation probe starts in week 1 | 10–16 weeks |
+| M4 Reflection, connect and spawn | `falloutPlatform.ts` is generated; Papyrus-safe `update` works; the player spawns at the persisted position with no vanilla quests running; the animation probe is analysed and ADR-008 decided | 8–12 weeks |
+| M5 See each other | Two players see each other move and animate in 1st and 3rd person; server-spawned NPCs stand in the world; vanilla actors are cleaned up | 8–12 weeks |
+| M6 Items and world | Inventory, equipment with mods, containers, corpse loot, doors (with lock state) and elevators reach their targets; the duplication suite is green | 8–12 weeks |
+| M7 Character | Actor values are server-owned; death and respawn are broadcast; chems, radiation and XP persist | 7–10 weeks |
+| M8 Combat (alpha) | Every parity row is at SkyMP level; gunfights work at 150 ms RTT; parties and friendly fire work; 64 hot-spot / 300 spread bots meet the targets | 10–14 weeks |
+| M9 Economy | Crafting, scrap, modding, perks, vendors, locks, terminals, time/weather, map and PvP zones reach their targets | 10–14 weeks |
+| M10 FO4 systems | Power armor works end to end; F20 T1 options are in (companions, VATS-lite, stealth and survival needs move to 1.x) | 6–9 weeks |
+| M11 Settlements (beta) | 500 objects per settlement × 10 settlements persist and scale; every T1 feature is at target; 300-player load test passes | 10–14 weeks |
+| M12 Release (1.0) | Every T0/T1 feature is at target; the soak test and the 1,000-player load test pass; docs and the licensing audit are done | 6–9 weeks |
+| 1.x | T2 systems: VATS-lite, companions, quest framework, stealth, settlement attacks and supply lines, survival needs | after 1.0 |
 
 ## Feature catalogue
 
@@ -210,16 +211,16 @@ There are 32 specs with 406 tasks in [features/](features/). The authority codes
 
 | ID | Feature | Authority and core design | Tier | Target | Milestone | Tasks |
 | --- | --- | --- | --- | --- | --- | --- |
-| F00 | Session, world entry, streaming | Login; template save + teleport; 3×3 grid streaming; save/load blocked | T0 | L4 | M4 | 10 |
+| F00 | Session, world entry, streaming | Login; template save + teleport; 3×3 grid streaming; save/load blocked | T0 | L4 | M4 | 11 |
 | F01 | Movement and aim | B: 100 ms updates; validate-before-relay with a speed model; controller warp with a jitter buffer | T0 | L3+ | M5 | 9 |
 | F02 | Animation | B: state keyframes, action replay, whitelisted events, named graph variables; prototype probe first | T0 | L3 | M5/M8 | 12 |
-| F03 | Appearance, character creation | A: FO4 morphs, regions, tints, head parts; validated in the face editor; applied with Reset3D | T0 | L3 | M5/M7 | 12 |
+| F03 | Appearance, character creation | A: FO4 morphs, regions, tints, head parts; validated in the face editor; applied with Reset3D | T0 | L3 | M5/M7 | 13 |
 | F04 | Inventory, item instances | A: item key = base + sorted mods + name + piece health + stolen flag | T0 | L4 | M6 | 15 |
 | F05 | Equipment | A: biped slots 30–61, layering, weapon instances, power-armor lock | T0 | L4 | M6 | 13 |
 | F06 | Containers, looting, drop | A: quick-loot peek, corpse loot, stealing, drops kept across restarts; loot shared or instanced | T0 | L4 | M6 | 14 |
 | F07 | Activation, doors, furniture | A: load doors, elevators, switches, power gating; reach and occupancy checks | T0 | L4 | M6 | 15 |
-| F08 | Actor values | A: Health, AP, Rads, limbs, SPECIAL-derived; every value cropped; per-actor values for NPCs | T0 | L4 | M7 | 14 |
-| F09 | Ranged combat | B+A: server-owned ammo and magazines, fire-rate checks, hit validation with 250 ms rewind | T0 | L4 | M8 | 13 |
+| F08 | Actor values | A: Health, AP, Rads, limbs, SPECIAL-derived; every value cropped; per-actor values for NPCs | T0 | L4 | M7 | 15 |
+| F09 | Ranged combat | B+A: server-owned ammo and magazines, fire-rate checks, hit validation with 250 ms rewind | T0 | L4 | M8 | 14 |
 | F10 | Melee, explosives, turrets | A: reach check; server-side detonation and damage area; persisted mines; hosted turrets | T0/T1 | L4 | M8 | 14 |
 | F11 | Damage model | A: FO4 resistance curve per damage type, limbs, crits, sneak, perk entry points | T0 | L4 | M8 | 11 |
 | F12 | Death, respawn, bleedout | A: death broadcast, downed and revive, respawn points, optional death bag | T0 | L4 | M7 | 12 |
@@ -232,16 +233,17 @@ There are 32 specs with 406 tasks in [features/](features/). The authority codes
 | F19 | Progression | A: XP, levels, SPECIAL and perks as validated requests; bobbleheads; magazines | T1 | L4 | M7/M9 | 12 |
 | F20 | Consumables, effects, survival | A: use-item; server effect system; addiction, radiation, optional survival needs | T1 | L4 | M7/M10 | 14 |
 | F21 | Companions | C: owner-hosted followers, commands, per-player affinity | T2 | L3 | M10 | 10 |
-| F22 | Workshop and settlements | A: WorkshopService with ownership, budgets, power simulation, chunked decor | T1/T2 | L4 | M11/M12 | 25 |
+| F22 | Workshop and settlements | A: WorkshopService with ownership, budgets, power simulation, chunked decor | T1/T2 | L4 | M11 / 1.x | 26 |
 | F23 | Vendors, barter, trade | A: vendor stock and restock, barter formula, atomic player trade | T1 | L4 | M9 | 14 |
-| F24 | Locks, terminals, hacking | A: server lock state; validated lockpick and hack outcomes; holotapes | T1 | L4 | M9 | 14 |
+| F24 | Locks, terminals, hacking | A: server lock state; validated lockpick and hack outcomes; holotapes | T1 | L4 | M9 | 15 |
 | F25 | Time and weather | A: one server clock, regional weather, radstorms, rest modes | T1 | L3 | M6/M9 | 11 |
 | F26 | Map and fast travel | A: per-player discovery, validated fast travel | T1 | L3 | M9 | 10 |
 | F27 | Quests and dialogue | A: vanilla quests blocked; gamemode quest and dialogue framework | T2 | L3 | M12 | 11 |
 | F28 | Pip-Boy, radio, HUD | D/A: menus don't pause the game; synced light state; local radio | T1/T2 | L2/L3 | M5/M11 | 10 |
 | F29 | Stealth | C+A: detection reports from hosts, Stealth Boy, sneak crits, pickpocketing | T2 | L3 | M10 | 10 |
 | F30 | Chat, commands, admin | A: chat via the gamemode, console permissions, admin channel, ban store | T0 | L4 | M6 | 11 |
-| F31 | Names and extensibility | A: nameplates, display names, custom properties, signed client snippets | T0 | L4 | M5 | 10 |
+| F31 | Names and extensibility | A: nameplates, display names, custom properties, signed client snippets | T0 | L4 | M5 | 11 |
+| F32 | Parties, teams, PvP rules | A: server-owned parties; one friendly-fire and hostility rule set; PvP flag, zones, XP sharing | T1 | L4 | M8/M9 | 9 |
 
 ## Infrastructure workstreams
 
@@ -249,18 +251,18 @@ The platform is the critical path. The server-side work runs in parallel on Linu
 
 | Workstream | Tasks | Scope |
 | --- | --- | --- |
-| PLAT | 45 | `fallout4-platform`: F4SE entry, Node runtime, tick, Papyrus reflection (struct and Var), events, overlay, multiplayer natives |
+| PLAT | 48 | `fallout4-platform`: F4SE entry, Node runtime, tick, Papyrus reflection (struct and Var), events, overlay, multiplayer natives |
 | ESPM | 20 | Game detection, ESL, FO4 records, strings from BA2, synthetic plugin builder |
 | REF | 19 | Game-pluggability refactors; Skyrim stays green at every step |
 | PVM | 16 | FO4 compiled-script reader, structs, Var, 11 opcodes, events, timers, server natives |
-| SRV | 15 | Fallout4GameProfile, actor-value store, effects, perk engine, mod stats, lag compensation, clock, world reset |
-| CLI | 14 | Client fork, settings, single-player systems off, world cleaner, TS test harness |
+| SRV | 24 | Fallout4GameProfile, actor-value store, effects, perk engine, mod stats, lag compensation, clock, world reset |
+| CLI | 16 | Client fork, settings, single-player systems off, world cleaner, TS test harness |
 | NET | 13 | Protocol prefix, per-game registry, ordering, corrections, bounds checks, rate limits |
-| ENV | 12 | Bootstrap, vcpkg workaround, fork CI, Windows CI, FO4 script fixtures |
+| ENV | 13 | Bootstrap, vcpkg workaround, fork CI, Windows CI, FO4 script fixtures |
 | BUILD | 9 | CMake `GAME` switch, CommonLibF4 ports, client dist, BA2-capable archive library |
-| QA | 9 | Self-test plugin, test scripts, load tests, network emulation, anti-dup suite |
-| GM | 7 | Public default gamemode |
-| FRONT, OPS, DOCS, DATA | 21 | UI theme, Docker/master server/releases, docs and licensing, `.fos` tools |
+| QA | 11 | Self-test plugin, test scripts, load tests, network emulation, anti-dup suite |
+| GM | 8 | Public default gamemode |
+| FRONT, OPS, DOCS, DATA | 26 | UI theme, Docker/master server/releases, docs and licensing, `.fos` tools |
 
 ## Testing and verification
 
@@ -278,7 +280,7 @@ Claude verifies everything that can be checked on Linux. Windows code is compile
 | D-real | Tests against real Fallout4.esm/DLC files | User, locally |
 
 Non-functional work:
-- a 100-bot / 300-NPC load test;
+- staged bot load tests: 64 hot-spot / 300 spread with 600 NPCs (M8), 300 (M11), 1,000 players with 2,000 NPCs (M12);
 - jitter and packet-loss emulation;
 - adversarial duplication tests;
 - fuzzing of the binary reader;

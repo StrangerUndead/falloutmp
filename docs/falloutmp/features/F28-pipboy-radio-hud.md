@@ -216,5 +216,5 @@ No new message IDs. The radio schedule (T2) needs only the clock in `WorldTimeWe
 ## 8. Open questions & risks
 - Unpausing LooksMenu, LockpickingMenu or TerminalMenu may break their cameras or animations. Per-menu exceptions are possible, but each one must stay vulnerable.
 - The vanilla Pip-Boy light may not be a normal LIGH form that can be attached to other actors (RE). The fallback is a FalloutMP LIGH in `FalloutMP.esl` (F27-T07).
-- **Cross-spec dependency:** F01's `UpdateMovementFo4.flags` must reserve bit 11 for `lightOn`, and `CreateActorFo4` must carry the movement flags.
+- Light state travels as F01 flag bit 11 `lightOn` (already reserved in F01 §4.3); `CreateActorFo4.movementFlags` carries it for late joiners (F00-T11).
 - Pip-Boy companion app data (stats, map) would show template-save values unless the T2 stats feed lands.

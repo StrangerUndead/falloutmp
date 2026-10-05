@@ -100,7 +100,7 @@ The F01 relay of `UpdateMovementFo4` overwrites `healthPercentage` with the serv
 Owner/host: full owner subset (`GetActorToSendTo`, S14). Grid neighbours: public subset on change (S7/S8). Nothing world-wide.
 
 ### 4.8 NPC parity
-Each NPC has its own store, built from NPC_/RACE (ESPM-006) and template chain. The host reports with `idx` = NPC; the same policies and crops apply. Host migration does not lose AVs (they are server state). NPCs never consume AP for sprint unless `actorValues.npcApRules` is on (default off: vanilla NPCs don't sprint-drain [inference]).
+Each NPC has its own store, built from NPC_/RACE (ESPM-006) and template chain. The host reports with `idx` = NPC. **Hosted NPCs use a stricter policy than the owner's own actor** (review finding C1): a host may only *decrease* NPC Health/limb conditions or *increase* NPC Rads when the server can attribute a cause it knows about (a fall in the F01 movement history: `velZ` ≥ `actorValues.fallVelocityThreshold` within the last second; an active environmental radiation source from F20), bounded per second by `actorValues.npcClientDecreaseMaxPerSec`, and **never across 0 HP or 1000 rads** (clamped to ≥ 1 HP / ≤ 999 rads with a correction). Only F11 damage and F20 effects may kill or irradiate an NPC past those bounds. Everything else for NPCs is `serverOnly`. Host migration does not lose AVs (they are server state). NPCs never consume AP for sprint unless `actorValues.npcApRules` is on (default off: vanilla NPCs don't sprint-drain [inference]).
 
 ### 4.9 Gamemode API & server Papyrus
 - `mp.get(id, 'actorValues')` → `{ [edid]: {base, current, max, pct} }`; `mp.set(id, 'actorValues', {edid: {base?|current?}})` (validated, triggers derived recompute and a delta). Existing `healthRespawnPercentage` properties keep working.
@@ -163,9 +163,12 @@ Store ≈ 40 AVs × 16 B per actor. Report ≤ 2 Hz × ≤ 40 B. Server handling
 - [ ] **F08-T12** Server-stamped health % in the F01 relay; public subset to neighbours — S — Depends: F08-T04, F01-T05 — Verify: L-unit
   - Accept: a faked `healthPercentage` from the owner never reaches neighbours.
 - [ ] **F08-T13** Gamemode `actorValues` property, `onActorValueChange`/`onCripple`/`onOverEncumbered`, Papyrus AV natives and `OnCripple`, docs (DOCS-003) — M — Depends: F08-T05, PVM-013 — Verify: L-unit, L-int
+- [ ] **F08-T15** Hosted-NPC AV policy (C1): cause-bounded host decreases/increases for NPC idx, per-second caps, hard clamp at 1 HP / 999 rads, corrections; metrics `av_npc_host_reject_total` — M — Depends: F08-T08, F01-T05, F20-T06 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/ActorValuePolicy.{h,cpp}, unit/ActorValuePolicyTest.cpp
+  - Accept: tests "host reports Health 0 for hosted NPC → clamped to 1 + ChangeValuesAv correction", "host reports Rads 1000 → clamped 999", "fall with velZ history → decrease accepted up to cap", "no cause → rejected".
 - [ ] **F08-T14** `G-self` AV parity check and `G-manual` script — S — Depends: F08-T10 — Verify: G-self, G-manual — Files: docs/falloutmp/test-scripts/F08-actor-values.md
 
 ## 8. Open questions & risks
+- AP cost rules (sprint, hold-breath, VATS, jetpack, melee power attack) are owned here (F08-T09); F02/F17/F18 only report the action.
 - NPC max HP/AP source (NPC_ auto-calc vs stored values) and NPC regen rules: D-real + G-self (R4/R5-style research tasks in fo4-systems §18).
 - `FatigueAPMax` and related AV ids are unknown (probably 0x350–0x354) — resolve by EDID.
 - Hold-breath AP drain is not visible to the server (no movement flag); the client may under-report it. Accepted deviation at L4, revisit if exploited.

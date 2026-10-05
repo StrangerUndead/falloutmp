@@ -160,7 +160,7 @@ Every command, accepted or rejected, is logged as a spdlog `[console]` line with
 ### 4.11 Performance budget
 - A console command costs ≤ 1 ms of server CPU, excluding the effects themselves (e.g. a spawn).
 - A chat line costs O(neighbours) for local and O(users) for global. ≤ 300 B per delivered line.
-- At 100 players and 1 msg/s global this is ≈ 30 KB/s server egress, within the §7 budget per client (≤ 0.3 KB/s).
+- At 1,000 players and 1 msg/s global this is ≈ 300 KB/s server egress (global chat is rate-limited and may be region-scoped above `chat.globalMaxPlayers`), within the §7 budget per client (≤ 0.3 KB/s).
 
 ## 5. Engine / platform work required
 - PLAT-012: `printConsole` (ConsoleLog), `findConsoleCommand`, and a full console table walk with a writable `executeFunction` (FO4 `float&` signature).
@@ -195,7 +195,7 @@ Every command, accepted or rejected, is logged as a spdlog `[console]` line with
 - [ ] **F30-T05** `BrowserEventPacketService` (`CustomPacket` `browserEvent` → overlay event, no eval) — S — Depends: CLI-001 — Verify: L-ts — Files: falloutmp-client/src/services/services/browserEventPacketService.ts
 - [ ] **F30-T06** Public gamemode chat (implements GM-011): channels, `/` router, event source, limiter, mute, history, system messages — M — Depends: GM-001, F30-T05, F31-T05 — Verify: L-int — Files: falloutmp-gamemode/src/chat/
 - [ ] **F30-T07** Front chat widget FO4 (FRONT-003): text-only rendering, tabs, focus handling, Pip-Boy theme — M — Depends: FRONT-001, F30-T05 — Verify: G-manual — Files: falloutmp-front/src/constructorComponents/chat/
-- [ ] **F30-T08** Roles and admin commands (implements GM-012): roles, `consoleCommandsAllowed` sync, kick/ban/unban/mute/tp/bring/spawn/heal/kill/time/weather, login ban check, `moderationLog.ts` JSONL — M — Depends: F30-T06, F30-T03, F25-T05 — Verify: L-int — Files: falloutmp-gamemode/src/admin/
+- [ ] **F30-T08** Roles and admin commands (implements GM-012): roles, `consoleCommandsAllowed` sync, kick/ban/unban/mute/tp/bring/spawn/heal/kill (M6); `/time` and `/weather` land with F25-T05 in M9, login ban check, `moderationLog.ts` JSONL — M — Depends: F30-T06, F30-T03, F25-T05 — Verify: L-int — Files: falloutmp-gamemode/src/admin/
 - [ ] **F30-T09** Admin panel wiring (FRONT-005): player list, actions through gamemode events, log viewer — M — Depends: F30-T08 — Verify: G-manual
 - [ ] **F30-T10** Docs (DOCS-002 admin and moderation section, privacy note) + G-manual script — S — Depends: F30-T08 — Verify: G-manual — Files: docs/falloutmp/test-scripts/F30-chat-admin.md
 - [ ] **F30-T11** Server-level admin channel and ban store, independent of the gamemode: a loopback-only (127.0.0.1) JSON-lines admin port with a token file (`kick`, `banPlayer`, `banIp`, `unban`, `listBans`, `setTime`, `setWeather`, `stats`); a persistent `bans.json` store (profileId/IP, reason, time, expiry) checked at login before `spawnAllowed`; a kick notice to the client with code and reason before disconnect. Pattern from Commonwealth Online (prior-art §3.5.2) — M — Depends: F30-T08, REF-021 — Verify: L-int — Files: skymp5-server/ts/systems/adminChannel.ts, skymp5-server/ts/systems/banStore.ts, misc/tests/test_admin_channel.js

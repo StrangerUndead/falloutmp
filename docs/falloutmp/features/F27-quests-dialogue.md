@@ -211,7 +211,7 @@ Papyrus quests are **shared** by default. One VM object exists per quest. A ques
 - `G-manual`: two players. A shared quest advances for both; an instanced quest advances for one only. A dialogue with a speech check.
 
 ## 7. Tasks
-- [ ] **F27-T01** Vanilla quest policy + allow-list data: default list from a G-self running-quest dump (radio stations and other cosmetic quests), settings `quests.vanillaPolicy/vanillaWhitelist`, review rule "cosmetic only" — S — Depends: PLAT-036, SRV-030 — Verify: L-ts, G-self — Files: falloutmp-client/src/config/vanillaQuestAllowList.ts, skymp5-server/ts/settings.ts
+- [ ] **F27-T01** (M4, T0 — needed by F00-T05) Vanilla quest policy + allow-list data: default list from a G-self running-quest dump (radio stations and other cosmetic quests), settings `quests.vanillaPolicy/vanillaWhitelist`, review rule "cosmetic only" — S — Depends: PLAT-036, SRV-030 — Verify: L-ts, G-self — Files: falloutmp-client/src/config/vanillaQuestAllowList.ts, skymp5-server/ts/settings.ts
   - Accept: the list is committed with its EDIDs and the reason for each entry. F00-T05 consumes it.
 - [ ] **F27-T02** Extend the F00-T05 guard: re-run on `TESQuestStartStopEvent`, block vanilla scenes, suppress `DialogueMenu` — S — Depends: F00-T05, PLAT-040 — Verify: G-self — Files: falloutmp-client/src/services/services/questGuardService.ts
   - Accept: walking from Sanctuary to Concord starts no vanilla quest objective on the HUD.
@@ -221,7 +221,7 @@ Papyrus quests are **shared** by default. One VM object exists per quest. A ques
   - Accept: the `[PapyrusQuest]` cases pass. The Skyrim `Quest` behaviour is unchanged.
 - [ ] **F27-T05** JS API `mp.quest*`, `onQuestStage`/`onQuestObjective`, and the gamemode TS framework layer — M — Depends: F27-T03 — Verify: L-int — Files: skymp5-server/cpp/addon/ScampServer.cpp, skymp5-server/cpp/server_guest_lib/gamemode_events/QuestStageEvent.cpp, falloutmp-gamemode/src/quests/framework.ts
 - [ ] **F27-T06** `QuestUpdate` (114) message, slot assignment, deferred send, snapshot on spawn — S — Depends: NET-002, F27-T03 — Verify: L-unit — Files: skymp5-server/cpp/messages/QuestUpdateMessage.h, Messages.h, falloutmp-client/src/services/messages/
-- [ ] **F27-T07** `FalloutMP.esl` generator (quest slots, objectives, target aliases, a hide-person keyword for F31) — M — Depends: ESPM-002, ESPM-003 — Verify: L-fixture, G-self — Files: tools/falloutmp-plugin-gen/, falloutmp-client-deps/FalloutMP.esl
+- [ ] **F27-T07** `FalloutMP.esl` generator (quest slots, objectives, target aliases, a hide-person keyword for F31) — L — Depends: ESPM-002, ESPM-003 — Verify: L-fixture, G-self — Files: tools/falloutmp-plugin-gen/, falloutmp-client-deps/FalloutMP.esl
   - Accept: the plugin loads in game with no errors and the slots are startable.
 - [ ] **F27-T08** Client `QuestDisplayService` + natives (`getRunningQuests`, `setQuestObjectiveText`), CEF tracker fallback — L — Depends: F27-T06, F27-T07, PLAT-031, CLI-050 — Verify: L-ts, G-self, G-manual — Files: falloutmp-client/src/services/services/questDisplayService.ts, fallout4-platform/src/.../QuestApi.cpp
 - [ ] **F27-T09** (T2) Dialogue: `DialogueAction` (115), server `DialogueService` (sessions, validation, speech checks), `mp.dialogueShow/Close`, `onDialogueOpen/Choice`, front dialogue widget — L — Depends: F07, F19, FRONT-001, NET-002 — Verify: L-unit, G-manual — Files: skymp5-server/cpp/server_guest_lib/DialogueService.{h,cpp} (new), falloutmp-front/src/features/dialogue/

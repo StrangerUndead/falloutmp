@@ -3,24 +3,40 @@
 Source: [reference/skyrim-coupling-index.md](../reference/skyrim-coupling-index.md) §5 (interfaces) and §6 (steps A0–A15, B, C, D). Every step builds, keeps Skyrim behaviour identical (unless marked), and passes `./unit/unit "~[espm]"` locally and full `ctest` with Skyrim data in CI. New code goes in new files (`game_profile/`, `libespm/fo4/`, `views/`); edits to upstream files stay as call-site substitutions.
 
 - [ ] **REF-000** Baseline: record the test list and the pass/fail matrix with and without data (A0) — S — Verify: L-unit — Files: docs/falloutmp/STATUS.md
+  - Accept: the matrix (test name × with/without data × pass/fail) is in STATUS.md and matches a fresh `ctest` run.
 - [ ] **REF-001** Tag every data-dependent test `[espm]` (A1; about 20 untagged files load Skyrim data through `GetPartOne()`) — S — Depends: REF-000 — Verify: L-unit — Files: unit/*
   - Accept: without data, `ctest` / `./unit/unit "~[espm]"` is fully green. Upstreamable.
 - [ ] **REF-002** Crash fixes for foreign data (A2): WEAP DATA null checks, CrimeFactionsList null check, noexcept-throw (Effects, GetScriptData), NAVM 4CC, LIGH offsets, Reader opcode bound, LVLO iteration, case-insensitive strings — M — Depends: REF-001 — Verify: L-unit — Files: libespm/src/*, server_guest_lib/*, papyrus-vm/src/papyrus-vm-lib/Reader.cpp
   - Accept: one test per fix. Upstreamable.
-- [ ] **REF-003** GameProfile skeleton (A3): `GameId`, `GameProfile` (GetGameId, DefaultLoadOrder, DefaultWorldspace, ProtocolPrefix), `SkyrimGameProfile`, factory, `WorldState::GetGameProfile()`, `"game"` setting — S — Depends: REF-001 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/game_profile/*, WorldState.*, addon/ScampServer.cpp
+- [ ] **REF-003** GameProfile skeleton (A3): `GameId`, `GameProfile` (GetGameId, DefaultLoadOrder, DefaultWorldspace, ProtocolPrefix), `SkyrimGameProfile`, factory, `WorldState::GetGameProfile()`, `"game"` setting — M — Depends: REF-001 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/game_profile/*, WorldState.*, addon/ScampServer.cpp
+  - Accept: `WorldState::GetGameProfile().GetGameId()` returns Skyrim by default and Fallout4 with `"game": "fallout4"`; the full Skyrim suite stays green.
 - [ ] **REF-004** Move well-known IDs and defaults into the profile (A4): 0x14, 0x7, 0xF, 0x1F4, 0x3c, spawn point, banned races, crime list, reloot defaults, reach, vanilla-form threshold computed from the load order — M — Depends: REF-003 — Verify: L-unit
   - Accept: grep finds no `0x14`/`0x3c` literals outside the profiles.
 - [ ] **REF-005** Actor-value catalogue (A5): route H/M/S through `ActorValueCatalogue()`; keep the Skyrim JSON keys — M — Depends: REF-003 — Verify: L-unit (ChangeValues, HealthRestoration, CropRegeneration, Respawn tests)
+  - Accept: every H/M/S read/write in server code goes through the catalogue (grep check); ChangeValues/HealthRestoration/CropRegeneration/Respawn tests unchanged.
 - [ ] **REF-006** Damage formula factory + hit validation params (A6) — S — Depends: REF-003 — Verify: L-unit (HitTest, TES5DamageFormulaTest)
+  - Accept: `IDamageFormula` instances are created by the profile factory; HitTest and TES5DamageFormulaTest unchanged; a stub FO4 formula compiles.
 - [ ] **REF-007** Animation rules as data; SweetPie hacks behind `gamemodeHacks.sweetPie` (auto) (A7) — S — Depends: REF-003 — Verify: L-unit (AnimationSystemTest)
+  - Accept: AnimationSystemTest green with rules loaded from the profile; SweetPie-specific behaviour is off unless `gamemodeHacks.sweetPie` is set.
 - [ ] **REF-008** Equipment/inventory seams (A8): ShieldSlotMask, IsItemType, ValidateEquipment, extra-data schema per game — M — Depends: REF-003 — Verify: L-unit
+  - Accept: equip/inventory tests green; the FO4 profile can declare a different slot mask and extra-data schema without touching shared code.
 - [ ] **REF-009** Condition function table from the profile (A9) — S — Depends: REF-003 — Verify: L-unit (CraftTest, condition tests)
+  - Accept: condition tests green; the function table comes from the profile and the FO4 profile can supply its own (ESPM-011).
 - [ ] **REF-010** Movement validation params and speed model in the profile (for F01) — S — Depends: REF-003 — Verify: L-unit
+  - Accept: movement tests green; speed thresholds and teleport tolerance read from the profile; FO4 profile values are placeholders until F01-T05.
 - [ ] **REF-011** Papyrus seams (A10): native class registration per game, record→script-name map, event names/OnHit args, denied scripts, storage options — M — Depends: REF-003 — Verify: L-unit (Papyrus* tests)
+  - Accept: Papyrus* tests green; native class list, record→script map and denied-script list come from the profile.
 - [ ] **REF-012** NPC spawn filter and synced record types from the profile (A11) — S — Depends: REF-003 — Verify: L-unit
+  - Accept: NPC spawn filter and synced record-type set read from the profile; Skyrim spawn tests unchanged.
 - [ ] **REF-013** Crafting rules from the profile (A12) — S — Depends: REF-003 — Verify: L-unit (CraftTest)
+  - Accept: CraftTest green with recipe rules from the profile.
 - [ ] **REF-015** Behaviour-changing upstream fixes, each in a separate commit (A2b): SNAM rank offset, npcSettings `default`, stamina crop, temper keyword ToGlobalId — M — Depends: REF-002 — Verify: L-unit
+  - Accept: one commit and one test per fix; each is upstreamable without FalloutMP code.
 - [ ] **REF-020** ChangeForm schema hardening: per-field defensive JSON parsing (one bad key must not drop the form), DB game meta record, additive-field helpers — M — Depends: REF-003 — Verify: L-unit
+  - Accept: a ChangeForm with one unknown/corrupt key loads with that key defaulted and a warning; round-trip tests cover every field; the DB meta record exists.
 - [ ] **REF-021** TS server: `game` setting, FO4 start points, settings defaults per game (A14) — S — Depends: REF-003 — Verify: L-unit (`yarn build`) — Files: skymp5-server/ts/settings.ts, systems/spawn.ts
+  - Accept: `yarn build` passes; `settings.ts` exposes `game` and per-game defaults; a `fallout4` config resolves FO4 start points.
 - [ ] **REF-024** Manifest/UI: `.ba2` archive naming in `manifestGen.ts`, UI blocks `.ba2` (A14) — S — Depends: REF-021 — Verify: L-int
+  - Accept: `manifestGen.ts` lists `.ba2` archives for FO4 and `.bsa` for Skyrim; UI blocks `.ba2` per the test.
 - [ ] **REF-030** `views::*` game-neutral record views; move TES5DamageFormula/EquipBestWeapon/GetWeightFromRecord/GetReach to views — M — Depends: ESPM-001 — Verify: L-unit — (= coupling B4 part 2)
+  - Accept: the moved functions have identical results on Skyrim fixtures (before/after test) and compile against FO4 record views.

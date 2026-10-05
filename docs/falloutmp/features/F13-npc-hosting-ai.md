@@ -5,7 +5,7 @@
 | Tier | T0 |
 | Target level | L3+ (SkyMP L3; plus server-driven threat-based owner election, combat-state handover and host-claim validation) |
 | SkyMP analogue | `AttachEspmRecord` NPC filters (`WorldState.cpp:368-659`), `npcEnabled`/`npcSettings`, `Host`/`HostStart`/`HostStop` (14/26/27), `OnHostAttempt` 2 s rule (`ActionListener.cpp:653-738`), `GetActorToSendTo()`. SkyMP level L3 (reference/skymp-sync-inventory.md §1.6) |
-| Milestone | M5 (spawn + basic hosting, no combat), M6 (dead/leveled actors), M8 (combat election, migration, hostility) |
+| Milestone | M5 (F13-T01…T04: spawn, identity, AI suppression, no hosting), M6 (dead/leveled actors via F06/F14), M8 (F13-T05…T14: hosting, combat election, migration, hostility) |
 | Workstreams | SRV, CLI, PLAT, NET, ESPM, GM |
 | Depends on | F01, F02, F08 (idx-scoped AVs, I13), F11 (damage attribution), F12 (death), F14 (leveled actor evaluation), PLAT-070, PLAT-071, PLAT-073, REF-012, ESPM-006, SRV-040 |
 | References | reference/skymp-sync-inventory.md §1.6, §2 (NPC spawning row); reference/prior-art.md §3.1.9, §5.1 B7/C9, §5.3 Adopt 1/2/6, §5.4 Q3/Q9; reference/fo4-systems-combat-character.md §16; reference/fo4-systems-world-economy.md S15 (factions/crime); reference/fo4-data-formats.md §4.4 (ACBS, TPLT/TPTA, LTPT/LTPC), §4.15 (FACT) |
@@ -105,7 +105,8 @@ The server spawns the Commonwealth's raiders, gunners, super mutants, ghouls, cr
 |---|---|---|
 | Initially disabled / deleted | REFR flags 0x800 / 0x20 | skip (SkyMP) |
 | Starts dead | ACHR flag / ACBS 0x4000000 | **load as dead, lootable** (`npc.loadStartsDead`, resolves SkyMP TODO) |
-| Essential / protected (named townsfolk, vendors) | ACBS 0x2 / 0x800 | spawn, server-invulnerable: downed instead of dead (`npc.essentialPolicy = invulnerable\|skip\|mortal`) |
+| Essential (named townsfolk, vendors) | ACBS 0x2 | spawn, server-invulnerable: `lifeState = bleedout` instead of dead (F12 enum; `npc.essentialPolicy = invulnerable\|skip\|mortal`) |
+| Protected | ACBS 0x800 | spawn; mortal to players only, invulnerable to NPCs (`npc.protectedPolicy = vanilla\|invulnerable\|mortal`) |
 | Unique (non-essential) | ACBS 0x20 | spawn, mortal, no respawn until cell reset (F14) |
 | Companions | GameProfile companion list (CommonPropertiesScript refs) | skip: F21 spawns them |
 | Workshop NPCs (settlers, provisioners) | VMAD script `WorkshopNPCScript` or keyword list | skip: F22 spawns them |
@@ -132,7 +133,7 @@ The server spawns the Commonwealth's raiders, gunners, super mutants, ghouls, cr
   3. gamemode override.
   - Players carry `PlayerFaction`-equivalent membership on their puppets [inference: verify the FO4 player faction id] so vanilla enemy relations apply.
   - A per-player hostile faction is realised on clients as a runtime faction `MP_Hostile_<factionDesc>` that is an enemy of `<faction>`. The server pushes membership in `factions` (snapshot/UpdateProperty). Clients create these runtime factions locally on first use (platform native, F13-T09).
-- **Crime reports:** `events.crimeWitnessed` from the host is accepted only if the witness is alive, within 2048 u of the criminal and not hostile already. On accept the server sets the ledger entry (3 game days, or permanent for murder) and fires `onCrime` (blockable).
+- **Crime reports:** the server keeps a 10 s `recentCrimes[actor]` ring filled **only by server events** (F06 steal/owned-item take, F24 pick of an owned lock, F11 hit on a faction member, F29-T10 pickpocket failure). `events.crimeWitnessed` from the host is accepted only if it matches an entry (kind, faction, timestamp within 10 s) and the witness is alive, within 2048 u of the criminal and not hostile already (review finding M1: hosts must not be able to frame players). On accept the server sets the ledger entry (3 game days, or permanent for murder) and fires `onCrime` (blockable).
 - **Legendary mutation hook** (called by F11 after damage is applied): if `legendary.isLegendary && !mutated && alive && health < 50 %`:
   1. restore Health to full (F08);
   2. apply the mutation spell (`AbLegendary*`, SRV-020);
@@ -228,10 +229,12 @@ This spec *is* the NPC path. Creatures use the same model with per-race graph de
 - [ ] **F13-T10** Creature special states (burrow, shell, overheat) rules + F11 untargetable hook + burrow cap — M — Depends: F13-T06, F02-T10 — Verify: L-unit, G-manual — Files: skymp5-server/cpp/server_guest_lib/game_profile/fallout4/npcSpecialStates.json
 - [ ] **F13-T11** Legendary mutation hook in the damage pipeline (F11) + effect (SRV-020) + event — S — Depends: F13-T03, F20-T02 — Verify: L-unit
 - [ ] **F13-T12** Gamemode/Papyrus surface (§4.9), docs — M — Depends: F13-T05, F13-T09 — Verify: L-int — Files: skymp5-server/ts typings, script_classes/PapyrusActor.cpp
-- [ ] **F13-T13** Load test: 300 hosted NPCs / 100 bots; election CPU and host bandwidth within §4.11 — M — Depends: F13-T05, QA-020 — Verify: L-int
+- [ ] **F13-T13** Load test: 600 hosted NPCs / 300 spread bots and 64 hot-spot bots (QA-020 targets); election CPU and host bandwidth within §4.11 — M — Depends: F13-T05, QA-020 — Verify: L-int
 - [ ] **F13-T14** `G-manual` script (raider camp, radscorpion, host drop, legendary) — S — Depends: F13-T08 — Verify: G-manual — Files: docs/falloutmp/test-scripts/F13-npc-hosting.md
 
 ## 8. Open questions & risks
+- Host upload budget: ~1.6 KB/s per hosted NPC; `npc.maxHostedPerClient` defaults to 24 (~40 KB/s ≈ 0.3 Mbit/s up).
+- Hosts cannot kill hosted NPCs via actor-value reports: F08 §4.8 / F08-T15 clamps NPC Health and Rads from the host; kills come only from F11/F20 (review finding C1).
 - Does a remote-player puppet (PLAT-070) get targeted by vanilla AI like the player? Needs the right faction membership and possibly `SetPlayerTeammate`-free detection (G-self in F13-T04).
 - Runtime faction creation via `IFormFactory` is unverified [inference]. Fallback: a fixed pool of MP factions in a small FalloutMP plugin (only if shipping our own `.esp` is accepted).
 - Essential-policy default (`invulnerable`) changes town gameplay versus SkyMP's skip. Confirm with the user.

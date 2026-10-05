@@ -87,8 +87,8 @@ Expected:
   - …
 Collect & send back:
   - <FO4 Documents>/My Games/Fallout4/F4SE/*.log
-  - Data/Platform/Logs/*.log (platform logs; see PLAT-005)
-  - selftest-report.json (if the self-test plugin ran)
+  - <FO4 Documents>/My Games/Fallout4/F4SE/FalloutPlatform.log (platform log; PLAT-001/PLAT-005)
+  - <FO4 Documents>/My Games/Fallout4/F4SE/falloutmp-selftest-<sha>.json (if the self-test plugin ran)
   - server console output
 ```
 

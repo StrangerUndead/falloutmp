@@ -14,7 +14,7 @@ Principle (ADR-015): everything that can be verified on Linux is verified on Lin
 | Self-test (in game) | Scripted checks inside Fallout 4 | `falloutmp-selftest.js` + PLAT-091 | User's PC, one launch | User runs, Claude analyses |
 | Manual (in game) | Multiplayer scenarios (2+ clients) | `docs/falloutmp/test-scripts/*.md` | User (and friends) | User runs, Claude analyses |
 | Real data | Fallout4.esm/DLC parsing and gameplay data checks | `[fo4data]` tag | User's machine or private runner | User runs |
-| Load/soak | 100 bots / 2 h sessions | QA-020, QA-030 | Linux / user | Claude / user |
+| Load/soak | 64 → 300 → 1,000 bots (M8/M11/M12) / 2 h soak sessions | QA-020, QA-022, QA-030 | Linux / user | Claude / user |
 
 ## 2. Linux build & run (Claude)
 - Bootstrap: [reference/dev-environment.md](reference/dev-environment.md) §0 and §6 (ENV-001). Expect about 25 min cold.
@@ -94,7 +94,7 @@ Principle (ADR-015): everything that can be verified on Linux is verified on Lin
 | lint | ubuntu | linter-config.json checks |
 
 ## 7. Non-functional tests
-- **Load:** QA-020 runs 100 bots moving, shooting and trading, with 300 hosted NPCs. It records server tick p95, bandwidth per client and the message mix.
+- **Load:** QA-020 runs 64 bots in one hot-spot area and 300 spread across the map with 600 hosted NPCs (M8), moving, shooting and trading; QA-022 scales to 300 (M11) and 1,000 players with 2,000 NPCs (M12). They record server tick p95, bandwidth per client and the message mix. Buffout 4 NG crash logs from client testers are collected through QA-013.
 - **Network conditions:** QA-021 adds jitter and loss, checks for rubber-banding and measures the hit false-reject rate.
 - **Persistence/adversarial:** QA-040 attempts duplication: concurrent take/put, disconnect mid-transfer, crash between mutation and flush, replayed messages.
 - **Security:** fuzz the BitStream reader (NET-008). Check every message for ownership and rate limits. The gamemode JS signing stays enforced.

@@ -222,6 +222,7 @@ No new message IDs. The protocol is SkyMP's, which is the point of this spec.
 - [ ] **F31-T07** Property and event-source limits (value size, name pattern, built-in collision, per-event rate, function error disabling) — S — Depends: NET-008 — Verify: L-unit, L-ts — Files: skymp5-server/cpp/addon/ScampServer.cpp, CustomPropertyBinding.cpp, ActionListener.cpp
 - [ ] **F31-T08** FO4 property shape registry + `mp.getGame()` + DOCS-003 generation and validation tests — M — Depends: DOCS-003, per-feature bindings — Verify: L-unit, L-int — Files: skymp5-server/ts/gamemodeApi/fo4PropertyShapes.ts, unit/PropertyShapesTest.cpp, docs/falloutmp/reference/gamemode-api-fo4.md
 - [ ] **F31-T09** (T2) Per-listener name policy: generalize `SweetHidePlayerNamesService` into a gamemode hook (e.g. "Stranger" until introduced), Skyrim behaviour kept behind the SweetPie gate — M — Depends: F31-T03 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/SweetHidePlayerNamesService.cpp, NamePolicyService.{h,cpp} (new)
+- [ ] **F31-T11** Evaluate HUDFramework (ADR-021) for nameplates and compass widgets via the native HUD; the overlay `createText` path stays the fallback — S — Depends: PLAT-095, F31-T03 — Verify: G-manual
 - [ ] **F31-T10** Front nameplate styling option (FRONT-006) + G-manual script — S — Depends: F31-T01 — Verify: G-manual — Files: docs/falloutmp/test-scripts/F31-names.md
 
 ## 8. Open questions & risks

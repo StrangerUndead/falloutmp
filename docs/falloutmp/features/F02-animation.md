@@ -48,7 +48,7 @@ Details are in the reference doc. Key points:
 ### 4.3 Protocol
 | Message | Dir | Fields | Reliability | Rate |
 |---|---|---|---|---|
-| `UpdateActions` (74) | C→S, relay | `idx`, `stateKeyframe?` (ActorState words, sitState, furnitureRef, inPA, sighted, gunState, weaponState, equippedInstanceHash, archetype/flavor kw ids), `actions[]` `{seq, ts, actionFormId, targetIdx, priority, resolvedEvent?, idleFormId?, perspective}`, `events[]` `{seq, ts, name, graphIndex}` | R ordered for actions/events; keyframe piggybacks | on change; batched per frame; keyframe every 1 s |
+| `UpdateActions` (74) | C→S, relay | `idx`, `stateKeyframe?` (ActorState words, sitState, furnitureRef, inPA, sighted, gunState, weaponState, equippedInstanceHash, archetype/flavor kw ids), `actions[]` `{seq, ts, actionFormId, targetIdx, priority, resolvedEvent?, idleFormId?, perspective}`, `events[]` `{seq, ts, nameId (NET-010 string table), graphIndex}` | R ordered for actions/events; keyframe piggybacks | on change; batched per frame; keyframe every 1 s |
 | `UpdateGraphVariables` (75) | C→S, relay | `idx`, `seq`, `ts`, `raceGraphKey`, `values[]` `{nameId, type, value}` (delta vs last acked; full every 1 s) | U sequenced | 15–20 Hz while changing |
 
 `nameId` indexes a per-session string table. The server sends the table in `UpdateGamemodeData`, or a dedicated table message if needed. The client resolves names to graph indices at runtime per graph (re-resolved on graph rebuild).
@@ -128,21 +128,22 @@ From the reference §7.1, items 1–7:
 - `G-manual`: the scenario matrix of reference §7.2 (each in 1st, 3rd and switching view), two clients side by side, video.
 
 ## 7. Tasks
-- [ ] **F02-T01** **Prototype probe** (standalone F4SE plugin, CommonLibF4): log holder/manager notify, PerformAction, graph output events, SetActiveGraph/camera, subgraph changes; 20 Hz variable sampler for both graphs; the scenario matrix; replay strategies (a)–(e) on an AI-disabled NPC — L — Depends: PLAT-001, PLAT-002 — Verify: G-manual (user runs it, Claude analyses the CSVs) — Files: tools/fo4-anim-probe/
+- [ ] **F02-T01** **Prototype probe** (standalone F4SE plugin, CommonLibF4): log holder/manager notify, PerformAction, graph output events, SetActiveGraph/camera, subgraph changes; 20 Hz variable sampler for both graphs; the scenario matrix; replay strategies (a)–(e) on an AI-disabled NPC — L — Depends: BUILD-002 only (standalone plugin; it resolves the ~10 IDs listed in reference/fo4-animation-sync.md §7 itself and must start in week 1 of M3) — Verify: G-manual (user runs it, Claude analyses the CSVs) — Files: tools/fo4-anim-probe/
   - Accept: the questions 1–5 of reference §7.2 are answered in a dated update to reference/fo4-animation-sync.md, and ADR-008 is marked Accepted or revised.
 - [ ] **F02-T02** RE + local types: BShkbAnimationGraph, hkbBehaviorGraph, hkbVariableValueSet, ActorMediator, BGSActionData; map OG/1.11.191 IDs to the target AE build — L — Depends: PLAT-002 — Verify: W-ci, G-self — Files: fallout4-platform/src/.../game/
-- [ ] **F02-T03** Animation hooks (holder notify, PerformAction, SetActiveGraph, remote Fire/Launch block) with a reentrancy guard — M — Depends: F02-T02 — Verify: G-self
+- [ ] **F02-T03** Animation hooks (holder notify, PerformAction, SetActiveGraph, remote Fire/Launch block) with a reentrancy guard — L — Depends: F02-T02 — Verify: G-self
 - [ ] **F02-T04** `AnimApi` natives + typings in Definitions.txt — M — Depends: F02-T03 — Verify: W-ci, G-self
 - [ ] **F02-T05** `GraphVariableTable` (name→index→type per graph, CRC64 key, invalidation on rebuild) + post-channel write path — M — Depends: F02-T04 — Verify: G-self
 - [ ] **F02-T06** Messages `UpdateActions`, `UpdateGraphVariables` + name table distribution — M — Depends: NET-002 — Verify: L-unit
 - [ ] **F02-T07** Client `sync/animState.ts`, `sync/actions.ts`, `sync/graphVars.ts`, `graphDescriptors/human3p.json` (from reference §4.1/§4.5) — L — Depends: F02-T04, F02-T06 — Verify: L-ts, G-manual
 - [ ] **F02-T08** Client spawn ordering in `formView.ts` (appearance → equipment → archetype → subgraph wait → keyframe → movement → replay) — M — Depends: F02-T07, F03, F05 — Verify: G-manual
-- [ ] **F02-T09** Server: `AnimationSystem` re-keyed by action id (AP rules), `animState`, `actionReplayCache`, CreateActorFo4 fields — M — Depends: F02-T06, F08-T01 — Verify: L-unit
+- [ ] **F02-T09** Server: `AnimationSystem` re-keyed by action id (state/action validation only; AP cost rules move to F08-T09 in M7), `animState`, `actionReplayCache`, CreateActorFo4 fields — M — Depends: F02-T06, F00-T11 — Verify: L-unit
 - [ ] **F02-T10** Creature/PA descriptor configs from probe dumps (deathclaw, mole rat, dog, radroach, ghoul, super mutant, robots, PA) — M — Depends: F02-T01 — Verify: G-manual
 - [ ] **F02-T11** Debug overlay: graph-variable inspector + port of `animDebugService.ts` — S — Depends: F02-T07 — Verify: G-manual
 - [ ] **F02-T12** Optional parked-graph driver (fidelity layer, behind a setting) — L — Depends: F02-T01 results — Verify: G-manual
 
 ## 8. Open questions & risks
+- `UpdateActions` is reliable-ordered; when a client's send queue backs up, older keyframes are dropped and the latest keyframe is kept (drop + keyframe), so the remote never replays stale state.
 - R-ANIM-1: first-person capture fidelity. Mitigated by the prototype, with the parked-graph fallback.
 - No public descriptors for power armor, robots or mirelurks; they must be dumped.
 - AE IDs for the hkb internals must be re-derived (OG/1.11.191 sources only).

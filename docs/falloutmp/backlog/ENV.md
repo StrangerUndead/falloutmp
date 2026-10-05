@@ -26,3 +26,5 @@ Context: [reference/dev-environment.md](../reference/dev-environment.md). The Li
   - Accept: the lint passes on changed files locally.
 - [ ] **ENV-016** Upstream remote and merge routine (06-workflow-conventions §3), with the first upstream merge — S — Depends: — — Verify: L-unit
   - Accept: `upstream` remote configured and documented; merge commit builds.
+- [ ] **ENV-017** Recurring upstream merge (R14): merge `upstream/main` at least monthly; run the Skyrim `~[espm]` suite and the NET-002 byte-identity test; record each merge in STATUS "Upstream ports" — S — ongoing — Depends: ENV-016 — Verify: L-unit
+  - Accept: no merge older than 6 weeks pending at any milestone boundary.
