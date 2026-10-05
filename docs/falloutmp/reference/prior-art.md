@@ -610,6 +610,65 @@
 
 ---
 
+#### 3.5.1 Update 2026-10-05: Commonwealth Online server package 1.1.0 (uploaded by the user)
+
+Source: the user-supplied Nexus file "CO - Server" 107542, version 1.1.0, dated 2026-09-23. It contains the Python relay source, protocol docs, tests and a prebuilt `co-tunnel.exe`.
+- **No license file.** Treat it as facts only: no code reuse.
+- The package also ships `server/iroh-state/{host.key,admin.token,bans.txt}`. These were deliberately not read and are not reproduced here.
+- Provenance tag: `[src: CO-srv-1.1.0:<path>]`. Nothing was executed.
+
+**Architecture (correcting §3.5).** Gameplay runs through a **Python pass-through relay** that does schema normalization, not server simulation. [src: CO-srv-1.1.0:server/relay_safety.py, hardened_relay.py, relay_broadcasts.py]
+- Wire format: newline-delimited compact JSON over TCP (default port 7777), each frame ≤ 16 KiB.
+- Internet play goes through the `co-tunnel.exe` Iroh sidecar. The invite code is an Iroh EndpointId; admin port 7779. Gameplay traffic never passes through the directory.
+- LAN discovery uses UDP 7778.
+- The directory uses TCP 7780, newline JSON with `protocol`/`version` envelopes and a 45 s registration TTL. [src: protocol/directory.md]
+  - It only accepts a literal IPv4 equal to the observed source address, never a hostname.
+  - Clients reject non-public hosts unless an explicit allow-private dev flag is set.
+
+**Packets.**
+
+| Packet | Notes |
+|---|---|
+| `welcome` | — |
+| `transform` | pos, `angleZ`, `cellId`, `worldspaceId` (8-hex form ids), `movementType` ∈ {normal, teleport, cell_change, worldspace_change, load, spawn, fast_travel}, `clientTime`, `isMoving/isSprinting/isSneaking/isJumping/isCrouching/weaponDrawn`, `movementSpeed`, `animationGraphSpeed`, `animationDirection`, `aimPitch`, `turnDelta`, **`actorStateFlags1/2` (raw ActorState words)**, `actionEvents[]` (whitelist: `meleeattackStart`, `fireSingle`) |
+| `worldState` / `worldStateHost` / `serverWorldState` | Time and weather (see below) |
+| `npcState` | ≤ 16 NPCs per packet; `npcId`, `baseFormId`, `sourceFormId`, transform, `isDead`, movement flags |
+| `combatHit` | `targetPlayerId`, `sequence`, `damage` (0–10000, client-computed), `weaponFormId` |
+| `disconnect`, `sessionEnded` | — |
+
+[src: protocol/packets.md, message-types.md; server/relay_safety.py normalize_*]
+
+**Validation.**
+- Range clamps: |coordinate| ≤ 1e7; speed ≤ 1e5.
+- Form-id format checks; enum checks on `movementType`; the action whitelist.
+- Rate limit per client: 120 packets/s and 256 KiB/s, measured over 1 s windows. Three violation windows mean a disconnect.
+- Connect-attempt limiter: 8 per 10 s per peer. Pending-connection caps. Send timeout 5 s.
+- There is **no plausibility validation** (teleport or speed versus time) and **no authority** over damage or NPCs.
+
+[src: server/relay_safety.py:12-40,139-170,261-306]
+
+**Remote players.** [src: protocol/player-sync.md]
+- Runtime proxy actors are spawned per remote player in the local player's loaded cell, with a cap of 4 per client.
+- When a player is in another cell, their proxy is held at a hidden in-cell position instead of being despawned.
+- Movement is smoothed toward the latest target, with a hard snap on cell/worldspace change or teleport.
+- Locomotion, sneak, jump and weapon drawn are driven by **curated Havok graph-variable writes**.
+- Sends run at about 10 Hz while moving, skipped below 3 u / 0.02 rad of change. Cell changes and teleports are sent immediately.
+
+**Time and weather.** [src: protocol/world-state.md, server-world-state.md]
+- The first-connected client is the "world-state host" (reassigned to the lowest remaining id). It sends `gameHour`/`gameDaysPassed`/`weatherFormId` at about 1 Hz.
+- Other clients apply weather only in exteriors.
+- They **re-snap time when local game time resumes after a freeze**: menus, Pip-Boy, dialogue, loading, save/load and wait/sleep pause the local clock.
+- Server GUI overrides: time goes to all clients; weather is applied by the host with `ForceWeather` and then relayed.
+- They removed execution of network-supplied console text as a security fix.
+
+**What this means for FalloutMP**
+1. **Confirms ADR-008 / F02 strategy D in practice.** A shipped FO4 MP mod drives remote proxies from ActorState words, curated graph variables and an action whitelist, not from event replay or bones.
+2. **F25/F28:** FO4 freezes local game time in menus and the Pip-Boy, so the client must re-apply the server clock on resume (F25-T01/F28 menu policy).
+3. **F01:** send thresholds (3 u / 0.02 rad) plus immediate sends on discontinuities are a proven bandwidth saver. FalloutMP keeps the server-side validation that CO lacks.
+4. **NET:** adopt per-client packet/byte rate limits with violation windows (NET-013).
+5. **OPS-002 directory rules:** literal IPv4 equal to the observed source, no hostnames, private ranges only in dev mode. OPS-011 (Iroh relay) is a proven option for NAT-free hosting.
+6. **Avoid:** client-computed `combatHit.damage`, a single world-state host for NPCs/time (we use server authority and per-NPC hosting), JSON over TCP for gameplay, and the 4-proxy cap.
+
 ### 3.6 jjnorris/FalloutTogether — `FT-jj@33a4c87`
 
 - HEAD is an ancestor of TiltedEvolution `dev`. There are no commits by the fork owner.

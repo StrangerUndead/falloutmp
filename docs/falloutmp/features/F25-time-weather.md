@@ -222,6 +222,7 @@ Rules:
 ## 7. Tasks
 - [ ] **F25-T01** Server clock service (implements SRV-070, fixes I18): `WorldClockService`, `time.*` settings, ADR-010 `worldClock` record, `mp.getWorldClock/setWorldClock` — M — Depends: REF-020, REF-021 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/WorldClock.{h,cpp} (new), WorldState.{h,cpp}, skymp5-server/cpp/addon/ScampServer.cpp, skymp5-server/ts/settings.ts, unit/WorldClockTest.cpp
   - Accept: the `[WorldClock]` cases pass. The clock survives a restart. SRV-080 and PVM-008 can read `NowGameDays()`.
+  - Note (prior-art §3.5.1): even with F28's no-pause policy, some menus and loading screens freeze local game time. The client must re-apply the latest server clock on every resume (menu close, load end), not only on server ticks. Add a client unit test (L-ts) for that resume path.
 - [ ] **F25-T02** Papyrus time natives on the server clock (`GetCurrentGameTime`, `WaitGameTime`, `GameTimeToString`, `PassTime` policy, virtual globals 0x35–0x3A) — S — Depends: F25-T01, PVM-013 — Verify: L-unit — Files: skymp5-server/cpp/server_guest_lib/script_classes/PapyrusUtility.cpp, PapyrusGame.cpp, unit/PapyrusUtilityTest.cpp
   - Accept: `WaitGameTime(1)` at timescale 20 waits 180 s. The Skyrim profile behaviour is unchanged (gated by GameProfile).
 - [ ] **F25-T03** ESPM CLMT and REGN records plus WTHR UNAM views; GameProfile climate table per worldspace — M — Depends: ESPM-005, ESPM-010, ESPM-002 — Verify: L-fixture, D-real — Files: libespm/include/libespm/{CLMT,REGN}.h (new), libespm/src/, unit/Fo4ClimateRecordsTest.cpp

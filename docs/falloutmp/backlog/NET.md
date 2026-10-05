@@ -16,3 +16,4 @@ Context: [01-sync-standard.md](../01-sync-standard.md) §5–7; [reference/skymp
 - [ ] **NET-010** Session string table (graph-variable names, event names, keyword EDIDs) distributed on connect; ids in hot messages — S — Depends: NET-002 — Verify: L-unit
 - [ ] **NET-011** Per-message-type bandwidth/rate metrics (Prometheus) and a bot-driven bandwidth test — S — Depends: — — Verify: L-int
 - [ ] **NET-012** Protocol documentation generator: dump the registry (id, name, fields, reliability) into `docs/falloutmp/reference/protocol.md` from code — S — Depends: NET-002 — Verify: L-unit
+- [ ] **NET-013** Per-client packet and byte rate limits with violation windows (e.g. 120 pkt/s, 256 KiB/s, disconnect after 3 violating windows; tune by load test), connect-attempt limiter, pending-connection cap — S — Depends: — — Verify: L-unit, L-int — (pattern from Commonwealth Online, reference/prior-art.md §3.5.1)
