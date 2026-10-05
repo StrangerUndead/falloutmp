@@ -184,7 +184,13 @@ Two sub-ranges:
 | 104 | `FastTravelRequest` | new | C→S | R | F26 | Fast travel request (server validates and teleports) |
 | 105 | `WorldTimeWeather` | new | S→C | R | F25 | Server clock, timescale, weather (incl. radstorm) |
 | 106 | `DetectionState` | new | S→C | U | F29 | Sneak/detection feedback (optional) |
-| 107–122 | free | | | | | Allocate in specs; update this table in the same commit |
+| 107 | `RequestResult` | new | S→C | R | F15 (shared by F16, F22) | Nonce-keyed result of a C→S request without its own reply (CraftItemFo4, ScrapItem, ModItem, WorkshopPlace/Edit/Manage): ok, error code, created refId, item list |
+| 108 | `WorkshopObjects` | new | S→C | R | F22 | Chunked, versioned snapshot and deltas of a settlement's decor objects and scrapped pre-placed refs |
+| 109 | `WorkshopManage` | new | C→S | R | F22 | Claim/abandon, ACL changes, settler/bed/job assignment, supply line (T2) |
+| 110 | `NoteAction` | new | C→S | R | F24 | Note read / holotape play / holotape chatter outside a terminal |
+| 111 | `NpcAiState` | new | both | R | F13 (consumed by F29) | Host → server: hosted NPC combat state/target, special states (burrowed…), per-target detection levels, crime reports. Server → new host: AI re-seed bundle on host migration |
+| 112 | `CompanionState` | new | S→C | R | F21 | Companion follower state, pending command for the host, owner's affinity/threshold, downed; command results (nonce/error) |
+| 113–122 | free | | | | | Allocate in specs; update this table in the same commit |
 
 Rules for adding a message:
 1. Follow recipe (a) in reference/skymp-sync-inventory.md §4.5.
