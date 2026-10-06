@@ -17,14 +17,18 @@ export VCPKG_DISABLE_METRICS=1
 
 try_clang() {
   suffix="$1"
-  if which clang++$suffix > /dev/null 2>&1; then
-    export CC="/usr/bin/clang$suffix"
-    export CPP="/usr/bin/clang-cpp$suffix"
-    export CXX="/usr/bin/clang++$suffix"
-    echo "Using $CXX"
-    return 0
+  cxx="`which clang++$suffix 2> /dev/null`" || return 1
+  cc="`which clang$suffix 2> /dev/null`" || return 1
+  export CC="$cc"
+  export CXX="$cxx"
+  # Some distros (e.g. Ubuntu 24.04's default clang) ship no clang-cpp
+  if cpp="`which clang-cpp$suffix 2> /dev/null`"; then
+    export CPP="$cpp"
+  else
+    export CPP="$cc -E"
   fi
-  return 1
+  echo "Using $CXX"
+  return 0
 }
 
 USE_SYSTEM_COMPILER=0
