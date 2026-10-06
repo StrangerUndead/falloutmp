@@ -1,0 +1,18 @@
+# systemd unit: copy to /etc/systemd/system/falloutmp.service
+# Change User, WorkingDirectory and ExecStart if you installed elsewhere.
+[Unit]
+Description=FalloutMP server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=falloutmp
+WorkingDirectory=/opt/falloutmp-server
+ExecStart=/opt/falloutmp-server/start.sh
+Restart=on-failure
+RestartSec=5
+# Give the server time to save the world on stop
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

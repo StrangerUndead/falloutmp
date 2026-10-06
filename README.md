@@ -173,6 +173,8 @@ npx tsc --noEmit -p .
 
 ## 6. Running a Fallout 4 server
 
+> **Running a server from the prebuilt package** (download, install on a VPS, run as a service, back up, update) is covered step by step in the [install guide](docs/falloutmp/guides/install-guide.md). This section is for a server you built yourself.
+
 ### 6.1 Game data
 
 Copy one file from your own Fallout 4 installation (`Fallout 4/Data/`) into `build/dist/server/data/`:
@@ -263,7 +265,7 @@ The client has three parts:
 | `fallout4-platform/core/` | C++: the network connection, the message codec and a QuickJS engine that runs the script | Windows and Linux |
 | `fallout4-platform/plugin/` | The F4SE plugin `FalloutMP.dll`: connects the core to the game through CommonLibF4 | Windows, Fallout 4 1.11.x |
 
-**Getting the plugin.** The workflow *FalloutMP client (Windows)* (`.github/workflows/falloutmp-client-windows.yml`) builds it on every push that touches the client. The workflow *FalloutMP server (Linux)* builds the server, runs every test and uploads the server package. Download the `FalloutMP-client` artifact from the run's page. Installation steps for players are in [fallout4-platform/plugin/INSTALL.txt](fallout4-platform/plugin/INSTALL.txt).
+**Getting the plugin.** The workflow *FalloutMP client (Windows)* (`.github/workflows/falloutmp-client-windows.yml`) builds it on every push that touches the client. The workflow *FalloutMP server (Linux)* builds the server, runs every test and uploads the server package. Download the `FalloutMP-client` artifact from the run's page. Installing and updating, for server owners and players, is in the [install guide](docs/falloutmp/guides/install-guide.md).
 
 **Building it yourself on Windows** (Visual Studio 2022, CMake 3.24+):
 
@@ -306,6 +308,7 @@ How it is put together, and what still needs the game, is in [falloutmp-client/R
 | Document | Read it for |
 |---|---|
 | [docs/falloutmp/README.md](docs/falloutmp/README.md) | The plan: how the docs are organised and how work is done |
+| [guides/install-guide.md](docs/falloutmp/guides/install-guide.md) | Installing and updating the server and the client |
 | [docs/falloutmp/STATUS.md](docs/falloutmp/STATUS.md) | Current progress, decisions, deviations, things to verify in game |
 | [docs/falloutmp/PLAN.md](docs/falloutmp/PLAN.md) | One-file summary of the whole plan |
 | [guides/server-admin.md](docs/falloutmp/guides/server-admin.md) | Every server setting, persistence, logs |

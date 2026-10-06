@@ -79,7 +79,7 @@ jobs:
           Copy-Item build-plugin/Release/FalloutMP.dll $plugins/
           Copy-Item build-plugin/Release/FalloutMP.pdb $plugins/ -ErrorAction SilentlyContinue
           Copy-Item falloutmp-client/build/falloutmp-client.js "$plugins/FalloutMP/"
-          Copy-Item fallout4-platform/plugin/FalloutMP.json "$plugins/FalloutMP.json"
+          Copy-Item fallout4-platform/plugin/FalloutMP.json "$plugins/FalloutMP.example.json"
           Copy-Item fallout4-platform/plugin/INSTALL.txt "$root/INSTALL.txt"
 
       - uses: actions/upload-artifact@v4

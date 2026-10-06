@@ -79,9 +79,21 @@ jobs:
         run: fallout4-platform/tools/fmp_e2e.sh build
 
       - name: Package the server
-        run: tar czf falloutmp-server.tar.gz -C build/dist server
+        run: falloutmp-server/package/make-package.sh build falloutmp-server-linux-x64.tar.gz
+
+      - name: Test the package
+        run: |
+          mkdir -p pkgtest && tar -xzf falloutmp-server-linux-x64.tar.gz -C pkgtest
+          cd pkgtest/falloutmp-server
+          ../../build/fallout4-platform/fmp_make_test_esm data/Fallout4.esm
+          cp server-settings.example.json server-settings.json
+          ./start.sh > server.log 2>&1 &
+          SERVER=$!
+          for _ in $(seq 1 60); do grep -q "listening on" server.log && break; sleep 0.5; done
+          tools/test-join.sh || { cat server.log; exit 1; }
+          kill $SERVER
 
       - uses: actions/upload-artifact@v4
         with:
           name: falloutmp-server-linux
-          path: falloutmp-server.tar.gz
+          path: falloutmp-server-linux-x64.tar.gz

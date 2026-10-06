@@ -1,0 +1,18 @@
+{
+  "game": "fallout4",
+  "dataDir": "data",
+  "loadOrder": ["Fallout4.esm"],
+  "name": "My Commonwealth",
+  "port": 7777,
+  "maxPlayers": 100,
+  "master": "",
+  "offlineMode": true,
+  "npcEnabled": false,
+  "fo4": {
+    "worldStatePath": "world/fo4-world.json",
+    "workshop": { "claimRule": "firstClaim", "maxPerPlayer": 3 },
+    "pvp": { "friendlyFire": false, "defaultFlag": false },
+    "map": { "fastTravel": "discoveredOnly" },
+    "movement": { "enforceSpeed": false }
+  }
+}

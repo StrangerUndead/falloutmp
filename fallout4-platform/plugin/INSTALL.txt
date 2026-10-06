@@ -26,17 +26,22 @@ Install
 1. Copy the Data folder from this archive into your Fallout 4 folder
    (the one with Fallout4.exe). You should end up with:
      Data\F4SE\Plugins\FalloutMP.dll
-     Data\F4SE\Plugins\FalloutMP.json
+     Data\F4SE\Plugins\FalloutMP.example.json
      Data\F4SE\Plugins\FalloutMP\falloutmp-client.js
-2. Open Data\F4SE\Plugins\FalloutMP.json and enter your server:
+2. Rename FalloutMP.example.json to FalloutMP.json (first install only),
+   open it and enter your server:
      "server-ip": "203.0.113.10", "server-port": 7777
 3. Start the game with f4se_loader.exe.
 4. Load a save you don't mind (or start a new game). The client connects
    when the save has loaded. A new character on the server opens the
    character editor first. Use a separate save for multiplayer.
 
-When updating, keep your FalloutMP.json: it holds your "profile-id",
-which is how the server recognises your character.
+Updating: copy the new Data folder over the old one. The archive has no
+FalloutMP.json, so your settings and your "profile-id" (your character
+on the server) are kept. Back up FalloutMP.json anyway.
+
+The full guide, including running a server, is
+docs/falloutmp/guides/install-guide.md in the FalloutMP repository.
 
 First run: the probe (please do this once)
 1. In FalloutMP.json set "probe": true. No server is needed.
