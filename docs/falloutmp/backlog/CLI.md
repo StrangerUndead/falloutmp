@@ -10,8 +10,8 @@ Context: [reference/skymp-sync-inventory.md](../reference/skymp-sync-inventory.m
 - [ ] **CLI-001** Fork and build: `falloutmp-client` webpack build against `falloutPlatform` typings (PLAT-035); CMake target; output `Data/Platform/Plugins/falloutmp-client.js` — M — Depends: PLAT-035 — Verify: L-ts, W-ci
 - [ ] **CLI-002** Settings: `falloutmp-client-settings.txt` (server-ip, port, profileId for offline, master URL), `SettingsService` port — S — Depends: CLI-001 — Verify: L-ts
 - [ ] **CLI-003** Message types mirror: all FO4 twins/new messages in `src/services/messages/*` and typed events; generated from the registry where possible (NET-012) — M — Depends: NET-002 — Verify: L-ts
-- [ ] **CLI-010** First-update game setup for FO4: INI/game settings (`bAlwaysActive`, autosave off, intro skip, difficulty 2), equivalent of SkyMP `index.ts` tweaks — S — Depends: CLI-001 — Verify: G-self
-- [ ] **CLI-012** Main-menu UX: auto-hide main menu or a "Connect" flow; intro skip — S — Depends: CLI-001, PLAT-061 — Verify: G-manual
+- [ ] **CLI-010** First-update game setup for FO4: INI/game settings (`bAlwaysActive`, autosave off, intro skip, difficulty 2), equivalent of SkyMP `index.ts` tweaks; the autosave and intro keys are specified in F33 §4.5.6–4.5.7 — S — Depends: CLI-001 — Verify: G-self
+- [ ] **CLI-012** Main-menu UX: auto-hide main menu or a "Connect" flow; intro skip — S — Depends: CLI-001, PLAT-061 — Verify: G-manual — done as F33-T08 (auto-join, status) and F33-T15 (menu rows)
 - [ ] **CLI-020** `WorldCleanerService` for FO4: disable/delete vanilla actors not spawned by the server, protect FormViews, skip dialogue/scene actors, keep pre-placed corpses (server decides, F13) — M — Depends: CLI-001 — Verify: G-self
 - [ ] **CLI-021** Disable single-player systems: fast travel (unless F26 allows), XP gain (server-driven F19), difficulty selection, save/load (F00), VATS menu (F18), wait/sleep menus (F25), kill moves — M — Depends: CLI-001 — Verify: G-self
 - [ ] **CLI-030** Fix the `isDisabled` property key and handle ESM disable updates (I5) — S — Depends: CLI-001 — Verify: L-ts

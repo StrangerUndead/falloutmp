@@ -8,7 +8,7 @@
 | R2 | CommonLibF4 (libxse) AE coverage gaps: vtable IDs still use pre-AE numbering, ~30 missing event sources, missing hkb types | H | H | RTTI vtable finder; local type definitions; contribute fixes upstream; alandtse fallback | PLAT-002, PLAT-040, F02-T02 |
 | R3 | Bethesda patches break the Address Library or offsets (AE has had six hotfixes in a year) | M | H | Runtime allow-list; ID-only addressing (no raw RVAs); fast refresh procedure (PLAT-006 runbook, ≤ 7 days); clear refusal UX | PLAT-003 |
 | R4 | SP3 reflection port is hard (StackFrame without inline args, std::function dispatch, IStackCallbackFunctor with 6 virtuals) | M | H | Stage it (static, then member, then latent); fallback to F4SE static registration plus Dispatch calls | PLAT-031 |
-| R5 | Template-save world entry leaks quest or world state | M | M | Quest guard; `.fos` patcher fallback | F00-T05, DATA-030 |
+| R5 | World state baked into the entry template leaks into play (quests, world flags) | L | M | The capture stops story quests and strips the template (F33 §4.5.1); the clean world runs after every load | F33-T06, F00-T05 |
 | R6 | Gun hit validation without server collision geometry, so line of sight can't be checked | H | M | Lag-compensated rewind, fire-rate/ammo checks, statistical anomaly detection; validation level setting; navmesh-based LOS later (F09-T14, 1.x) | F09, SRV-023 |
 | R7 | Settlement scale (hundreds of objects per settlement) overwhelms streaming and persistence | M | H | Chunked decor snapshots; only interactive objects become full forms; budgets; load tests | F22 |
 | R8 | Tilted UI/hook code is "All Rights Reserved" | M | M | Decide early (Q-04); replacement overlay task | PLAT-069 |
@@ -30,6 +30,7 @@
 | R25 | Signing-key compromise or loss for gamemode client snippets lets a hostile server run arbitrary JS in clients, or locks an operator out of their own gamemode | L | H | SRV-004 keygen/rotation runbook; keys never in git; per-server keys; clients only trust the key from the server they connected to | SRV-004 |
 | R26 | ESM memory footprint of Fallout4.esm + DLC + 2,000 NPC change forms in one 1,000-player process exceeds the reference machine | M | M | ESPM-017 benchmark in M2; lazy chunk loading (SRV-093); strings table on demand; reference machine 32 GB | ESPM-017, SRV-093 |
 | R21 | A recommended mod (LooksMenu, Buffout 4, High FPS Physics Fix, MCM) lags behind a Bethesda patch or changes its API | M | M | Native fallbacks for sync-critical paths; version ranges in the manifest; compatibility matrix updated per release | PLAT-095, SRV-003, DOCS-005 |
+| R27 | The engine rejects or mis-loads patched entry saves on the target runtime | L | H | Verify-after-write; F33's Phase 1 in-game checks before any UX work; fallback F1 (new game + clean world) | F33-T05, F33-T09 |
 
 L/I = likelihood/impact: H high, M medium, L low, C certain. (I19 from 01 §4 has no risk row because it is documentation-only; see reference §3.2.)
 
@@ -43,7 +44,7 @@ L/I = likelihood/impact: H high, M medium, L low, C certain. (I19 from 01 §4 ha
 | Q-04 | Tilted UI code: keep as upstream does, or plan a replacement? | Keep for development; decide before public release | PLAT-069 |
 | Q-05 | Online auth/master server: host one (where)? Discord login? | Offline mode only until M8 | OPS-002 |
 | Q-06 | Gameplay priorities: PvP vs PvE focus; settlements vs survival priority; target player count | PvE+PvP both, settlements at T1, survival optional at T2 (1.x), ~1,000 players at 1.0 (00 §7), PvP default `flagged` (F32) | scope |
-| Q-07 | Template save: may we commit a template `.fos`, or must it be generated per user? | Generate per user via a documented procedure | F00-T01 |
+| Q-07 | Entry template distribution: ship the maintainer's template `.fos` as a release asset checked against a committed `templates.json`, or commit the `.fos` to git? | Release asset + committed `templates.json` (F33 §4.5.1) | F33-T06 |
 | Q-08 | Enable GitHub Actions on the fork (incl. Windows minutes)? | Needed for W-ci; otherwise the user builds locally | ENV-010/011 |
 | Q-09 | Can you run in-game tests (and provide Fallout4.esm locally for `[fo4data]`)? How often? | Assume weekly batches | M2–M12 |
 | Q-10 | Approve the SessionStart hook and a vcpkg binary-cache release asset? | No hook; bootstrap manually (~25 min) | ENV-004/005 |

@@ -150,7 +150,7 @@ The server and shared libraries stay one codebase behind a GameProfile seam, and
 | 004 | Keep the embedded Node.js runtime | Accepted |
 | 005 | Reuse the Chromium overlay (DX11 Present hook) | Proposed |
 | 006 | Port runtime Papyrus reflection with struct and Var support | Proposed |
-| 007 | World entry by template save plus teleport; .fos patcher as fallback | Proposed |
+| 007 | World entry by a per-player save generated from a base-game template at the main menu (F33); teleport only for corrections | Accepted (user, 2026-10-06) |
 | 008 | Hybrid animation sync: state + actions + whitelisted events + named graph variables | Proposed (probe) |
 | 009 | Freeze the Skyrim wire format; FO4 message twins at IDs 64+ | Accepted |
 | 010 | Change forms plus new records for workshops and profiles | Proposed |
@@ -207,11 +207,11 @@ Estimates are computed from the task list with the capacity model in [03-milesto
 
 ## Feature catalogue
 
-There are 32 specs with 406 tasks in [features/](features/). The authority codes are the classes defined above.
+There are 33 specs with 444 tasks in [features/](features/). The authority codes are the classes defined above.
 
 | ID | Feature | Authority and core design | Tier | Target | Milestone | Tasks |
 | --- | --- | --- | --- | --- | --- | --- |
-| F00 | Session, world entry, streaming | Login; template save + teleport; 3×3 grid streaming; save/load blocked | T0 | L4 | M4 | 11 |
+| F00 | Session, world entry, streaming | Login, persistence, 3×3 grid streaming; world entry is F33 | T0 | L4 | M4 | 11 |
 | F01 | Movement and aim | B: 100 ms updates; validate-before-relay with a speed model; controller warp with a jitter buffer | T0 | L3+ | M5 | 9 |
 | F02 | Animation | B: state keyframes, action replay, whitelisted events, named graph variables; prototype probe first | T0 | L3 | M5/M8 | 12 |
 | F03 | Appearance, character creation | A: FO4 morphs, regions, tints, head parts; validated in the face editor; applied with Reset3D | T0 | L3 | M5/M7 | 13 |
@@ -244,6 +244,7 @@ There are 32 specs with 406 tasks in [features/](features/). The authority codes
 | F30 | Chat, commands, admin | A: chat via the gamemode, console permissions, admin channel, ban store | T0 | L4 | M6 | 11 |
 | F31 | Names and extensibility | A: nameplates, display names, custom properties, signed client snippets | T0 | L4 | M5 | 11 |
 | F32 | Parties, teams, PvP rules | A: server-owned parties; one friendly-fire and hostility rule set; PvP flag, zones, XP sharing | T1 | L4 | M8/M9 | 9 |
+| F33 | The entrance | A: per-player save generated from a validated base-game template at the main menu; one loading screen; ticket first, bind after the load; saves blocked | T0 | L4 | M4/M5 | 22 |
 
 ## Infrastructure workstreams
 
@@ -308,7 +309,7 @@ See [05-risks-open-questions.md](05-risks-open-questions.md).
 - Q-09: in-game testing cadence and Fallout4.esm availability.
 - Q-14: essential NPCs spawned invulnerable.
 - Q-06: priorities.
-- Q-07: the template save.
+- Q-07: how the entry template is distributed (F33 §4.5.1).
 - Q-10: the startup hook.
 - Q-18: require (not just recommend) Buffout 4 NG, High FPS Physics Fix and LooksMenu?
 - Also Q-01, Q-04, Q-05 and Q-15–Q-17.

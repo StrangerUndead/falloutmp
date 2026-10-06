@@ -4,7 +4,7 @@ Every gameplay system has one spec, written with [_TEMPLATE.md](_TEMPLATE.md) an
 
 | ID | Spec | Tier | Target | SkyMP analogue (level) | Milestone |
 |---|---|---|---|---|---|
-| F00 | [Session lifecycle, world entry & streaming](F00-session-world-entry.md) | T0 | L4 | login/spawn/template save/grid (L4) | M4 |
+| F00 | [Session lifecycle, world entry & streaming](F00-session-world-entry.md) | T0 | L4 | login/spawn/grid (L4) | M4 |
 | F01 | [Movement, aim & positioning](F01-movement.md) | T0 | L3+ | UpdateMovement (L3) | M5 |
 | F02 | [Animation sync](F02-animation.md) | T0 | L3 | UpdateAnimation (L2–L3) | M5/M8 |
 | F03 | [Appearance & character creation](F03-appearance-chargen.md) | T0 | L3 | RaceMenu appearance (L3) | M5/M7 |
@@ -37,6 +37,7 @@ Every gameplay system has one spec, written with [_TEMPLATE.md](_TEMPLATE.md) an
 | F30 | [Chat, commands, admin](F30-chat-commands-admin.md) | T0 | L4 | Chat (gamemode), console (L3) | M6 |
 | F31 | [Names, custom properties, gamemode extensibility](F31-names-properties-extensibility.md) | T0 | L4 | Nicknames, properties (L3–L4) | M5 |
 | F32 | [Parties, teams & PvP rules](F32-parties-pvp.md) | T1 | L4 | — (SweetPie gamemode only) | M8/M9 |
+| F33 | [The entrance: main menu to wasteland (generated entry save)](F33-entrance.md) | T0 | L4 | per-player save from `template.ess` (L4) | M4/M5 |
 
 **Candidate features without a spec yet** (add a spec before scheduling; none blocks 1.0): physics grab/carry of objects (`Z` grab, class B owner-validated like F06 drop); scripted transit (elevator cars with riders, Vertibird travel as validated fast travel through F26); admin spectator/free-camera mode (F30 extension); emotes (F02 whitelisted idle events); service NPCs (doctors, barbers via F23/F03); per-player stash containers (F06 `perPlayer` mode on a tagged container); radiant encounters (gamemode content on F13/F14 spawn API); voice chat (out of process, proximity data from F01; Mumble-style positional plugin); screenshot/photo mode (client-only, D).
 

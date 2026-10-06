@@ -34,7 +34,7 @@ Quest state lives on the server and is persisted. It is either per player (insta
   - aliases assume one player;
   - scenes run on one client;
   - outcomes are exclusive.
-  - The template save carries MQ state from Vault 111 (F00 §4.5 step 5).
+  - The entry template carries MQ state from Vault 111; its capture stops the story quests (F33 §4.5.1), and the clean world stops any that start after a load.
 
 ## 3. SkyMP baseline
 - **Vanilla quests:** not synced. The client blocks vanilla Papyrus events with an allow-list (`blockPapyrusEventsService`). The server strips vanilla scripts by whitelist/blacklist (`MpObjectReference::InitScripts`, skymp-sync-inventory §1.13).

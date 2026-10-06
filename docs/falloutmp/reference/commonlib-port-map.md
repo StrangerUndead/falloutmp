@@ -314,8 +314,8 @@ The full offset table is in §2. Hook plumbing:
 
 | SP symbol | SP usage | FO4 | Status | Notes |
 |---|---|---|---|---|
-| `RE::BGSSaveLoadManager::GetSingleton()->Load(name)` | LoadGame.cpp:118-122 | `BGSSaveLoadManager::GetSingleton()` (2697802) [lx/include/RE/B/BGSSaveLoadManager.h]. There is **no `Load(name)`**, only `QueueSaveLoadTask(QUEUED_TASK::kLoadGame)` (2228080), `queuedEntryToLoad` @0x48, `BuildSaveGameList` (2228053) | Missing-RE | F4SE hooks the real function: `bool LoadGame(BGSSaveLoadManager*, const char* name, u8 unk1, void* unk2)` at RVA `0xBEE760`@1.11.240; SaveGame is at 0xBEE0B0 and DeleteSaveGame at 0xBF9170 [f4se/f4se/Hooks_SaveLoad.cpp:15-27]. Convert the RVA to an AE ID with `REL::Offset2ID::GetSingleton()->load_v2(); get_id(0xBEE760)` on a 1.11.240 install [cs/include/REL/Offset2ID.h; cs/src/REL/Offset2ID.cpp:8-60]. |
-| `.ess` writer (`savefile` lib), `template.ess`, `My Games\Skyrim Special Edition\Saves` | LoadGame.cpp:49-130 | `.fos` + `F4SE::GetSaveFolderName()` → `My Games/Fallout4/Saves` | Rewrite | Recommended: a template `.fos` plus `MoveRefrToPosition` (see the research doc). |
+| `RE::BGSSaveLoadManager::GetSingleton()->Load(name)` | LoadGame.cpp:118-122 | `BGSSaveLoadManager::GetSingleton()` (2697802) [lx/include/RE/B/BGSSaveLoadManager.h]. There is **no `Load(name)`**, only `QueueSaveLoadTask(QUEUED_TASK::kLoadGame)` (2228080), `queuedEntryToLoad` @0x48, `BuildSaveGameList` (2228053) | Missing-RE | **Corrected 2026-10-06:** call `BGSSaveLoadManager::LoadGame(const char* name, int32 device = -1, uint32 stats = 0, bool checkForMods, bool ignoreMissingContent)`, AE ID **2228039** (powerof3 CommonLibF4; used by StartOnSaveF4 on AE). F4SE's hook at RVA `0xBEE760`@1.11.240 is the inner `BGSSaveLoadGame::LoadGame(BGSSaveLoadFile*, bool, BSScrapArray<BSFixedString>&)`, which takes a file object; `0xBEE0B0` is the inner SaveGame [f4se/f4se/Hooks_SaveLoad.cpp:15-27; Buffout 4 call stacks]. `Offset2ID` lookups are nearest-match: check IDs exactly. Details: reference/fo4-save-entry.md §4. |
+| `.ess` writer (`savefile` lib), `template.ess`, `My Games\Skyrim Special Edition\Saves` | LoadGame.cpp:49-130 | `.fos` + `F4SE::GetSaveFolderName()` → `My Games/Fallout4/Saves` | Rewrite | Decided 2026-10-06: a per-player save generated from a template `.fos` (F33; reference/fo4-save-entry.md). |
 | `RE::TESLoadGameEvent` | LoadGame.cpp:16-65; PapyrusTESModPlatform.cpp:79-100; EventHandler.cpp:741-748 | `TESLoadGameEvent::GetEventSource()` (**2201848**) [lx/include/RE/T/TESLoadGameEvent.h] | Same | |
 
 ### 1.16 Magic (MagicApi)
@@ -653,7 +653,7 @@ Their existence is confirmed by `BSTEventSink<…>` RTTI names in [lx/include/RE
 ### 4.5 Save / load
 
 - `BGSSaveLoadManager` (2697802): `QueueSaveLoadTask`, `GetSaveDirectoryPath`, `BuildSaveGameList`, `saveGameList`, `queuedEntryToLoad`, `mostRecentSaveGame` [lx/include/RE/B/BGSSaveLoadManager.h].
-- F4SE function RVAs @1.11.240: LoadGame 0xBEE760, SaveGame 0xBEE0B0, DeleteSaveGame 0xBF9170.
+- F4SE function RVAs @1.11.240: LoadGame 0xBEE760, SaveGame 0xBEE0B0, DeleteSaveGame 0xBF9170. These are the inner `BGSSaveLoadGame` functions F4SE hooks for its co-save; the callable load request is `BGSSaveLoadManager::LoadGame` (AE ID 2228039), see reference/fo4-save-entry.md §4.
 - te OG IDs: manager instance 1247321 (al: 1247320).
 - Loading a named save directly is **Missing-RE** for AE IDs (use Offset2ID).
 
@@ -769,7 +769,7 @@ Verdicts:
 | `sp/ConsoleApi.cpp/.h` | A | SCRIPT_FUNCTION renames (`paramCount`, `float&`), `Script::text`, `REL::WriteSafe`. |
 | `sp/InGameConsolePrinter.cpp/.h`, `ExceptionPrinter.cpp/.h`, `WindowsConsolePrinter.cpp/.h`, `IConsolePrinter.h` | A / P | `Print` → `PrintLine` (the printers using ConsoleLog); the rest are portable. |
 | `sp/MagicApi.cpp/.h`, `sp/Magic/*` (5 files) | D | Skyrim magic plus raw behaviour-index tables. Replace with name-based graph-var and weapon APIs. |
-| `sp/LoadGame.cpp/.h`, `LoadGameApi.cpp/.h`, `assets/template.ess` | R | `.fos` / template-save strategy; LoadGame function is Missing-RE. |
+| `sp/LoadGame.cpp/.h`, `LoadGameApi.cpp/.h`, `assets/template.ess` | R | Rewritten as F33: the `fos` patcher plus `BGSSaveLoadManager::LoadGame` (AE ID 2228039). |
 | `sp/CameraApi.cpp/.h` | A | Same NiCamera API (or `Main::WorldRootCamera`). |
 | `sp/TextApi.cpp/.h`, `TextsCollection.cpp/.h` | A | PlayerCamera/BSGraphics::State renames; FO4 node names. |
 | `sp/DevApi.cpp/.h` | A | Screenshot handler via `BSInputEventUser` and `Un/RegisterHandler`. |
@@ -876,7 +876,7 @@ Verdicts:
 1. **VTABLE IDs on AE (R1).** `BindNativeMethod` (slot 0x1B), `SendEvent` (0x2B), the actor `NotifyAnimationGraphImpl` and the DrawWeapon slots depend on vtables. The lx VTABLE IDs are OG-space and unverified, and the VM hook must go in before GameVM exists. Fix: an RTTI-COL vtable finder or Offset2ID.
 2. **TES event getters.** ~30 events SP exposes have no lx getter or struct. Candidate IDs and RVAs are in §4.2b; each needs verification plus a field-layout RE.
 3. **The `NotifyAnimationGraph` hook** (animation sync core): which vtable and slot to hook for Actor and PlayerCharacter, and the first- vs third-person graph question.
-4. **Loading a named save** (`BGSSaveLoadManager::LoadGame`, F4SE RVA 0xBEE760@1.11.240 → AE ID) and **`MoveRefrToPosition`** (RVA 0x1181020).
+4. **Loading a named save** (`BGSSaveLoadManager::LoadGame`, AE ID 2228039; not F4SE's RVA 0xBEE760, which is the inner loader, reference/fo4-save-entry.md §4) and **`MoveRefrToPosition`** (RVA 0x1181020).
 5. **Animation variables**: `BShkbAnimationGraph`/`hkbVariableValueSet` layouts are absent. Switch to name-based graph variables.
 6. **Input model**: whether FO4 has DInput8 for keyboard/mouse at all; otherwise the CEF input path moves to WndProc/raw input.
 7. **Vanilla NativeFunction layout past 0x50**: diagnostics only; F4SE natives (raw pointer) differ from CommonLibF4 natives (std::function).

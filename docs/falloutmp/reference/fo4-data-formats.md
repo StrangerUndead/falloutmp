@@ -963,6 +963,8 @@ Change flags (ACHR, type 1): 0 FORM_FLAGS, **1 REFR_MOVE**, 2 HAVOK_MOVE, 3 CELL
 
 Recommendation: start with **(b)** (already the broad survey's recommendation, §4.1), and keep **(a)** as an optimization once loading screens/teleport artefacts matter; implement (a) as a separate `savefile_fo4` module rather than generalizing the Skyrim struct-heavy reader.
 
+**Superseded (2026-10-06):** the user chose (a) for the entrance. The Next-Gen/Anniversary format details, the exact patch set and the load call are in [fo4-save-entry.md](fo4-save-entry.md); the design is F33.
+
 ---
 
 ## 8. Concrete change list and design

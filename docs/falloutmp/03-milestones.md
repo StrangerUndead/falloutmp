@@ -69,13 +69,13 @@ M1 runs in parallel with M3, and M2 with the platform half of M4. **The M4 exit 
 - **Platform:** PLAT-020b, PLAT-030…PLAT-036, PLAT-040, PLAT-042, PLAT-050…PLAT-052.
 - **Client:** CLI-001, CLI-002, CLI-003, CLI-010, CLI-012, CLI-050, CLI-070, CLI-071, CLI-080 (MCM settings page).
 - **Server:** SRV-003 (client-mod allow/deny lists in the manifest).
-- **Feature:** F00 (all tasks), F27-T01 (vanilla quest policy; the only F27 task before 1.x).
+- **Feature:** F00 (all tasks), F33-T01…T14 (the entrance: writer, load call, template, two-phase join), F27-T01 (vanilla quest policy; the only F27 task before 1.x).
 - **Gamemode:** GM-001, GM-010.
 - **Animation probe:** F02-T01 must report by the end of M4.
 
 **Exit criteria**
 1. `falloutPlatform.ts` is generated, and `sp.Game.getPlayer().getPositionX()` works from JS.
-2. A player connects to the Linux server and spawns via the template save at the persisted position. Reconnecting restores the position. No vanilla main-quest (MQ) quests run (F00 tests).
+2. A player starts the game, joins from the main menu and enters through a generated save (F33) at the persisted position, with one loading screen. Reconnecting restores the position. No vanilla main-quest (MQ) quests run (F00 and F33 tests).
 3. The animation probe analysis is complete, and ADR-008 is Accepted or revised.
 
 ## M5 — See each other (computed 8–12 weeks: F01/F02/F03-MVP/F31/F13-T01…T04 ≈ 20 S, 18 M, 3 L; ~6 G-manual round trips)
@@ -85,7 +85,8 @@ M1 runs in parallel with M3, and M2 with the platform half of M4. **The M4 exit 
   - F02-T02…T09;
   - F03 MVP: race, sex and preset-level appearance;
   - F31: nameplates and display names;
-  - F13-T01…T04: server-spawned NPCs with AI suppressed, no hosting yet (needed by F06 corpse loot and F14 in M6).
+  - F13-T01…T04: server-spawned NPCs with AI suppressed, no hosting yet (needed by F06 corpse loot and F14 in M6);
+  - F33-T15…T22: entrance polish (main-menu rows, dialogs, full save guard, interiors, appearance under the curtain).
 - **Client:** CLI-020, CLI-021, CLI-030, CLI-031, CLI-040; F28's "menus must not pause the game" policy task.
 
 **Exit criteria**

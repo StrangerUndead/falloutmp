@@ -76,9 +76,9 @@ Context: [reference/commonlib-port-map.md](../reference/commonlib-port-map.md) (
 - [ ] **PLAT-042** Input & menus: `MenuOpenCloseEvent` names, button/mouse/thumbstick events. Determine the FO4 keyboard/mouse input path (raw input vs DirectInput8, blocker 6) and adapt the Tilted input hooks — M — Depends: PLAT-040 — Verify: G-self
 
 ## E. World entry & saves (ADR-007)
-- [ ] **PLAT-050** `loadGame(saveName)` via `BGSSaveLoadManager` (ID from F4SE address 0xBEE760 on 1.11.240 → AE ID) + `postLoadGame` promise — M — Depends: PLAT-002 — Verify: G-self
+- [ ] **PLAT-050** `loadGame(saveName)` via `BGSSaveLoadManager::LoadGame(name, -1, 0, checkForMods, ignoreMissingContent)` (AE ID 2228039; F4SE's `0xBEE760` is the inner `BGSSaveLoadGame::LoadGame` and must not be called, reference/fo4-save-entry.md §4) + `postLoadGame` event — M — Depends: PLAT-002 — Verify: G-self — done as F33-T05
 - [ ] **PLAT-051** `moveRefrToPosition(ref, cellOrWorld, pos, rot)` (MoveTo; F4SE 0x1181020 → AE ID; or `SetLocationOnReference` AE 2201138) — M — Depends: PLAT-002 — Verify: G-self
-- [ ] **PLAT-052** Save/load guard and autosave suppression hooks; INI forcing helpers — S — Depends: PLAT-050 — Verify: G-self
+- [ ] **PLAT-052** Save/load guard and autosave suppression hooks; INI forcing helpers — S — Depends: PLAT-050 — Verify: G-self — done as F33-T11 (P1) and F33-T17 (full guard)
 
 ## F. Browser overlay & UI
 - [ ] **PLAT-060** CEF overlay port: swap chain via `BSGraphics::RendererData` (`GetRendererData` NG/AE 2704429; Present `Renderer::End` 2276834 per prior-art), D3D11 device, render handler, sprite batch; CEF subprocess packaging — L — Depends: PLAT-004 — Verify: G-self

@@ -5,7 +5,7 @@ Upstream's real gamemode is private (`skymp5-functions-lib` only pulls it). Fall
 - every feature has a reference integration through the `mp` API.
 
 - [ ] **GM-001** Skeleton: TypeScript project `falloutmp-gamemode/`, build to `gamemode.js`, hot reload works with `falloutmp-server/ts/index.ts` — S — Depends: — — Verify: L-int
-- [ ] **GM-010** Spawn & first-login flow (M4 version): start points and respawn-at-start-point policy; no appearance step yet — S — Depends: GM-001, F00-T04 — Verify: L-int
+- [ ] **GM-010** Spawn & first-login flow (M4 version): start points and respawn-at-start-point policy; no appearance step yet — S — Depends: GM-001, F33-T07 — Verify: L-int
   - Accept: a new profile spawns at a configured start point; reconnect restores position.
 - [ ] **GM-013** First-login appearance and death policy (M7): `setRaceMenuOpen` → LooksMenu editor (F03), death handling policy hooks (F12) — S — Depends: GM-010, F03-T05, F12-T03 — Verify: L-int
 - [ ] **GM-011** Chat: local (grid radius) and global channels, `/commands` framework (help, list, roll, tp, kill, kick, ban), via `makeProperty`/`makeEventSource` + front widgets — M — Depends: GM-001, FRONT-003 — Verify: L-int, G-manual

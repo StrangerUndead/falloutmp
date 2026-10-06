@@ -2604,7 +2604,7 @@ The table gives one line per missing call. **N** = new native in the FO4 `TESMod
 | ActorBase face/morph/tint/headpart/hair, `Game` tint masks, `ColorForm.getColor`, `TESModPlatform` appearance natives | new FO4 appearance natives (`SetNpcMorphs`, `SetNpcTints`, …) + F4SE `GetHeadParts` / `Get/SetBodyWeight` | N | P1 |
 | `TESModPlatform.addItemEx` / `pushWornState` / `resetContainer`, `setInventory`, `getExtraContainerChanges`, `getContainer` | OMOD-aware inventory natives | N / FP | P1 |
 | `setCollision`, `get/applyAnimationVariables*` | FO4 RE | FP | P1 |
-| `loadGame` | template save + MoveTo | platform | P0 |
+| `loadGame` | generated entry save, `BGSSaveLoadManager::LoadGame` (F33) | platform | P0 |
 | `getSpellCount/getNthSpell`, `castSpellImmediate`, `interruptCast`, `ActorValueInfo.*`, `spellCast`/`playerBowShot` events | — | drop / replace | — |
 
 ---

@@ -7,7 +7,7 @@
 | SkyMP analogue | `UpdateAppearance` (4) + `SetRaceMenuOpen` (29), accepted only while `isRaceMenuOpen` (`ActionListener.cpp:209-228`), `appearanceDump` persistence, `sync/appearance.ts`. SkyMP level L3 (reference/skymp-sync-inventory.md §2 "Appearance / character creation") |
 | Milestone | M5 (MVP: race, sex, head parts, hair colour, presets), M7 (full LooksMenu flow, live morphs, surgery) |
 | Workstreams | PLAT, CLI, SRV, NET, ESPM, GM |
-| Depends on | F00 (world entry, template save), PLAT-070 (per-player runtime `TESNPC`), PLAT-082 (appearance natives + Reset3D), ESPM-006 (NPC_/RACE layouts), NET-002, NET-003, F19 (creation SPECIAL), F31 (character name) |
+| Depends on | F00, F33 (world entry), PLAT-070 (per-player runtime `TESNPC`), PLAT-082 (appearance natives + Reset3D), ESPM-006 (NPC_/RACE layouts), NET-002, NET-003, F19 (creation SPECIAL), F31 (character name) |
 | References | reference/prior-art.md §3.1.4, §3.2.3, §5.1 B2/B3/B15/C2/C3, §5.3 Adopt 3, §5.4 Q1; reference/fo4-data-formats.md §4.4, §4.5; reference/fo4-systems-world-economy.md S19; reference/papyrus-api-map.md (`Game.showRaceMenu` row, menu table); reference/skymp-sync-inventory.md §1.3 rows 7/9/10, §1.10; reference/skyrim-coupling-index.md (SetRaceMenuOpenMessage row) |
 
 ## 1. Summary
@@ -103,7 +103,7 @@ Binary budget: `AppearanceFo4` ≤ 2 KB (typical ~0.8 KB); a larger message is r
   4. calls `Reset3D(1,0,1,0)` with `bUseFaceGenPreprocessedHeads=0` (TE); the native resolves a promise when the 3D is loaded again.
 - **Stream-in order** (F02 §4.5): appearance first; equipment (F05) and the animation keyframe wait for the `Reset3D` promise.
 - **Late joiners:** `CreateActorFo4.appearance`. **An actor without a stored appearance is not rendered to others**: the server omits it from neighbours' snapshots until the first accepted appearance, so nobody sees a default-faced puppet.
-- **Owner reconnect:** the `isMe` snapshot carries the appearance. The client applies it to the template-save player before handing control (F00 §4.5 step 2). FO4_Wrld lesson: never publish the save's default look (prior-art §3.1.4).
+- **Owner reconnect:** the `isMe` snapshot carries the appearance. The client applies it to the player under the entry curtain before handing control (F33 §4.5.5). FO4_Wrld lesson: never publish the save's default look (prior-art §3.1.4).
 - **Correction:** the owner gets `UpdateAppearanceFo4` with the stored appearance and re-applies it (no editor). If the stored appearance is empty (`create`), the correction is `SetRaceMenuOpen{open:true}` plus a notification with the reason.
 - **Respawn:** nothing to do (appearance is base data). **Power armor:** the race switch to `PowerArmorRace` keeps the face block (F17); after exit, re-apply if the head looks wrong (G-self check).
 - **Optional BodyGen:** if the server enables it and the client has the LooksMenu plugin (manifest check, F00-T09), call `BodyGen.SetMorph` for each morph and then `UpdateMorphs`. Without the plugin, BodyGen data is ignored (vanilla body).
@@ -151,7 +151,7 @@ A no-change close (data equal to the stored appearance) is accepted as a no-op: 
 - **Natives:** `mp.setRaceMenuOpen(actor, open, mode?)`, where `mode` defaults to `remake` (or `create` with no stored appearance).
 - **Events:** `onUpdateAppearanceAttempt` (blockable now), `onCharacterCreated(actor)` (not blockable), `onLooksMenuOpen(actor, mode)` (observe).
 - **Default gamemode (GM-010):**
-  1. new profile → spawn in the staging spot (template save position from F00-T01, invulnerable while the editor is open; F11 rejects damage to actors with `isRaceMenuOpen`, setting `appearance.protectWhileEditing`, default true);
+  1. new profile → spawn in the staging spot (the start point, or the template's spawn from F33-T06, invulnerable while the editor is open; F11 rejects damage to actors with `isRaceMenuOpen`, setting `appearance.protectWhileEditing`, default true);
   2. editor `create`;
   3. on accept, F19 creation SPECIAL (`ProgressionRequest.creationSpecial`), then F31 name;
   4. teleport to the start point (F00-T06).

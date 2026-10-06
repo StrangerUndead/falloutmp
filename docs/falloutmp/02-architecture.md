@@ -15,7 +15,7 @@
 │   ├─ "SP3 for FO4": runtime reflection of the FO4 Papyrus VM (structs, Var) (ADR-006)
 │   ├─ TESModPlatform.pex (FO4-compiled) natives: CreateNpc, appearance, inventory   │  │
 │   │     with OMOD instances, power armor, weapon fire, etc.                        │  │
-│   ├─ World entry: template .fos + MoveTo (ADR-007)                                │  │
+│   ├─ World entry: generated save from a template .fos (ADR-007, F33)              │  │
 │   └─ CEF overlay (Tilted UI, DX11 Present hook) → falloutmp-front (ADR-005)       │  │
 └───────────────────────────────────────────────────────────────────────────────────┘  │
                                                                                        │ UDP
@@ -122,13 +122,18 @@ Status legend: **Accepted** (implement), **Proposed** (default plan; confirm wit
   - Generate `falloutPlatform.ts` from an in-game dump plus the FO4 PEX reader.
 - **Fallback:** A fixed list of natives registered through F4SE's Papyrus interface, plus latent `Dispatch*` calls for everything else.
 
-### ADR-007 World entry (spawning into the world) — *Proposed*
-- **Decision:**
-  1. Ship a small template `.fos` created once in game: new character after Vault 111, main quest suppressed.
-  2. On connect, load it with `BGSSaveLoadManager`.
-  3. Move the player to the server position (`MoveTo`) and apply appearance, inventory and actor values through natives.
-- **Why:** Writing `.fos` files (SkyMP's approach for `.ess`) needs a full FO4 save writer (`savefile` only knows Skyrim). The template approach needs only a save loader.
-- **Revisit:** If template state leaks (quest/world flags) cause problems, implement a `.fos` patcher (`DATA-030`).
+### ADR-007 World entry (spawning into the world) — *Accepted 2026-10-06 (user), amended*
+- **Decision (amended 2026-10-06; the user chose SkyMP's approach):**
+  1. Ship one validated base-game template `.fos` per runtime, captured by the maintainer after Vault 111 with the story stopped (F33 §4.5.1).
+  2. At the main menu, the client copies it and writes the server's position, cell and time into the copy: three patches, with every other byte kept and checked (F33 §4.5.2).
+  3. Load the copy with `BGSSaveLoadManager::LoadGame` (one loading screen) and delete it. Then bind the character (two-phase join) and apply appearance, inventory and actor values through natives.
+  4. `MoveTo` stays for corrections, in-game reconnects and, until F33-T18, interior targets.
+- **Why:**
+  - One loading screen, and the same starting state for everyone.
+  - The research (reference/fo4-save-entry.md) shows that no full save writer is needed: the patch touches three blocks, and FO4_Wrld already does it on 1.11.x.
+  - Template + `MoveTo` costs a second loading screen, and minutes of loading after a far move (FO4_Wrld measured 116–339 s).
+- **Superseded proposal:** load the template unmodified, then `MoveTo` the server position.
+- **Revisit if:** the F33 Phase 1 checks show the engine rejects patched saves. Then fall back to template + `MoveTo`; F33's fallback F1 already covers runtimes without a template.
 
 ### ADR-008 Animation sync strategy — *Proposed (confirm with the F02-T01 prototype)*
 - **Decision:** the hybrid "state + action + curated events + name-resolved graph variables" (strategy D in reference/fo4-animation-sync.md §6):

@@ -68,7 +68,7 @@ None for death decisions. The client keeps the local player (and hosted NPCs) ou
 - **Remote actors:** `UpdateProperty isDead=true` (long-id routing fixed by CLI-031) → `Kill` the ghost with loot disabled locally (looting goes through server containers, F06), `ActionDeath`/ragdoll, dismember with the seed.
 - **Late joiner:** `CreateActorFo4 isDead=true` → spawn dead (`KillSilent` + `ActionDeathWait`), at the server corpse position.
 - **Bleedout/downed:** `lifeState` property → the owner/host plays `ActionBleedoutStart`; ghosts mirror through F02 relay; clearing → `ActionBleedoutStop`.
-- **Respawn (player):** `DeathStateContainerFo4 reason=respawn` with teleport + AV map → primary path `Resurrect()` + `ResetHealthAndLimbs()` + `MoveTo`, then AVs; fallback (setting `death.respawnMode = "reload"`) re-runs the F00 template-save entry at the spawn point. The choice is made by the F12-T05 prototype.
+- **Respawn (player):** `DeathStateContainerFo4 reason=respawn` with teleport + AV map → primary path `Resurrect()` + `ResetHealthAndLimbs()` + `MoveTo`, then AVs; fallback (setting `death.respawnMode = "reload"`) re-runs the F33 entry at the spawn point. The choice is made by the F12-T05 prototype.
 - **Reconnect while dead:** SkyMP behaviour kept: `RespawnWithDelay` on load/login.
 
 ### 4.6 Validation & anti-cheat
@@ -134,7 +134,7 @@ Death/respawn are rare events: one `DeathStateContainerFo4` (≤ 400 B with AV m
 - [ ] **F12-T03** `isDead`/`lifeState` `UpdateProperty` to all listeners on death and respawn (I14), client long-id routing via CLI-031 — S — Depends: F12-T01, CLI-031 — Verify: L-unit, L-ts
   - Accept: neighbour receives `isDead=true` without any movement packet.
 - [ ] **F12-T04** `DeathStateContainerFo4` message (C++ + TS) with the F08 AV map — S — Depends: NET-002, F08-T03 — Verify: L-unit — Files: falloutmp-server/cpp/messages/DeathStateContainerFo4Message.h; falloutmp-client/src/services/messages/
-- [ ] **F12-T05** Player respawn: spawn points/delay (existing fields), AV restore, `respawn.clearRads`/`clearEffects`, and the client respawn prototype (`Resurrect` vs template reload, `death.respawnMode`) — M — Depends: F12-T04, F00-T04, F20 (effects) — Verify: L-unit, G-self
+- [ ] **F12-T05** Player respawn: spawn points/delay (existing fields), AV restore, `respawn.clearRads`/`clearEffects`, and the client respawn prototype (`Resurrect` vs template reload, `death.respawnMode`) — M — Depends: F12-T04, F33-T08, F20 (effects) — Verify: L-unit, G-self
   - Accept: unit tests pass; prototype result recorded in STATUS.md and this spec updated.
 - [ ] **F12-T06** Essential/protected NPCs and bleedout recovery — S — Depends: F12-T01, ESPM-006 — Verify: L-unit
 - [ ] **F12-T07** Downed state and revive via `UseItem` stimpak (distance, item, timeout, pool) — M — Depends: F12-T01, F20 (`UseItem`) — Verify: L-unit, L-int
