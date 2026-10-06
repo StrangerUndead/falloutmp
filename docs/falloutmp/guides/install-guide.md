@@ -389,7 +389,8 @@ The zip has no `FalloutMP.json`, only the example, so your settings and characte
 | "Client script missing" | `Data\F4SE\Plugins\FalloutMP\falloutmp-client.js` is missing. Copy the `Data` folder again |
 | Other players stand still | Set `"puppet-move": "papyrus"` and try again |
 | One system misbehaves | Switch it off in `features` (§2.7) and send the log |
-| NPCs or the intro story are still there | Check `server-ip` is set (the world is only cleaned when joining a server) and `"cleanWorld"` isn't `false`. The log lists every removed actor and stopped quest |
+| NPCs or the intro story are still there | Check `"cleanWorld"` isn't `false` in `features` and `"probe"` is `false`. The log lists every removed actor and stopped quest ("Clean world: ...") |
+| "FalloutMP: no server set" | `server-ip` in `Data\F4SE\Plugins\FalloutMP.json` is empty. Make sure you edited `FalloutMP.json`, not `FalloutMP.example.json` |
 
 **Logs to send with a bug report:**
 

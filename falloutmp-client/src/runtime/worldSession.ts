@@ -100,6 +100,7 @@ export class WorldSession {
     this.config = this.platform.getClientConfig();
     if (!this.config) {
       this.platform.log("warn", "No server configured: set server-ip and server-port in FalloutMP.json");
+      this.platform.showNotification("FalloutMP: no server set. Put the server-ip in Data\\F4SE\\Plugins\\FalloutMP.json");
       return;
     }
     this.connect();

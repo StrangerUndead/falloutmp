@@ -94,7 +94,7 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 
 ## Plugin: in-game checks (from the module reports; `// [verify]` in the code)
 - **Clean world:** form flag 0x800 is "disabled" on references; QUEST_DATA flag 0x1 is "running" (the probe's `runningQuests` lists them); the quest filter keeps system quests (check the stopped-quest lines in FalloutMP.log); stopping the intro quest releases its input layers so the player has full controls; the added Pip-Boy shows and opens; workshop turrets (network refs) stay.
-- **Console:** plugin warnings now use `ConsoleLog::AddString` (the user saw garbled console text with `PrintLine`); check the console shows readable `[FalloutMP]` lines.
+- **Console:** the garbled console text was the JavaScript stack error repeating every frame (fixed). Plugin warnings now use `ConsoleLog::AddString`, rate limited; check the console shows readable `[FalloutMP]` lines.
 - **Core:** the F4SE permanent task runs every frame, including pausing menus and loading screens (ticks skip while loading); Address Library IDs resolve on the player's runtime.
 - **Puppets/movement:** `Actor::IsSneaking` ID 2207655; gunState/wantBlocking readings; jetpack thresholds; controller warp vs physics; the DoNothing package keeps the graph animating (`puppet-ai`); `CheckValidTarget` (0xF4) and `KillImpl` (0x117) guards cover every path; the MoveTo marker cleanup.
 - **Animation:** guessed variable types; 1st-person graph reads; Speed/Direction overwritten after `Actor::Update` (move writes to the post-channel functor if so); puppet T-pose wake; event names not found in sources (stagger, idles, blockStop).
@@ -172,6 +172,7 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 ## Evidence log
 | Date | Task | Evidence |
 |---|---|---|
+| 2026-10-06 | First in-game run | User log: the plugin loads on Fallout 4 1.11.240 with F4SE 0.7.9, every hook installs, 62 natives. Found: every script call failed with "Maximum call stack size exceeded" (QuickJS runtime created on the F4SE messaging thread, ticked on the main thread); fixed with `JS_UpdateStackTop` per call, regression test added. Clean world was off because `server-ip` was empty; it is now always on |
 | 2026-10-05 | Full plugin | modules `1921f62`…`d8e31d9`; all plugin sources pass a clang `-fsyntax-only` check against CommonLibF4 headers; e2e with appearance and animation PASS; client 77 tests; C++ 259 cases |
 | 2026-10-05 | Client first slice | `6c92c73`, `2bd1acd`: `Fo4ClientCoreTest`, client 70 tests, `fmp_e2e.sh` PASS (two bots, 356 movement updates applied) |
 | 2026-10-05 | First real data load (user VPS) | Fallout4.esm: 1,244,528 refs, 31 workshops after the CONT fix (`d1d90c0`), 315 map markers |

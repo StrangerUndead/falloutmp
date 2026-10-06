@@ -5,6 +5,7 @@
 #  include "Runtime.h"
 #  include <catch2/catch_all.hpp>
 #  include <nlohmann/json.hpp>
+#  include <thread>
 
 using nlohmann::json;
 
@@ -101,6 +102,30 @@ TEST_CASE("JsHost reports exceptions, native failures and rejections",
   REQUIRE(c.sent.size() == 1);
   REQUIRE(c.sent[0].first == R"({"x":1})");
   REQUIRE(host.ErrorCount() == 2);
+}
+
+TEST_CASE("JsHost works when called from another thread than its creator",
+          "[fo4][ClientCore]")
+{
+  // The plugin loads the script at kGameDataReady and ticks it from the
+  // game's main thread. QuickJS measures its stack limit from the thread
+  // that created the runtime, so every call from another thread used to
+  // fail with "Maximum call stack size exceeded".
+  Captured c;
+  auto host = MakeHost(c);
+  REQUIRE(host.Eval(R"(
+    globalThis.__fmpOnEvent = (kind, payload) => __fmp.send(payload, true);
+  )",
+                    "t.js"));
+  std::thread other([&] {
+    for (int i = 0; i < 3; ++i) {
+      host.Emit("tick", R"({"n":1})");
+    }
+  });
+  other.join();
+  REQUIRE(host.ErrorCount() == 0);
+  REQUIRE_FALSE(c.HasLog("call stack"));
+  REQUIRE(c.sent.size() == 3);
 }
 
 TEST_CASE("Codec writes known messages in the binary format",

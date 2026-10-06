@@ -1,6 +1,6 @@
 // Clean world: FalloutMP is a player-run wasteland with no story and no
-// NPCs (STATUS.md decisions). While the client is set up to join a server
-// (FalloutMP.json "server-ip"), this module keeps the local game that way:
+// NPCs (STATUS.md decisions). This module keeps the local game that way
+// (always, except in probe mode; installing FalloutMP is for multiplayer):
 //
 //   - Actors: every actor that isn't the player, another player (puppet) or
 //     a FalloutMP object (game::IsNetworkRef: workshop turrets, ...) is
@@ -211,8 +211,8 @@ public:
 
 void InstallCleanWorld(Platform& p)
 {
-  if (p.Config().serverIp.empty() || p.Config().probe) {
-    REX::INFO("Clean world is off: no server-ip (or probe mode)");
+  if (p.Config().probe) {
+    REX::INFO("Clean world is off in probe mode");
     return;
   }
   g_keepCreatures = p.Config().raw.value("keep-creatures", false);

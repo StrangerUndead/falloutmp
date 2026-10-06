@@ -129,7 +129,10 @@ JsHost::JsHost(Callbacks callbacks_)
   rt = JS_NewRuntime();
   JS_SetMemoryLimit(rt, 512u * 1024u * 1024u);
   // The game calls in on its main thread, whose stack is shared with the
-  // engine: keep QuickJS's own limit well below it.
+  // engine: keep QuickJS's own limit well below it. QuickJS measures the
+  // limit from the stack top it recorded, so Eval and Emit record it again
+  // on the calling thread (the plugin creates the runtime on one thread and
+  // ticks it on the game's main thread).
   JS_SetMaxStackSize(rt, 384u * 1024u);
   JS_SetHostPromiseRejectionTracker(rt, OnRejection, this);
   ctx = JS_NewContext(rt);
@@ -154,6 +157,7 @@ JsHost::~JsHost()
 
 bool JsHost::Eval(const std::string& source, const std::string& fileName)
 {
+  JS_UpdateStackTop(rt);
   JSValue res = JS_Eval(ctx, source.data(), source.size(), fileName.data(),
                         JS_EVAL_TYPE_GLOBAL);
   bool ok = !JS_IsException(res);
@@ -167,6 +171,7 @@ bool JsHost::Eval(const std::string& source, const std::string& fileName)
 
 void JsHost::Emit(const std::string& kind, const std::string& payloadJson)
 {
+  JS_UpdateStackTop(rt);
   JSValue global = JS_GetGlobalObject(ctx);
   JSValue fn = JS_GetPropertyStr(ctx, global, "__fmpOnEvent");
   if (JS_IsFunction(ctx, fn)) {
