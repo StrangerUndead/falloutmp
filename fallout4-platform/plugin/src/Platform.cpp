@@ -115,6 +115,14 @@ void Platform::OnEmitted(
   taps.push_back(std::move(fn));
 }
 
+void Platform::SetInGame(bool value)
+{
+  if (value && !inGame.load()) {
+    inGameSinceMs = NowMs();
+  }
+  inGame = value;
+}
+
 void Platform::SetVersions(std::string runtime, std::string f4se)
 {
   runtimeVersion = std::move(runtime);

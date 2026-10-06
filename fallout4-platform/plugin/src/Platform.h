@@ -20,6 +20,7 @@
 #include "Config.h"
 #include "Game.h"
 
+#include <atomic>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -88,6 +89,14 @@ public:
   // script (the probe records them).
   void OnEmitted(std::function<void(const std::string&, const Json&)> fn);
 
+  // A save or new game is loaded and playable (F4SE kPostLoadGame /
+  // kNewGame); false at the main menu, during start-up and while another
+  // save loads. Modules that change the world wait for it.
+  void SetInGame(bool inGame);
+  bool InGame() const { return inGame.load(); }
+  // NowMs() when InGame last became true.
+  double InGameSinceMs() const { return inGameSinceMs.load(); }
+
   // Set at plugin load (F4SE LoadInterface).
   void SetVersions(std::string runtime, std::string f4se);
   const std::string& RuntimeVersion() const { return runtimeVersion; }
@@ -126,6 +135,8 @@ private:
   std::vector<Queued> queue;
   uint32_t nextAsyncId = 1;
   uint64_t frame = 0;
+  std::atomic<bool> inGame{ false };
+  std::atomic<double> inGameSinceMs{ 0 };
   double consoleWindowStartMs = 0;
   int consoleLinesInWindow = 0;
   int consoleSuppressed = 0;

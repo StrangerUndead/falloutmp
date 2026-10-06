@@ -34,8 +34,15 @@ void OnMessage(F4SE::MessagingInterface::Message* a_msg)
         }
       }
       break;
+    case F4SE::MessagingInterface::kPreLoadGame:
+      p.SetInGame(false);
+      break;
     case F4SE::MessagingInterface::kPostLoadGame:
     case F4SE::MessagingInterface::kNewGame:
+      if (a_msg->type == F4SE::MessagingInterface::kNewGame ||
+          static_cast<bool>(a_msg->data)) {
+        p.SetInGame(true);
+      }
       if (p.Started() && !g_ready) {
         g_ready = true;
         p.EmitLifecycle("gameReady");

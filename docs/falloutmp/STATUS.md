@@ -172,6 +172,7 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 ## Evidence log
 | Date | Task | Evidence |
 |---|---|---|
+| 2026-10-06 | Second in-game run | Clean world ran 10 ms after install, during the game's start-up loading screen (removed 769 actors, stopped ~200 quests) and the game crashed. It now waits for a loaded game (F4SE kPostLoadGame/kNewGame, cleared on kPreLoadGame) plus 3 s, never at the main menu or while loading. The quest list confirmed editor ids are readable at runtime; workshop/player/recon-scope quests are now always kept |
 | 2026-10-06 | First in-game run | User log: the plugin loads on Fallout 4 1.11.240 with F4SE 0.7.9, every hook installs, 62 natives. Found: every script call failed with "Maximum call stack size exceeded" (QuickJS runtime created on the F4SE messaging thread, ticked on the main thread); fixed with `JS_UpdateStackTop` per call, regression test added. Clean world was off because `server-ip` was empty; it is now always on |
 | 2026-10-05 | Full plugin | modules `1921f62`…`d8e31d9`; all plugin sources pass a clang `-fsyntax-only` check against CommonLibF4 headers; e2e with appearance and animation PASS; client 77 tests; C++ 259 cases |
 | 2026-10-05 | Client first slice | `6c92c73`, `2bd1acd`: `Fo4ClientCoreTest`, client 70 tests, `fmp_e2e.sh` PASS (two bots, 356 movement updates applied) |

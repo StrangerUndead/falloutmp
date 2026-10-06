@@ -38,6 +38,7 @@
 namespace fmp::modules {
 
 namespace {
+constexpr double kStartDelayMs = 3000.0;
 constexpr double kActorSweepMs = 1000.0;
 constexpr double kQuestSweepMs = 5000.0;
 constexpr double kPipboyCheckMs = 5000.0;
@@ -53,6 +54,13 @@ constexpr std::array<std::string_view, 9> kKeepPrefixes = {
   "Workshop", "HC_",         "Perk",     "Player",   "Pipboy",
   "Radio",    "Achievement", "Holotape", "Tutorial",
 };
+// Quests whose editor id contains one of these keep running too.
+constexpr std::array<std::string_view, 4> kKeepParts = {
+  "Workshop",
+  "Player",
+  "ReconScope",
+  "Settlement",
+};
 // Editor id prefixes of story, encounter, companion and dialogue quests.
 constexpr std::array<std::string_view, 19> kStopPrefixes = {
   "MQ",   "RE",   "DN",    "COM",       "Dialogue", "Followers", "RQ",
@@ -67,6 +75,16 @@ double g_lastPipboyCheckMs = 0;
 std::unordered_set<uint32_t> g_disabled;      // actors this session
 std::unordered_set<uint32_t> g_stoppedLogged; // quests already logged
 uint64_t g_disabledTotal = 0;
+
+// Only in a loaded game: never during start-up, at the main menu or while
+// a save loads (changing the world then crashes the game), and not in the
+// first seconds after a load.
+bool Active(Platform& p)
+{
+  return p.InGame() && p.NowMs() - p.InGameSinceMs() >= kStartDelayMs &&
+    !game::Loading() && !game::MenuOpen("MainMenu") &&
+    RE::PlayerCharacter::GetSingleton();
+}
 
 bool StartsWithAny(std::string_view s, auto const& prefixes)
 {
@@ -141,6 +159,12 @@ bool ShouldStop(RE::TESQuest* quest)
   if (StartsWithAny(id, kKeepPrefixes)) {
     return false;
   }
+  // Workshop and player systems in any game or DLC quest
+  for (auto part : kKeepParts) {
+    if (id.find(part) != std::string_view::npos) {
+      return false;
+    }
+  }
   // Quest types 1..14: main quest, factions, misc, side, DLC
   return quest->data.questType != 0 || StartsWithAny(id, kStopPrefixes);
 }
@@ -199,6 +223,9 @@ public:
       const uint32_t id = e.formID;
       auto& p = Platform::Get();
       p.QueueTask([&p, id] {
+        if (!Active(p)) {
+          return; // the sweep catches it once the game is loaded
+        }
         if (auto actor = game::ActorOf(id)) {
           RemoveActors(p, { actor });
         }
@@ -224,7 +251,7 @@ void InstallCleanWorld(Platform& p)
 
   p.OnFrame([&p](float) {
     static bool wasLoading = false;
-    if (game::Loading() || !RE::PlayerCharacter::GetSingleton()) {
+    if (!Active(p)) {
       wasLoading = true;
       return;
     }
