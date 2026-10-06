@@ -1,5 +1,7 @@
 # Running a FalloutMP server
 
+First-time installation, updates and backups are in [install-guide.md](install-guide.md). This page lists every setting.
+
 This guide covers configuring and running a Fallout 4 server built from this repository. Everything a SkyMP server owner knows still applies. This page lists only what is new or different.
 
 ## 1. Game data

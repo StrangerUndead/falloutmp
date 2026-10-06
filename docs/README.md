@@ -1,6 +1,7 @@
 # FalloutMP documentation
 
 - **The FalloutMP plan, guides and status:** [falloutmp/README.md](falloutmp/README.md), [falloutmp/STATUS.md](falloutmp/STATUS.md). Start there.
+- **Installing and updating (server and client):** [falloutmp/guides/install-guide.md](falloutmp/guides/install-guide.md).
 - **Server administration:** [falloutmp/guides/server-admin.md](falloutmp/guides/server-admin.md).
 - **Gamemode API (`mp.fo4`):** [falloutmp/guides/gamemode-api.md](falloutmp/guides/gamemode-api.md).
 
