@@ -18,8 +18,8 @@ if [[ "$1" == "--ensure-deps-noninteractive" ]]; then
   set -x
   PACMAN_ARGS="--noconfirm"
   pacman -Syu $PACMAN_ARGS sudo --needed
-  useradd -m skymp -u $CREATE_UID
-  chown -R skymp:skymp /src
+  useradd -m falloutmp -u $CREATE_UID
+  chown -R falloutmp:falloutmp /src
 
   cat /etc/passwd
 

@@ -1,0 +1,87 @@
+name: FalloutMP server (Linux)
+
+# Builds the server (falloutmp-server, C++ engine + TypeScript) and runs the
+# unit tests, the client tests and the end-to-end join test with two headless
+# bots. No Bethesda game data is needed: the tests use synthetic plugins.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BUILD_TYPE: RelWithDebInfo
+  VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-archives
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake clang ninja-build \
+            zip unzip tar curl pkgconf linux-libc-dev automake libtool \
+            autoconf autoconf-archive
+          npm install -g yarn
+
+      - name: vcpkg commit
+        id: vcpkg
+        run: echo "commit=$(git -C vcpkg rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-archives
+          key: vcpkg-linux-${{ steps.vcpkg.outputs.commit }}-${{ hashFiles('vcpkg.json', 'overlay_ports/**', 'overlay_triplets/**') }}
+          restore-keys: vcpkg-linux-${{ steps.vcpkg.outputs.commit }}-
+
+      - name: Configure
+        run: |
+          mkdir -p vcpkg-archives
+          ./build.sh --configure -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      - name: Upload vcpkg logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vcpkg-logs
+          path: |
+            build/vcpkg-*.log
+            vcpkg/buildtrees/**/*.log
+
+      - name: Build
+        run: ./build.sh --build
+
+      - name: Unit tests
+        working-directory: build
+        run: ./unit/unit
+
+      - name: Client tests
+        working-directory: falloutmp-client
+        run: |
+          npm ci
+          npm test
+          npm run bundle
+
+      - name: End-to-end join test
+        run: fallout4-platform/tools/fmp_e2e.sh build
+
+      - name: Package the server
+        run: tar czf falloutmp-server.tar.gz -C build/dist server
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: falloutmp-server-linux
+          path: falloutmp-server.tar.gz

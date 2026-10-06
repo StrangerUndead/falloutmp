@@ -19,8 +19,7 @@ bool IsCmakeOptionSpecified(const std::string& optionValue)
 
 const char* GetDataDir()
 {
-  return IsCmakeOptionSpecified(UNIT_DATA_DIR) ? UNIT_DATA_DIR
-                                               : SKYRIM_DIR "/Data";
+  return IsCmakeOptionSpecified(UNIT_DATA_DIR) ? UNIT_DATA_DIR : "";
 }
 
 std::string MakeMessage(const nlohmann::json& j)

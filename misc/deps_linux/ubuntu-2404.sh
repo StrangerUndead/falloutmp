@@ -20,8 +20,8 @@ if [[ "$1" == "--ensure-deps-noninteractive" ]]; then
   apt-get update
   apt-get full-upgrade $APT_ARGS
   apt-get install $APT_ARGS sudo
-  useradd -m skymp -u $CREATE_UID
-  chown -R skymp:skymp /src
+  useradd -m falloutmp -u $CREATE_UID
+  chown -R falloutmp:falloutmp /src
 
   cat /etc/passwd
 

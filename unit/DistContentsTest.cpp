@@ -34,17 +34,6 @@ bool IsSubsetOf(const nlohmann::json& subset,
   return true;
 }
 
-std::string NormalizePathSeparators(const std::string& path)
-{
-  std::string res = path;
-  for (auto& c : res) {
-    if (c == '\\') {
-      c = '/';
-    }
-  }
-  return res;
-}
-
 auto GetExpectedPaths(const nlohmann::json& j)
 {
   std::set<std::filesystem::path> res;
@@ -66,16 +55,6 @@ auto GetExpectedPaths(const nlohmann::json& j)
 
 #ifndef WIN32
   configurationTags.insert("Unix");
-#endif
-
-#ifdef SKYRIM_SE
-  configurationTags.insert("SkyrimSE");
-#else
-  configurationTags.insert("SkyrimAE");
-#endif
-
-#ifdef WITH_UI_FRONT
-  configurationTags.insert("UI");
 #endif
 
   if (getenv("CI")) {
@@ -126,42 +105,13 @@ TEST_CASE("Distribution folder must contain all requested files",
   // But this would extend tags responsibilities. Currently, they are
   // only responsible for platform selection.
   const std::vector<std::filesystem::path> kDistContentsIgnore = {
-    "server/data/Dawnguard.esm",   "server/data/Dragonborn.esm",
-    "server/data/HearthFires.esm", "server/data/Skyrim.esm",
-    "server/data/Update.esm",      "server/scam_native.ilk"
+    "server/data/Fallout4.esm", "server/scam_native.ilk"
   };
   for (auto& path : kDistContentsIgnore) {
     expectedPaths.erase(path);
     paths.erase(path);
   }
 
-  const std::vector<std::filesystem::path> kBasePathToIgnore = {
-    "client/Data/Platform/UI/"
-  };
-  const std::vector<std::filesystem::path> kBasePathIgnoreImmune = {
-    "client/Data/Platform/UI/build.js", "client/Data/Platform/UI/index.html"
-  };
-
-  for (const auto& basePath : kBasePathToIgnore) {
-    auto it = paths.begin();
-    while (it != paths.end()) {
-      bool startsWithBasePath =
-        NormalizePathSeparators(it->string())
-          .find(NormalizePathSeparators(basePath.string())) == 0;
-      bool isImmune =
-        std::any_of(kBasePathIgnoreImmune.begin(), kBasePathIgnoreImmune.end(),
-                    [&](const std::filesystem::path& immunePath) {
-                      return NormalizePathSeparators(it->string()) ==
-                        NormalizePathSeparators(immunePath.string());
-                    });
-      if (startsWithBasePath && !isImmune) {
-        spdlog::info("DistContents - Ignoring path: {}", it->string());
-        it = paths.erase(it);
-      } else {
-        ++it;
-      }
-    }
-  }
   size_t totalMissing = 0;
   std::stringstream ss;
   totalMissing += PrintMissing(paths, expectedPaths, '+', "Excess files", ss);

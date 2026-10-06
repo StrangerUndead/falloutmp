@@ -1,7 +1,7 @@
-# Home
+# FalloutMP documentation
 
-Welcome to Skyrim Multiplayer Docs portal. We store the API references, manuals, tutorials there.
+- **The FalloutMP plan, guides and status:** [falloutmp/README.md](falloutmp/README.md), [falloutmp/STATUS.md](falloutmp/STATUS.md). Start there.
+- **Server administration:** [falloutmp/guides/server-admin.md](falloutmp/guides/server-admin.md).
+- **Gamemode API (`mp.fo4`):** [falloutmp/guides/gamemode-api.md](falloutmp/guides/gamemode-api.md).
 
-Writing a good guide is always hard. Anyone who has tried it once knows how insanely time consuming and tedious it is to create a clear, user-friendly, and concise document. We would love to see your contributions to this wiki on GitHub.
-
-If you have any questions or suggestions, feel free to contact us via [Discord](https://discord.gg/k39uQ9Yudt) or sending an email directly to mod's author: `pospelovlm@yandex.ru`.
+The `docs_*.md` pages in this folder are the server engine reference inherited from SkyMP (configuration, command line, ports, database drivers, scripting, properties and events). They still describe the engine, but their examples come from Skyrim. Pages that only apply to Skyrim are listed separately in [SUMMARY.md](SUMMARY.md).

@@ -1,5 +1,5 @@
 {
-  "name": "SkyMP Codespace",
+  "name": "FalloutMP Codespace",
   "build": {
     "dockerfile": "Dockerfile"
   },

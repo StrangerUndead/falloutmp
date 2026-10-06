@@ -1,25 +1,21 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
-  "name": "skymp",
-  "homepage": "https://github.com/skyrim-multiplayer/skymp",
-  "description": "Multiplayer Mod & TypeScript SDK for Skyrim Special Edition",
+  "name": "falloutmp",
+  "homepage": "https://github.com/strangerundead/falloutmp",
+  "description": "Multiplayer framework for Fallout 4",
   "dependencies": [
     "cmakerc",
     "nlohmann-json",
-    "cpp-httplib",
     "zlib",
     "spdlog",
     "catch2",
     "simdjson",
-    "robin-hood-hashing",
-    "simpleini",
-    "bshoshany-thread-pool",
     "makeid",
     "libzippp",
-    "cpptrace",
     "antigo",
     "prometheus-cpp-lite",
     "slikenet",
+    "quickjs-ng",
     "libsodium",
     {
       "name": "mongo-cxx-driver",
@@ -32,77 +28,6 @@
     {
       "name": "rsm-bsa",
       "platform": "!osx & !emscripten"
-    },
-    {
-      "name": "frida-gum",
-      "platform": "windows"
-    },
-    {
-      "name": "directxtk",
-      "platform": "windows"
-    },
-    {
-      "name": "mhook",
-      "platform": "windows"
-    },
-    {
-      "name": "cef-prebuilt",
-      "platform": "windows"
-    },
-    {
-      "name": "nirnlab-ui-platform-headers",
-      "platform": "windows"
-    },
-    {
-      "name": "asio",
-      "platform": "windows"
-    },
-    {
-      "name": "libarchive",
-      "platform": "windows",
-      "features": []
-    },
-    {
-      "name": "ga-sdk-cpp",
-      "platform": "windows"
     }
-  ],
-  "features": {
-    "skyrim-flatrim": {
-      "description": "Build platform for Skyrim Special, or Anniversary Edition.",
-      "dependencies": [
-        {
-          "name": "commonlibsse-ng-flatrim",
-          "platform": "windows"
-        }
-      ]
-    },
-    "skyrim-vr": {
-      "description": "Build platform for Skyrim VR.",
-      "dependencies": [
-        {
-          "name": "commonlibsse-ng-vr",
-          "platform": "windows"
-        }
-      ]
-    },
-    "build-nodejs": {
-      "description": "",
-      "dependencies": [
-        {
-          "name": "node-embedder-api",
-          "platform": "windows"
-        }
-      ]
-    },
-    "prebuilt-nodejs": {
-      "description": "",
-      "dependencies": [
-        {
-          "name": "node-embedder-api-prebuilt",
-          "platform": "windows"
-        }
-      ]
-    }
-  }
+  ]
 }

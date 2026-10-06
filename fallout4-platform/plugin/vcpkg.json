@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "falloutmp-plugin",
+  "description": "FalloutMP F4SE plugin (fallout4-platform/plugin)",
+  "dependencies": [
+    { "name": "spdlog", "features": ["wchar"] },
+    "simdjson",
+    "slikenet",
+    "nlohmann-json",
+    "quickjs-ng"
+  ]
+}

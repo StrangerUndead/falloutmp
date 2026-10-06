@@ -6,7 +6,7 @@ function(yarn_execute_command)
     endif()
   endforeach()
 
-  # https://github.com/skyrim-multiplayer/skymp/issues/55
+  # A relative WORKING_DIRECTORY breaks yarn on Windows
   if(NOT IS_ABSOLUTE "${A_WORKING_DIRECTORY}")
     message(FATAL_ERROR "Expected WORKING_DIRECTORY to be an absolute path, but got: ${A_WORKING_DIRECTORY}")
   endif()

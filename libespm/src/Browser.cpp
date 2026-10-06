@@ -24,6 +24,31 @@
 
 namespace espm {
 
+namespace {
+// Record types indexed for the Fallout 4 data source (types that are small
+// in number and looked up by scanning). Skyrim plugins have none or few of
+// these, so the cost is negligible there.
+constexpr const char* kExtraIndexedTypes[] = { "CMPO", "OMOD", "FURN", "PERK",
+                                               "INNR", "DMGT", "AVIF" };
+
+uint32_t TypeKey(const char* t)
+{
+  uint32_t k;
+  std::memcpy(&k, t, 4);
+  return k;
+}
+
+bool IsExtraIndexedType(const char* t)
+{
+  for (auto x : kExtraIndexedTypes) {
+    if (!std::memcmp(t, x, 4)) {
+      return true;
+    }
+  }
+  return false;
+}
+}
+
 struct Browser::Impl
 {
 
@@ -50,6 +75,8 @@ struct Browser::Impl
   std::vector<const RecordHeader*> quests;
   std::vector<const RecordHeader*> worlds;
   std::vector<const RecordHeader*> cells;
+  // Index for the extra record types listed in kExtraIndexedTypes
+  std::unordered_map<uint32_t, std::vector<const RecordHeader*>> extraByType;
 
   GroupStack grStack;
   std::vector<std::unique_ptr<GroupStack>> grStackCopies;
@@ -139,9 +166,17 @@ const std::vector<const RecordHeader*>& Browser::GetRecordsByType(
   if (!std::strcmp(type, espm::CELL::kType)) {
     return pImpl->cells;
   }
-  throw std::runtime_error("GetRecordsByType currently supports only REFR, "
-                           "COBJ, KYWD, LCTN, FACT, QUST, WRLD and CELL "
-                           "records");
+  if (IsExtraIndexedType(type)) {
+    auto it = pImpl->extraByType.find(TypeKey(type));
+    if (it == pImpl->extraByType.end()) {
+      static const std::vector<const RecordHeader*> kEmpty;
+      return kEmpty;
+    }
+    return it->second;
+  }
+  throw std::runtime_error(
+    "GetRecordsByType supports REFR, COBJ, KYWD, LCTN, FACT, QUST, WRLD, "
+    "CELL and the extra indexed types (CMPO, OMOD, FURN, PERK, ...)");
 }
 
 const std::vector<const RecordHeader*>& Browser::GetRecordsAtPos(
@@ -283,6 +318,10 @@ bool Browser::ReadAny(const GroupStack* parentGrStack)
 
     if (utils::Is<espm::CELL>(t)) {
       pImpl->cells.push_back(recHeader);
+    }
+
+    if (IsExtraIndexedType(pType)) {
+      pImpl->extraByType[TypeKey(pType)].push_back(recHeader);
     }
 
     pImpl->pos += sizeof(RecordHeader) + *pDataSize;

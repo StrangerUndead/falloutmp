@@ -1,36 +1,21 @@
 # Running a Server
 
-As you already know Skyrim Multiplayer is releasing public server builds. Here is an instruction on running your own server.
+The full Fallout 4 server guide is [falloutmp/guides/server-admin.md](falloutmp/guides/server-admin.md). This page covers the basics.
 
 ## Installation
 
-### Windows
-
-The server requires `Windows 8.1` / `Windows Server 2012` or higher. It may still launch on older operating systems, but correct work isn't guaranteed.
-
-You obviously need to have 64-bit Windows version since the server is 64-bit program.
-
-You are able to build whole project from sources. Server build would be in `build/dist/server`. Use `launch_server.bat` to launch.
-
-### Linux
-
-Only Windows builds are supported currently.
+Build the project from source (see the repository README) or take the `falloutmp-server-linux` artifact of the *FalloutMP server (Linux)* workflow. The server is in `build/dist/server`. It runs on Linux and Windows (64-bit); on Windows use `launch_server.bat`, elsewhere `node dist_back/falloutmp-server.js`.
 
 ## Configuration
 
-Once you build the server, you should be able to launch it. But default config values are only usable to verify that server works. After launching the server you will see a server called `My Server` in the master list: https://skymp.io/api/servers. You also will be able to connect, but players from the Internet will not. You need to change the `ip` field in `server-settings.json` to get this functionality to work. This file is placed into `build/dist/server` directory during build.
+Copy `Fallout4.esm` from your game's `Data` folder into the server's `data` folder, then edit `server-settings.json` in `build/dist/server`:
 
 ```json5
 {
+  "game": "fallout4",
   "dataDir": "data",
-  "loadOrder": [
-    "Skyrim.esm",
-    "Update.esm",
-    "Dawnguard.esm",
-    "HearthFires.esm",
-    "Dragonborn.esm"
-  ],
-  "ip": "127.0.0.1", // <=
+  "loadOrder": ["Fallout4.esm"],
+  "offlineMode": true,
   "name": "My Server"
 }
 ```
