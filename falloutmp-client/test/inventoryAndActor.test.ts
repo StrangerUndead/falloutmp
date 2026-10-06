@@ -40,6 +40,18 @@ test("the periodic reconcile repairs a diverged game inventory", () => {
   assert.ok(h.platform.inventoryMatches(kPlayer, want));
 });
 
+test("the reconcile never removes the Pip-Boy (a local-only item)", () => {
+  const h = makeClient({ inventoryReconcileIntervalMs: 5000 });
+  const pipboy = { item: key(0x00021b3b), count: 1 };
+  const want = [{ item: key(kSteel), count: 2 }];
+  h.receive({ t: Fo4MsgType.SetInventoryFo4, refId: 0, version: 1, entries: want } as never);
+  h.platform.inventories.set(kPlayer, [{ item: key(kSteel), count: 2 }, pipboy]);
+  h.platform.now += 5000;
+  h.client.tick();
+  assert.equal(h.client.inventory.divergenceCount, 0);
+  assert.ok(h.platform.inventoryMatches(kPlayer, [...want, pipboy]));
+});
+
 test("container contents are cached and applied when the container streams in", () => {
   const h = makeClient();
   const box = 0x0001f00d;

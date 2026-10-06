@@ -6,6 +6,7 @@
 #include "Runtime.h"
 
 #include <chrono>
+#include <format>
 #include <fstream>
 #include <sstream>
 
@@ -227,9 +228,49 @@ void Platform::Log(const std::string& level, const std::string& text)
     REX::INFO("{}", text);
   }
   if (level == "error" || level == "warn") {
-    if (auto console = RE::ConsoleLog::GetSingleton()) {
-      console->PrintLine("[FalloutMP] %s", text.c_str());
+    ToConsole(text);
+  }
+}
+
+// Warnings and errors also go to the game console, briefly: printable ASCII
+// only, one line of at most 160 characters, and at most 5 lines per 10
+// seconds (a repeating error would otherwise fill it). The full text is in
+// FalloutMP.log.
+void Platform::ToConsole(const std::string& text)
+{
+  const double now = NowMs();
+  if (now - consoleWindowStartMs > 10000.0) {
+    if (consoleSuppressed > 0) {
+      AddConsoleLine(
+        std::format("{} more FalloutMP messages, see Documents\\My "
+                    "Games\\Fallout4\\F4SE\\FalloutMP.log",
+                    consoleSuppressed));
     }
+    consoleWindowStartMs = now;
+    consoleLinesInWindow = 0;
+    consoleSuppressed = 0;
+  }
+  if (consoleLinesInWindow >= 5) {
+    ++consoleSuppressed;
+    return;
+  }
+  ++consoleLinesInWindow;
+  std::string line;
+  for (char c : text) {
+    if (line.size() >= 160) {
+      line += "...";
+      break;
+    }
+    line += (c >= 0x20 && c < 0x7f) ? c : ' ';
+  }
+  AddConsoleLine(line);
+}
+
+void Platform::AddConsoleLine(const std::string& line)
+{
+  if (auto console = RE::ConsoleLog::GetSingleton()) {
+    // AddString takes the text as is (no printf formatting)
+    console->AddString(("[FalloutMP] " + line + "\n").c_str());
   }
 }
 

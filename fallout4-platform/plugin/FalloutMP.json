@@ -18,6 +18,7 @@
     "workshop": true,
     "locks": true,
     "map": true,
-    "world": true
+    "world": true,
+    "cleanWorld": true
   }
 }

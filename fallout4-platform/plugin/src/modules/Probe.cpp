@@ -204,6 +204,21 @@ void SelfTest(Platform& p)
     }
   }
   g.report["selfTest"] = results;
+
+  // Quests with the "running" flag, to check the clean-world quest filter
+  Json quests = Json::array();
+  if (auto dh = RE::TESDataHandler::GetSingleton()) {
+    for (auto q : dh->GetFormArray<RE::TESQuest>()) {
+      if (q && (q->data.flags & 0x1)) {
+        quests.push_back({ { "id", std::format("{:08X}", q->GetFormID()) },
+                           { "editorId", q->formEditorID.c_str() },
+                           { "type", q->data.questType },
+                           { "flags", q->data.flags },
+                           { "stage", q->currentStage } });
+      }
+    }
+  }
+  g.report["runningQuests"] = quests;
 }
 
 void PuppetCheck(Platform& p)

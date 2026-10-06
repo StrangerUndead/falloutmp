@@ -220,6 +220,7 @@ RE::TESObjectREFR* PlaceObject(const Spawned& s)
   if (!ref) {
     return nullptr;
   }
+  game::MarkNetworkRef(ref->GetFormID());
   if (s.scale > 0.f && std::abs(s.scale - 1.f) > 0.001f) {
     ref->SetScale(s.scale);
   }

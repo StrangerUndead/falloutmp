@@ -326,8 +326,13 @@ Leave the rest as it is. On the first start, the plugin adds a `"profile-id"` li
 ## 2.5 Join
 
 1. Start the game with `f4se_loader.exe` in the Fallout 4 folder. On Steam you can launch it through Steam once F4SE is set up.
-2. Load a save you don't mind, or start a new game. Use a separate save for multiplayer.
-3. The client connects when the save has loaded. A new character on the server opens the character editor first. Other players appear as you get close to them.
+2. Start a **new game** (or load a save you don't mind losing; use a separate save for multiplayer).
+3. As soon as the game has loaded, the client connects and cleans the world:
+   - the story is cut: the intro and every story, faction, companion and encounter quest are stopped;
+   - every NPC and creature is removed. FalloutMP is a player-run wasteland, so the only people you meet are other players;
+   - you get a Pip-Boy if you don't have one yet.
+4. A new character opens the character editor. When you close it, you are placed at the server's start point in the wasteland (Sanctuary Hills unless the server owner chose another `startPoints`).
+5. Other players appear as you get close to them.
 
 The game's console (`~` key) shows `[FalloutMP]` messages if something goes wrong.
 
@@ -352,7 +357,8 @@ All settings live in `Data\F4SE\Plugins\FalloutMP.json`.
 | `server-ip`, `server-port` | The server to join |
 | `profile-id` | Your character on the server. Generated once; don't change it |
 | `probe` | `true` runs the probe (§2.6) instead of joining |
-| `features` | Switch any system off with `false`, e.g. `"combat": false`. Names: `session`, `movement`, `puppets`, `animation`, `appearance`, `inventory`, `equipment`, `actorValues`, `progression`, `effects`, `combat`, `powerArmor`, `workshop`, `locks`, `map`, `world` |
+| `features` | Switch any system off with `false`, e.g. `"combat": false`. Names: `session`, `movement`, `puppets`, `animation`, `appearance`, `inventory`, `equipment`, `actorValues`, `progression`, `effects`, `combat`, `powerArmor`, `workshop`, `locks`, `map`, `world`, `cleanWorld` (the no-story, no-NPC world) |
+| `keep-creatures` | `true` keeps creatures and robots (radroaches, deathclaws, ...) in the world; only human NPCs are removed. Default `false`: no NPCs at all |
 | `puppet-move` | How other players move on your screen: `"native"` (default) or `"papyrus"`. Try `"papyrus"` if other players don't move |
 | `puppet-ai` | How other players' characters are kept still: `"package"` (default), `"restrained"` or `"off"` |
 | `puppet-warp` | `"controller"` (default) or `"reference"` |
@@ -383,6 +389,7 @@ The zip has no `FalloutMP.json`, only the example, so your settings and characte
 | "Client script missing" | `Data\F4SE\Plugins\FalloutMP\falloutmp-client.js` is missing. Copy the `Data` folder again |
 | Other players stand still | Set `"puppet-move": "papyrus"` and try again |
 | One system misbehaves | Switch it off in `features` (§2.7) and send the log |
+| NPCs or the intro story are still there | Check `server-ip` is set (the world is only cleaned when joining a server) and `"cleanWorld"` isn't `false`. The log lists every removed actor and stopped quest |
 
 **Logs to send with a bug report:**
 

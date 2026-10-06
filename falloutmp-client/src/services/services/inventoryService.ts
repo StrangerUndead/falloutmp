@@ -13,6 +13,11 @@ export interface InventoryServiceOptions {
   reconcileIntervalMs?: number;
 }
 
+// Items the game needs that the server doesn't track: the Pip-Boy (the
+// plugin gives it to every player, see CleanWorld.cpp). Never removed or
+// added by the sync.
+export const kLocalOnlyItems = new Set<number>([0x00021b3b]);
+
 // F04/F06: the server inventory is the truth. Snapshots are diffed into the
 // game with silent add/remove, and a periodic reconcile repairs anything the
 // game changed on its own (scripts, vanilla pickups the plugin missed).
@@ -147,7 +152,8 @@ export class InventoryService {
   // Returns the number of ops applied.
   private applyToGame(ref: number, target: ItemCount[]): number {
     const p = this.ctx.platform;
-    const ops = diffInventories(p.getInventoryEx(ref), target);
+    const keep = (e: ItemCount) => !kLocalOnlyItems.has(e.item.baseId);
+    const ops = diffInventories(p.getInventoryEx(ref).filter(keep), target.filter(keep));
     for (const op of ops) {
       if (op.count > 0) {
         p.addItemEx(ref, op.item, op.count, true);

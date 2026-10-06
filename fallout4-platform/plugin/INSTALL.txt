@@ -32,9 +32,11 @@ Install
    open it and enter your server:
      "server-ip": "203.0.113.10", "server-port": 7777
 3. Start the game with f4se_loader.exe.
-4. Load a save you don't mind (or start a new game). The client connects
-   when the save has loaded. A new character on the server opens the
-   character editor first. Use a separate save for multiplayer.
+4. Start a new game (or load a save you don't mind losing). The client
+   connects when the game has loaded and cleans the world: the story
+   quests stop, every NPC and creature is removed, and you get a Pip-Boy.
+   A new character on the server opens the character editor first; then
+   you are placed at the server's start point in the wasteland.
 
 Updating: copy the new Data folder over the old one. The archive has no
 FalloutMP.json, so your settings and your "profile-id" (your character
@@ -60,7 +62,8 @@ Settings in FalloutMP.json
 - features: switch a system off with false, e.g. "combat": false.
   Names: session, movement, puppets, animation, appearance, inventory,
   equipment, actorValues, progression, effects, combat, powerArmor,
-  workshop, locks, map, world.
+  workshop, locks, map, world, cleanWorld (no story, no NPCs).
+- keep-creatures: true keeps creatures and robots; only human NPCs go.
 - puppet-ai: how other players' characters are kept still: "package"
   (default), "restrained", or "off".
 - puppet-move: "native" (default) or "papyrus". Try "papyrus" if other

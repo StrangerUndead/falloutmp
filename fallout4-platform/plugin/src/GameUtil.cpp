@@ -1,7 +1,9 @@
 #include "GameUtil.h"
 
 #include <cmath>
+#include <mutex>
 #include <numbers>
+#include <unordered_set>
 
 namespace fmp::game {
 
@@ -93,7 +95,33 @@ RE::TESObjectREFR* CreateRef(uint32_t baseId, const RE::NiPoint3& pos,
   data.initializeScripts = initializeScripts;
   auto handle = dataHandler->CreateReferenceAtLocation(data);
   auto ref = handle.get();
+  if (ref) {
+    MarkNetworkRef(ref->GetFormID());
+  }
   return ref ? ref.get() : nullptr;
+}
+
+namespace {
+std::mutex g_netRefsMutex;
+std::unordered_set<uint32_t> g_netRefs;
+}
+
+void MarkNetworkRef(uint32_t formId)
+{
+  std::lock_guard l(g_netRefsMutex);
+  g_netRefs.insert(formId);
+}
+
+void UnmarkNetworkRef(uint32_t formId)
+{
+  std::lock_guard l(g_netRefsMutex);
+  g_netRefs.erase(formId);
+}
+
+bool IsNetworkRef(uint32_t formId)
+{
+  std::lock_guard l(g_netRefsMutex);
+  return g_netRefs.count(formId) > 0;
 }
 
 bool MenuOpen(const char* menuName)

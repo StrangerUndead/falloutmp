@@ -54,6 +54,7 @@ void InstallWorkshop(Platform& p);
 void InstallLocks(Platform& p);
 void InstallMap(Platform& p);
 void InstallWorld(Platform& p);
+void InstallCleanWorld(Platform& p);
 void InstallProbe(Platform& p);
 
 // Installs every enabled module (Main.cpp, at kGameDataReady).

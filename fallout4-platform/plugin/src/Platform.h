@@ -97,6 +97,8 @@ public:
 private:
   Platform() = default;
   void Drain();
+  void ToConsole(const std::string& text);
+  void AddConsoleLine(const std::string& line);
 
   PluginConfig config;
   std::unique_ptr<Runtime> runtime;
@@ -124,6 +126,9 @@ private:
   std::vector<Queued> queue;
   uint32_t nextAsyncId = 1;
   uint64_t frame = 0;
+  double consoleWindowStartMs = 0;
+  int consoleLinesInWindow = 0;
+  int consoleSuppressed = 0;
 };
 
 }

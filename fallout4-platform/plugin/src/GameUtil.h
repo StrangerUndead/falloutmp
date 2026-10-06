@@ -42,6 +42,12 @@ RE::TESObjectREFR* CreateRef(uint32_t baseId, const RE::NiPoint3& pos,
                              RE::TESObjectCELL* interior,
                              bool initializeScripts = false);
 
+// References FalloutMP created (puppets, workshop objects, power armor
+// frames, markers). The clean-world sweep leaves them alone. Any thread.
+void MarkNetworkRef(uint32_t formId);
+void UnmarkNetworkRef(uint32_t formId);
+bool IsNetworkRef(uint32_t formId);
+
 bool MenuOpen(const char* menuName);
 // A loading screen is up (no movement, no spawning).
 bool Loading();
