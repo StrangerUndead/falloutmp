@@ -62,6 +62,7 @@ The user supplied two Nexus archives, read with a scratch parser (header, plugin
 | Nexus 4746 "Clean New Saves", `Vault - Male/Female.fos` | 1.1.30 | 11 / 61 | Fallout4.esm only | Vault 111 interior | — | 63 B, sky mode 1 / 30 B | `MOVE`, no `HAVOK_MOVE` |
 | Nexus 4746, `Commonwealth - Male/Female.fos` | 1.1.30 | 11 / 61 | Fallout4.esm only | Commonwealth `0x3C` at (−88745, 90515, 8963), grid (−22, 22), 16 min in | — | 92 B, sky mode 3 / 30 B | `MOVE`, no `HAVOK_MOVE`; prefix = Player Location |
 | The user's own save outside Vault 111 (`Save4_…_Commonwealth`, 2026-10-09) | 1.11.240 | 15 / 69 | Fallout4.esm, DLCUltraHighResolution.esm + the 9 free Creations as light plugins | Commonwealth `0x3C` at (−88621, 90486, 8963), grid (−22, 22), 19 min in | 12 blocks | 92 B, sky mode 3 / 12 B | flags `B0000823`, `MOVE`; prefix = Player Location |
+| The same save re-saved without the texture pack (`Save5_…`, 2026-10-09) | 1.11.240 | 15 / 69 | Fallout4.esm + the 9 free Creations | Commonwealth `0x3C` at (−88360, 90635, 8956) | 12 blocks | 92 B, sky mode 3 / 12 B | as above; FormID array unchanged (7,584 + 520), so nothing was dropped |
 
 Confirmed:
 - Player Location is 30 bytes;
