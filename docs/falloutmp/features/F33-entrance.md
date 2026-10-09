@@ -205,6 +205,13 @@ A bad ticket → `entryFailed{ticket}` + `entryRetry` once → `failed`.
    - ReSaver opens the file, and its active-script count is recorded.
 7. **Publish.** Name the template `fo4-1.11.240-r1`; add its entry to `templates.json`; upload the `.fos` as a release asset.
 
+**Why outside the vault, not just before the elevator** (asked 2026-10-09): a save made inside Vault 111 would need extra patching and gains nothing.
+- **Sky and sound.** It carries indoor sky, lighting and sound state. Moved outdoors, it gives FO4_Wrld's "purple sky", with no shadows until the player uses a door (ref §2.4). Every entry would then need the weather and audio blocks of an outdoor save, so the outdoor capture is needed anyway.
+- **What the exit turns on.** Stepping out sets MQ102 stage 10 and then 15, which turn on Diamond City Radio, Classical Radio and the Brotherhood signal (ref §9.2). Inside the vault they are still off.
+- **Nothing is gained inside.** The intro is already over there: the Pip-Boy is in the inventory, and running comes back when the post-war vault loads [web: Nexus 88418]. The capture stops MQ102 and disables the actors near the exit anyway.
+
+A save made back inside Vault 111 *after* a visit outside is a candidate indoor donor for F33-T18 [I].
+
 **Distribution** (Q-07, recommended default): `templates.json` is committed to git. The `.fos` is a release asset that the client packaging step downloads and checks against the committed sha256. It goes in the client zip as `Data/F4SE/Plugins/FalloutMP/entry/<id>.fos`. A save holds player state and references to game data by FormID, not game data; SkyMP commits its `template.ess`. Keeping the binary out of git follows the project's no-game-data rule anyway.
 
 `templates.json` entry:
