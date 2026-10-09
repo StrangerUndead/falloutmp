@@ -39,6 +39,8 @@ Every gameplay system has one spec, written with [_TEMPLATE.md](_TEMPLATE.md) an
 | F32 | [Parties, teams & PvP rules](F32-parties-pvp.md) | T1 | L4 | — (SweetPie gamemode only) | M8/M9 |
 | F33 | [The entrance: main menu to wasteland (generated entry save)](F33-entrance.md) | T0 | L4 | per-player save from `template.ess` (L4) | M4/M5 |
 
+Component specs: [F33-save-editor.md](F33-save-editor.md) (the `fos` library and `fmp_savetool`, part of F33).
+
 **Candidate features without a spec yet** (add a spec before scheduling; none blocks 1.0): physics grab/carry of objects (`Z` grab, class B owner-validated like F06 drop); scripted transit (elevator cars with riders, Vertibird travel as validated fast travel through F26); admin spectator/free-camera mode (F30 extension); emotes (F02 whitelisted idle events); service NPCs (doctors, barbers via F23/F03); per-player stash containers (F06 `perPlayer` mode on a tagged container); radiant encounters (gamemode content on F13/F14 spawn API); voice chat (out of process, proximity data from F01; Mumble-style positional plugin); screenshot/photo mode (client-only, D).
 
 **How to work a feature:**

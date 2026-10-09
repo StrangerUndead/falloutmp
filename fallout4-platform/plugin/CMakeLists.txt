@@ -59,6 +59,15 @@ add_library(fmp_core_plugin STATIC ${core_src})
 target_include_directories(fmp_core_plugin PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../core")
 target_link_libraries(fmp_core_plugin PUBLIC fmp_codec qjs)
 
+# fos: the save editor for the entrance (F33), and its command-line tool
+find_package(ZLIB REQUIRED)
+file(GLOB fos_src "${CMAKE_CURRENT_SOURCE_DIR}/../fos/*.cpp")
+add_library(fmp_fos STATIC ${fos_src})
+target_include_directories(fmp_fos PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../fos")
+target_link_libraries(fmp_fos PUBLIC ZLIB::ZLIB nlohmann_json::nlohmann_json)
+add_executable(fmp_savetool "${CMAKE_CURRENT_SOURCE_DIR}/../tools/fmp_savetool.cpp")
+target_link_libraries(fmp_savetool PRIVATE fmp_fos)
+
 if(NOT WIN32)
   add_executable(fmp_bot_standalone "${CMAKE_CURRENT_SOURCE_DIR}/../bot/main.cpp")
   target_link_libraries(fmp_bot_standalone PRIVATE fmp_core_plugin)
@@ -86,7 +95,7 @@ target_precompile_headers(commonlibf4 PRIVATE "${commonlibf4_SOURCE_DIR}/include
 file(GLOB plugin_src "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/modules/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/modules/*.h")
 add_library(FalloutMP SHARED ${plugin_src})
-target_link_libraries(FalloutMP PRIVATE commonlibf4 fmp_core_plugin)
+target_link_libraries(FalloutMP PRIVATE commonlibf4 fmp_core_plugin fmp_fos)
 target_include_directories(FalloutMP PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/src/modules")
 target_compile_definitions(FalloutMP PRIVATE
   FMP_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}

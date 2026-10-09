@@ -484,7 +484,7 @@ Memory: one transient template buffer (~5–8 MB). Network: ticket ≤ 600 B, `e
 - **Bug reports:** `keepSave` (§4.5.3) plus FalloutMP.log are enough to reproduce a writer problem offline with `fmp_savetool diff`.
 
 ## 5. Engine / platform work required
-- **`fallout4-platform/fos`** (new static library):
+- **`fallout4-platform/fos`** (built 2026-10-09, [F33-save-editor.md](F33-save-editor.md)):
   - reader, patcher and verify;
   - `SaveBuilder` for synthetic test saves;
   - zlib added to `fallout4-platform/plugin/vcpkg.json` (the server build already has it).
@@ -570,11 +570,11 @@ Memory: one transient template buffer (~5–8 MB). Network: ticket ≤ 600 B, `e
 ## 7. Tasks
 
 **Phase 0 — the writer (Linux, no game needed)**
-- [ ] **F33-T01** `fos` library: reader for header, plugin block, file location table, global data blocks, change-form index, FormID array, visited worldspaces and unknown table 3, with byte-exact round trip; `SaveBuilder` fixture — M — Depends: — — Verify: L-unit — Files: fallout4-platform/fos/{Fos.h,Reader.cpp,SaveBuilder.h}, unit/FosTest.cpp
+- [x] **F33-T01** `fos` library: reader for header, plugin block, file location table, global data blocks, change-form index, FormID array, visited worldspaces and unknown table 3, with byte-exact round trip; `SaveBuilder` fixture — M — Depends: — — Verify: L-unit — Files: fallout4-platform/fos/{Fos.h,Reader.cpp,SaveBuilder.h}, unit/FosTest.cpp — done 2026-10-09: `fallout4-platform/fos`, `[Fos]` tests; see F33-save-editor.md §11
   - Accept: every synthetic layout of §6 parses and round-trips byte-identically; the fuzz suite passes under ASan.
-- [ ] **F33-T02** Entry patcher with verify-after-write (Player Location, time globals, player `MOVE` data, FLT shift) and the refusals of §4.5.2 — M — Depends: F33-T01 — Verify: L-unit — Files: fallout4-platform/fos/Patch.cpp, unit/FosPatchTest.cpp
+- [x] **F33-T02** Entry patcher with verify-after-write (Player Location, time globals, player `MOVE` data, FLT shift) and the refusals of §4.5.2 — M — Depends: F33-T01 — Verify: L-unit — Files: fallout4-platform/fos/Patch.cpp, unit/FosPatchTest.cpp — done 2026-10-09: `[FosPatch]`, `[FosFuzz]`; real saves patch and verify in 15 ms
   - Accept: patched values read back; every untouched block is byte-identical; each refusal has a test.
-- [ ] **F33-T03** `fmp_savetool` (`inspect`, `validate`, `normalize`, `patch`, `diff`) — S — Depends: F33-T02 — Verify: L-unit, D-real — Files: fallout4-platform/tools/fmp_savetool.cpp
+- [x] **F33-T03** `fmp_savetool` (`inspect`, `validate`, `normalize`, `patch`, `diff`) — S — Depends: F33-T02 — Verify: L-unit, D-real — Files: fallout4-platform/tools/fmp_savetool.cpp — done 2026-10-09: `fallout4-platform/tools/fmp_savetool.cpp`; Windows build uploads `fmp_savetool.exe`
   - Accept: `inspect` on any real 1.11.x save prints header, plugins, FLT, block sizes and a change-form histogram; `validate` implements the template rules of §4.5.1.
 
 **Phase 1 — engine checks (one session in the user's game)**

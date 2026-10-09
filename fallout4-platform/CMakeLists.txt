@@ -8,6 +8,21 @@ if(EMSCRIPTEN)
 endif()
 
 find_package(qjs CONFIG REQUIRED)
+find_package(ZLIB REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+
+# fos: Fallout 4 save files for the entrance (F33, the save editor). No
+# game headers: the same sources build into the F4SE plugin (plugin/).
+file(GLOB fmp_fos_src "${CMAKE_CURRENT_SOURCE_DIR}/fos/*.cpp"
+                      "${CMAKE_CURRENT_SOURCE_DIR}/fos/*.h")
+add_library(fmp_fos STATIC ${fmp_fos_src})
+target_include_directories(fmp_fos PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/fos")
+target_link_libraries(fmp_fos PUBLIC ZLIB::ZLIB nlohmann_json::nlohmann_json)
+apply_default_settings(TARGETS fmp_fos)
+
+add_executable(fmp_savetool "${CMAKE_CURRENT_SOURCE_DIR}/tools/fmp_savetool.cpp")
+target_link_libraries(fmp_savetool PRIVATE fmp_fos)
+apply_default_settings(TARGETS fmp_savetool)
 
 file(GLOB fmp_core_src "${CMAKE_CURRENT_SOURCE_DIR}/core/*.cpp"
                        "${CMAKE_CURRENT_SOURCE_DIR}/core/*.h")

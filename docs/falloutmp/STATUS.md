@@ -11,6 +11,7 @@
 ## What exists (2026-10-05)
 | Area | State | Verified by |
 |---|---|---|
+| Save editor for the entrance (F33-T01…T03): `fallout4-platform/fos` (read, byte-exact write, entry patch with verify, template validation, diff, SHA-256, templates.json) and `fmp_savetool` | Done | `[Fos]`, `[FosPatch]`, `[FosFuzz]`; `[FosReal]` on 7 real saves; ASan/UBSan fuzz (F33-save-editor.md §11) |
 | Game profiles, `game` setting, protocol prefix, MsgType 64–120 | Done | `GameProfileTest`, `Fo4MessagesTest` |
 | libespm Fallout 4 readers (WEAP, ARMO, AMMO, MISC, CMPO, COBJ, OMOD, FURN, GLOB, ALCH, LVLI, LVLN, CONT, REFR, keywords, PRPS) | Done, synthetic plugins only | `Fo4EspmTest`, `Fo4EspmDataSourceTest` |
 | Server systems: inventory with instances, crafting, auto-scrap, scrapping, OMOD stats and modding, power armor, workshops (claim, ACL, build mode, placement, power, wires, settlers, ratings, daily update), actor values, damage model, progression, consumables and addictions, barter, locks and hacking, ranged combat validation, parties and PvP, leveled lists, containers and corpse loot, equipment, clock, weather, map discovery and fast travel | Done | `Fo4*Test` (C++) |
@@ -33,14 +34,14 @@
 | F13 remainder: `NpcAiState` (111) threat/detection, host migration re-seed, hostility matrix, legendary rolls | Not started | — |
 | T2 systems (companions, VATS, stealth, quests, survival) | Not started | — |
 
-Test totals at the last commit: C++ 256 test cases and 2191 assertions (`./unit/unit`; the Skyrim-data `[espm]` tests were removed with Skyrim support); client 79 tests; e2e join PASS.
+Test totals at the last commit: C++ 280 test cases and 2708 assertions (1 skipped: `[FosReal]` needs `FMP_FOS_SAMPLES`) (`./unit/unit`; the Skyrim-data `[espm]` tests were removed with Skyrim support); client 79 tests; e2e join PASS.
 
 Guides: [guides/server-admin.md](guides/server-admin.md), [guides/gamemode-api.md](guides/gamemode-api.md), [guides/implementation.md](guides/implementation.md).
 
 ## Next actions (for the next session)
 0. Client in game: the user runs the probe (`"probe": true`) and a two-player session, and sends `FalloutMP-probe.json`, `FalloutMP.log`, the Papyrus log and any Buffout 4 crash log. Work through the in-game checks below with them; switch failing modules off in `features` meanwhile.
-1. ESPM-003 (light plugins), so the server can load the nine free Creations (decision 2026-10-09); it can run alongside F33 Phase 0, both on Linux.
-2. The entrance (F33): Phase 0 needs no game. Build F33-T01…T03 first: the `fos` reader, the patcher with verify-after-write, and `fmp_savetool`. Then Phase 1 with the user: one probe session (F33-T04/T05, the checks in F33 §9 item 1) and the template capture (F33-T06). Build the main-menu flow (Phase 2) only after Phase 1 shows the engine loads a patched save.
+1. ESPM-003 (light plugins), so the server can load the nine free Creations (decision 2026-10-09); Linux only, no game needed.
+2. The entrance (F33): Phase 0 is done (the save editor, F33-T01…T03). Next is Phase 1 with the user: one probe session (F33-T04/T05, the checks in F33 §9 item 1) and the template capture (F33-T06). Build the main-menu flow (Phase 2) only after Phase 1 shows the engine loads a patched save.
 3. M2: PEX FO4 reader (PVM-001…006), so server Papyrus can run Fallout 4 scripts.
 4. F13 remainder: `NpcAiState` (111), legendary rolls (LTPT/LTPC), hostility from factions.
 5. Windows work for the user or CI: PLAT-001+ (the F4SE plugin implementing `falloutPlatform.ts`), then the G-self checks in the verification table below.
@@ -176,6 +177,7 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 ## Evidence log
 | Date | Task | Evidence |
 |---|---|---|
+| 2026-10-09 | F33-T01…T03 save editor | 22 new test cases (515 assertions); 7 real saves (1.1.30, 1.9.4, 1.11.240) round-trip byte for byte; the user's 1.11.240 template candidate passes `fmp_savetool validate` and patches and verifies in 15 ms; ASan/UBSan clean over 200,000 synthetic and 7,000 real-save mutations. The real saves also confirmed the time globals `0x35`–`0x3A` (start date 23 Oct 2287) |
 | 2026-10-06 | Second in-game run | Clean world ran 10 ms after install, during the game's start-up loading screen (removed 769 actors, stopped ~200 quests) and the game crashed. It now waits for a loaded game (F4SE kPostLoadGame/kNewGame, cleared on kPreLoadGame) plus 3 s, never at the main menu or while loading. The quest list confirmed editor ids are readable at runtime; workshop/player/recon-scope quests are now always kept |
 | 2026-10-06 | First in-game run | User log: the plugin loads on Fallout 4 1.11.240 with F4SE 0.7.9, every hook installs, 62 natives. Found: every script call failed with "Maximum call stack size exceeded" (QuickJS runtime created on the F4SE messaging thread, ticked on the main thread); fixed with `JS_UpdateStackTop` per call, regression test added. Clean world was off because `server-ip` was empty; it is now always on |
 | 2026-10-05 | Full plugin | modules `1921f62`…`d8e31d9`; all plugin sources pass a clang `-fsyntax-only` check against CommonLibF4 headers; e2e with appearance and animation PASS; client 77 tests; C++ 259 cases |

@@ -68,7 +68,7 @@ jobs:
             -DVCPKG_OVERLAY_PORTS=%GITHUB_WORKSPACE%\overlay_ports
 
       - name: Build
-        run: cmake --build build-plugin --config Release --target FalloutMP -- /m
+        run: cmake --build build-plugin --config Release --target FalloutMP fmp_savetool -- /m
 
       - name: Package
         shell: pwsh
@@ -86,3 +86,9 @@ jobs:
         with:
           name: FalloutMP-client
           path: package/FalloutMP
+
+      # The save editor's command line, for maintainers (F33-save-editor.md §9)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fmp_savetool
+          path: build-plugin/Release/fmp_savetool.exe

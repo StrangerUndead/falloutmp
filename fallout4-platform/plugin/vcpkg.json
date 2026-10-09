@@ -7,6 +7,7 @@
     "simdjson",
     "slikenet",
     "nlohmann-json",
-    "quickjs-ng"
+    "quickjs-ng",
+    "zlib"
   ]
 }
