@@ -39,11 +39,12 @@ Guides: [guides/server-admin.md](guides/server-admin.md), [guides/gamemode-api.m
 
 ## Next actions (for the next session)
 0. Client in game: the user runs the probe (`"probe": true`) and a two-player session, and sends `FalloutMP-probe.json`, `FalloutMP.log`, the Papyrus log and any Buffout 4 crash log. Work through the in-game checks below with them; switch failing modules off in `features` meanwhile.
-1. The entrance (F33): Phase 0 needs no game. Build F33-T01…T03 first: the `fos` reader, the patcher with verify-after-write, and `fmp_savetool`. Then Phase 1 with the user: one probe session (F33-T04/T05, the checks in F33 §9 item 1) and the template capture (F33-T06). Build the main-menu flow (Phase 2) only after Phase 1 shows the engine loads a patched save.
-2. M2: PEX FO4 reader (PVM-001…006), so server Papyrus can run Fallout 4 scripts.
-3. F13 remainder: `NpcAiState` (111), legendary rolls (LTPT/LTPC), hostility from factions.
-4. Windows work for the user or CI: PLAT-001+ (the F4SE plugin implementing `falloutPlatform.ts`), then the G-self checks in the verification table below.
-5. Still open from planning: user answers to Q-01…Q-19 (05-risks-open-questions.md §2).
+1. ESPM-003 (light plugins), so the server can load the nine free Creations (decision 2026-10-09); it can run alongside F33 Phase 0, both on Linux.
+2. The entrance (F33): Phase 0 needs no game. Build F33-T01…T03 first: the `fos` reader, the patcher with verify-after-write, and `fmp_savetool`. Then Phase 1 with the user: one probe session (F33-T04/T05, the checks in F33 §9 item 1) and the template capture (F33-T06). Build the main-menu flow (Phase 2) only after Phase 1 shows the engine loads a patched save.
+3. M2: PEX FO4 reader (PVM-001…006), so server Papyrus can run Fallout 4 scripts.
+4. F13 remainder: `NpcAiState` (111), legendary rolls (LTPT/LTPC), hostility from factions.
+5. Windows work for the user or CI: PLAT-001+ (the F4SE plugin implementing `falloutPlatform.ts`), then the G-self checks in the verification table below.
+6. Still open from planning: user answers to Q-01…Q-19 (05-risks-open-questions.md §2).
 
 ## Milestones
 | Milestone | State | Evidence |
@@ -75,6 +76,7 @@ Q-01 … Q-19 (see 05-risks-open-questions.md §2). Proposed ADRs awaiting confi
 ## Decisions log
 | Date | Decision | By | Affects |
 |---|---|---|---|
+| 2026-10-09 | The free Creation Club content is in: the nine `.esl` files the 1.11 update installs for everyone (ccBGSFO4044-HellfirePowerArmor, ccBGSFO4115-X02, ccBGSFO4116-HeavyFlamer, ccBGSFO4110-WS_Enclave, ccBGSFO4096-AS_Enclave, ccFSVFO4007-Halloween, ccBGSFO4046-TesCan, ccSBJFO4003-Grenade, ccOTMFO4001-Remnants) join the default load order after Fallout4.esm, and their items are usable in game (handed out by the server and gamemode; their own quests stay stopped by the clean world). Paid DLC and paid Creations stay out. Needs ESPM-003 (light plugins) on the server; the entry template stays base game only, so the free Creations are "new" to each generated save. Players who removed the files get the manifest error naming them. Amends the 2026-10-05 "Fallout4.esm only" decision | User | ESPM-003, GameProfile, F00-T09, F04, F17, F22, F33, install guide |
 | 2026-10-06 | World entry: generate the entry save per player, like SkyMP (the user's "option 2"). At the main menu the client patches a validated base-game template `.fos` with the server's position, cell and time, loads it (one loading screen) and deletes it. The server binds the character only after the client reports it is in the world (two-phase join over `CustomPacket`). Spec F33, research reference/fo4-save-entry.md, ADR-007 amended. The plan's load function was wrong: F4SE's `0xBEE760` is the inner loader; the call is `BGSSaveLoadManager::LoadGame` (AE ID 2228039) | User (choice), Claude (spec) | F33, F00, ADR-007, PLAT-050/052, DATA-020/030, CLI-010/012 |
 | 2026-10-06 | No story and no NPCs in the client's world: the plugin's clean-world module (feature `cleanWorld`) stops story, faction, companion, encounter and dialogue quests (the new-game intro included), removes every non-player actor as it loads (`keep-creatures: true` keeps creatures and robots), and gives the player a Pip-Boy (a local-only item the inventory sync ignores). New characters build their face in the character editor and spawn at the server's start point | User | F00, F03, F13, F27, plugin |
 | 2026-10-05 | Skyrim support removed (ADR-002 superseded): the repository is Fallout 4 only. Removed the Skyrim client (`skymp5-client`), Skyrim Platform, the CEF front, the Skyrim scripts and gamemode library, `savefile`, `client-deps`, the Skyrim CI and SkyMP deploy workflows, and the SweetPie gamemode hacks in the server. The server folder is `falloutmp-server`; the Skyrim game profile is gone and `game` defaults to `fallout4`. The server engine (PartOne, MpActor, papyrus-vm) stays, now Fallout 4 only. Plan criteria that say "Skyrim tests green" or "Skyrim packets byte-identical" no longer apply | User | ADR-002, REF, NET, all specs |

@@ -7,7 +7,7 @@ Design: `espm::Game` enum. Separate `espm::fo4::*` zero-copy record structs that
   - Accept: fixtures for Skyrim and FO4 headers detect the right game; a mixed load order throws a clear error.
 - [ ] **ESPM-002** `unit/PluginBuilder.h`: an in-memory synthetic plugin builder (TES4 + groups + records + subrecords + zlib compression + ESL flag) with example tests — M — Depends: — — Verify: L-fixture
   - Accept: tests build Skyrim-form and FO4-form plugins in memory and parse them with `Browser`.
-- [ ] **ESPM-003** ESL/light plugins: TES4 0x200 / `.esl`, FE+12-bit slot+12-bit id; `IdMapping` redesign (global ids = runtime ids); `FormDesc`/`GetFileIdx` changes — L — Depends: ESPM-002 — Verify: L-fixture, L-unit — Files: Combiner, CombineBrowser, utils, mp_common/FormDesc.cpp, WorldState
+- [ ] **ESPM-003** ESL/light plugins (needed for the nine free Creations, STATUS decision 2026-10-09; slot numbers differ per client, so ids cross the wire as `FormDesc` id:file): TES4 0x200 / `.esl`, FE+12-bit slot+12-bit id; `IdMapping` redesign (global ids = runtime ids); `FormDesc`/`GetFileIdx` changes — L — Depends: ESPM-002 — Verify: L-fixture, L-unit — Files: Combiner, CombineBrowser, utils, mp_common/FormDesc.cpp, WorldState
   - Accept: Skyrim behaviour is unchanged without light plugins; synthetic ESL tests resolve FE ids; FormDesc round-trips light ids.
 - [ ] **ESPM-004** VMAD v6: Struct and Var property types, object format 2, never throw inside `noexcept` — M — Depends: ESPM-002 — Verify: L-fixture
   - Accept: VMAD v6 fixtures with Struct and Var properties parse; malformed VMAD returns an error instead of terminating.

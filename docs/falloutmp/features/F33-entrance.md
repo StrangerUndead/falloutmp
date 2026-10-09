@@ -456,7 +456,8 @@ Memory: one transient template buffer (~5–8 MB). Network: ticket ≤ 600 B, `e
 | OG 1.10.163 / NG 1.10.984 | not supported | the plugin targets AE only (ADR-001) |
 | Game Pass | not supported | no F4SE; saves are WGS containers (ref §6) |
 | Any DLC subset | supported | the template doesn't name them; their start-up quests begin at load as for DLC installed mid-game; the clean world stops story ones [G] |
-| Free and owned Creations (`cc*.esl`) | supported | new to the save; any AE Creations prompt is a [G] |
+| The nine free Creations (`cc*.esl`, installed by the 1.11 update) | supported and part of the default load order (decision 2026-10-09) | not in the template, so new to each generated save; their quests are stopped; the manifest check requires the files; any AE Creations prompt is a [G] |
+| Paid Creations (Anniversary Edition) | allowed if the server's manifest policy allows them | new to the save |
 | Other mods | allowed by the server's manifest policy (REF-024) | their start-game quests run at load |
 | Alternate-start mods (SKK Fast Start, Start Me Up, Skip) | unnecessary; the pre-flight warns | they act on new games |
 | Other multiplayer mods (F4MP, Commonwealth Online, FO4_Wrld) | conflict | the pre-flight refuses with the file name |
