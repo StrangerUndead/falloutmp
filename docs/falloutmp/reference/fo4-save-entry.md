@@ -53,6 +53,24 @@ Nothing here has been run in game yet. Every claim carries a marker:
 | Anniversary 1.11.169 / .191 / .221 | 15 | **69** | [M:MCP save_inspect.py:69-71]; [M:FW savepos.py:9]; [M:LP] |
 | Anniversary 1.11.240 (our tester) | 15 [I] | 69 [I] | not measured [U] [G] |
 
+### 1.1 Real saves measured by FalloutMP (2026-10-09)
+The user supplied two Nexus archives, read with a scratch parser (header, plugin block, FLT, table 1, change forms, player ACHR); each file parsed end to end with every offset consistent [M: ours].
+
+| File | Runtime | Header / fv | Plugins | Where | Table 1 | Weather / Audio | Player ACHR |
+|---|---|---|---|---|---|---|---|
+| Nexus 35235 "right before exiting Vault 111" `Save001.fos` | 1.9.4 | 15 / 67 | Fallout4.esm + 6 DLC | Vault 111 interior `0x16D8` | 12 blocks (0–11) | 63 B, sky mode 1 / 15 B | flags `B0000823`, `MOVE`, 27-byte prefix = Player Location |
+| Nexus 4746 "Clean New Saves", `Vault - Male/Female.fos` | 1.1.30 | 11 / 61 | Fallout4.esm only | Vault 111 interior | — | 63 B, sky mode 1 / 30 B | `MOVE`, no `HAVOK_MOVE` |
+| Nexus 4746, `Commonwealth - Male/Female.fos` | 1.1.30 | 11 / 61 | Fallout4.esm only | Commonwealth `0x3C` at (−88745, 90515, 8963), grid (−22, 22), 16 min in | — | 92 B, sky mode 3 / 30 B | `MOVE`, no `HAVOK_MOVE`; prefix = Player Location |
+
+Confirmed:
+- Player Location is 30 bytes;
+- the Weather block is 63 bytes indoors and 92 outdoors, with sky mode 1 and 3;
+- the player's `MOVE` prefix repeats Player Location's cell and position;
+- base-game-only saves have an empty FormID array;
+- an interior save keeps the last worldspace (`0xA7FF4`) or null.
+
+The Audio block size varies by runtime (15 B vs 30 B).
+
 - **The container did not change from OG to Next-Gen to Anniversary.** Header, screenshot, `formVersion` + `gameVersion`, plugin block, file location table (FLT) and block framing are the same:
   - FW walks a 1.11.191 save and asserts that global data 1 ends exactly at FLT[3] and the change forms end exactly at FLT[5] [M:FW savepos.py:204,244];
   - MCP did a byte-identical no-op round trip of a 5 MB Anniversary save [M:MCP];
@@ -85,7 +103,7 @@ FW moves players without touching any byte before the FLT, and the engine loads 
 - ReSaver seeks straight to `[0]` and `[2]`, so offsets must be exact; FW also checks their order.
 
 ### 2.4 Global data blocks: `{u32 type; u32 len; u8 data[len]}`
-Table 1 holds types 0–8 (xE:3613), table 2 types 100 and up, and table 3 types 1000 and up (Papyrus is 1001), numbered as in Skyrim [V]. The four blocks below are all in table 1, which matches FW's shift rule for them (§2.3).
+Table 1 holds types 0–11 in Fallout 4: five real saves have 12 blocks there (§1.1; xEdit's "0 to 8" comment at xE:3613 is Skyrim's). Table 2 holds types 100 and up, and table 3 types 1000 and up (Papyrus is 1001). The four blocks below are all in table 1, which matches FW's shift rule for them (§2.3).
 - **Type 1, Player Location: 30 bytes** (no trailing byte; xEdit's "31" is a Skyrim leftover, RC measured 30 on 54 FO4 saves, savegame.cc:375): `u32 nextObjectId` (every 0xFF id in the save is below it: keep it), `refId worldspace` (interiors keep the last worldspace or null), `s32 gridX, gridY`, `refId worldOrCell` (the cell for interiors), `f32 x, y, z` [M:FW savepos.py:22-24,49-57]. The grid equals floor(pos/4096) in 38 of 55 saves and is off by one otherwise (RC savegame.h:113-121); FW writes floor(x/4096) [M].
 - **Type 3, Global Variables:** `vsval n` + n × `{refId, f32}` (xE:3648) [V]; an OG save had 910 entries [M:RC]. GameHour `0x38` and GameDaysPassed `0x39` per F25 [I]; their refIds are usually kind 1 (`40 00 38`), but resolve generically and patch the float in place.
 - **Type 6, Weather:** 63 bytes, 92 outdoors [M:FW savepos.py:62-66]: refIds at 0 (climate), 3 (weather), 6 (previous), 9, 12, 15 (region weather); f32 at 18, 22, 26 (times, partly inferred); a u32 at 54; **u32 sky mode at 58: 3 = outdoors, 1 = interior**; u8 flags at 62 (bits 0–1 add optional blobs, xE:3668-3690; +29 bytes outdoors).

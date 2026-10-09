@@ -212,6 +212,11 @@ A bad ticket → `entryFailed{ticket}` + `entryRetry` once → `failed`.
 
 A save made back inside Vault 111 *after* a visit outside is a candidate indoor donor for F33-T18 [I].
 
+**A shortcut to test: start from a published clean save.** Nexus mod 4746 "Clean New Saves" (2015, runtime 1.1.30) has male and female saves standing outside Vault 111 in the Commonwealth, with only `Fallout4.esm` (ref §1.1). That is exactly the template's shape, minus the runtime: header 11 / `formVersion` 61.
+- **Upgrade path:** load one on the base-game install and run the capture command; the game writes a 1.11.240 save (15 / 69). That replaces the 20-minute playthrough with about 5 minutes [I: newer runtimes load older saves, ref §1].
+- **Permission:** shipping anything derived from it needs the author's permission. Without it, these saves are still the writer's first real test files (Phase 0, kept out of git).
+- **The other upload:** Nexus 35235 ("right before exiting Vault 111", 1.9.4) lists all six DLC and is indoors, so it can't be a template (above).
+
 **A faster capture to test (how SkyMP's template was probably made):** SkyMP's `assets/template.ess` (still in upstream `2849e67`, 2026-10-05) holds a level-1 character with Skyrim's default name "Prisoner" (Пленник), which character creation would have replaced, standing in Solstheim. That fits a `coc` from the main menu followed by a save, with no intro played [I].
 - **The Fallout 4 equivalent:** `coc SanctuaryExt` at the main menu, then the capture command. It skips the 20-minute intro.
 - **The cost:** MQ101 stays in its new-game state, there is no Pip-Boy (the clean world adds one), and the radio stations are off.
