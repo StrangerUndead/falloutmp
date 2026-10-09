@@ -124,7 +124,7 @@ Status legend: **Accepted** (implement), **Proposed** (default plan; confirm wit
 
 ### ADR-007 World entry (spawning into the world) — *Accepted 2026-10-06 (user), amended*
 - **Decision (amended 2026-10-06; the user chose SkyMP's approach):**
-  1. Ship one validated base-game template `.fos` per runtime, captured by the maintainer after Vault 111 with the story stopped (F33 §4.5.1).
+  1. Ship one validated template `.fos` per runtime, listing only the files every player must have (the base game and the nine free Creations, STATUS 2026-10-09), captured by the maintainer after Vault 111 with the story stopped (F33 §4.5.1).
   2. At the main menu, the client copies it and writes the server's position, cell and time into the copy: three patches, with every other byte kept and checked (F33 §4.5.2).
   3. Load the copy with `BGSSaveLoadManager::LoadGame` (one loading screen) and delete it. Then bind the character (two-phase join) and apply appearance, inventory and actor values through natives.
   4. `MoveTo` stays for corrections, in-game reconnects and, until F33-T18, interior targets.

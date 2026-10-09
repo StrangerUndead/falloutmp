@@ -13,7 +13,7 @@
 Decision (user, 2026-10-06): **generate the entry save per player, like SkyMP** ("option 2"). This spec replaces F00 §4.5 (template save + `MoveTo`). F00 keeps login, persistence and streaming.
 
 ## 1. Summary
-The player starts Fallout 4 with FalloutMP installed. There is no intro and no splash screen: the main menu appears, FalloutMP connects to the configured server and logs in, and the server answers with an **entry ticket**: where this character stands, the time of day and the weather. The client copies a small validated **template save** (base game only, made once by the maintainer after Vault 111), writes the ticket's position, cell and time into the copy, and loads it. After **one** loading screen the player stands at their server position, under a black curtain that lifts once the server has bound the character and sent its state. There are no NPCs, no story and no vanilla dialogs. The generated save is deleted right after the load, and the player's single-player saves are never touched.
+The player starts Fallout 4 with FalloutMP installed. There is no intro and no splash screen: the main menu appears, FalloutMP connects to the configured server and logs in, and the server answers with an **entry ticket**: where this character stands, the time of day and the weather. The client copies a small validated **template save** (only the files every player must have: the base game and the free Creations; made once after Vault 111), writes the ticket's position, cell and time into the copy, and loads it. After **one** loading screen the player stands at their server position, under a black curtain that lifts once the server has bound the character and sent its state. There are no NPCs, no story and no vanilla dialogs. The generated save is deleted right after the load, and the player's single-player saves are never touched.
 
 ### 1.1 Experience goals
 These goals are the acceptance bar for the whole feature. Each has a test in §6.
@@ -36,7 +36,7 @@ Details and sources are in the reference; these are the facts the design rests o
 
 - **New game:** the pre-war intro, the Vault 111 sequence and MQ101/MQ102 scripts drive the start. Alternate-start mods describe MQ101 as fragile: UI pop-ups during it cause freezes or endless loading, and the vault exit sets off a burst of scripts (ref §9). Today FalloutMP stops these quests after a new game starts (clean world), but the intro still loads first.
 - **The `.fos` format has not changed from Old-Gen to Anniversary** (header version 15; `formVersion` 68, and 69 on 1.11.x). There is no checksum and no whole-file compression; change forms are zlib-compressed one by one (ref §1). Moving the player needs three patches: the 30-byte Player Location block, the player's `MOVE` data and the file location table; time is two floats patched in place (ref §2). FO4_Wrld moves players this way on 1.11.191, and the engine loads the result (ref §2.1, §9). It also moves a worn power-armor frame and copies the sky and audio blocks when a player leaves an interior; FalloutMP's template avoids both cases.
-- **Plugin lists:** a save stores its own full and light plugin lists, and the engine maps FormIDs back to plugins by name at load. A plugin the save names but the game lacks gives the "missing content" prompt; extra loaded plugins give none [I]. A base-game template therefore loads without a prompt on every setup (ref §3).
+- **Plugin lists:** a save stores its own full and light plugin lists, and the engine maps FormIDs back to plugins by name at load. A plugin the save names but the game lacks gives the "missing content" prompt; extra loaded plugins give none [I]. A template that lists only the required files (the base game and the nine free Creations) therefore loads without a prompt for every player who passes the manifest check (ref §3).
 - **Loading by name:** `BGSSaveLoadManager::LoadGame(name, -1, 0, checkForMods, ignoreMissingContent)` (AE ID 2228039) from an F4SE task at the main menu; it blocks the main thread for about 6 s. `kPreLoadGame`/`kPostLoadGame` arrive on the loader thread, not the main thread. Calling it before the main menu is idle gave FO4_Wrld a black screen (ref §4, §5). The function `PLAT-050` named first (`0xBEE760`) is the inner loader and must not be called (ref §4.1).
 - **Main menu:** a readiness test exists; status text can go in `StartMenuBase::confirmText`; `MessageMenuManager` shows dialogs at the title menu; menu rows can be added and removed from Scaleform (ref §5). The intro and splash are INI keys (ref §5).
 - **Saving and loading during play** (ref §6): autosaves (doors, fast travel, timers), F5/F9, the pause menu, exit saves, and the death reload of the last loaded save, which no longer exists once the generated save is deleted. `Game.SetInChargen(true, true, false)` blocks saving and waiting from Papyrus (papyrus-api-map.md:1065). Steam Cloud syncs the save folder and can bring deleted saves back.
@@ -68,7 +68,7 @@ Read at upstream `27cbc0d` (ref §9 has the step-by-step):
 | SkyMP | Problem | FalloutMP |
 |---|---|---|
 | `SetUserActor` before the load | neighbours see the player before the player is in the world; a reload or a crash leaves a bound ghost | two-phase join: ticket first, bind after `entryReady` (§4.0) |
-| Overwrites the save's plugin list without remapping FormIDs | broke as soon as DLC order differed: "10,547 of 10,562 entries named another DLC" (Thornswood PR #36, ref §9) | keep the template's own lists; the template is base game only (§4.5.1) |
+| Overwrites the save's plugin list without remapping FormIDs | broke as soon as DLC order differed: "10,547 of 10,562 entries named another DLC" (Thornswood PR #36, ref §9) | keep the template's own lists, which name only the required files (§4.5.1) |
 | Writes the player's NPC record (face) | head parts from plugins can't be written (RefIDs of kind 1/2 only), hence the "retry without appearance" hotfix; FO4's face layout is undocumented (ref §2.7) | appearance is applied after the load through natives (F03), never written into the save |
 | `nextObjectId` hard-coded `0xFF0014FE`; grid by truncating division; `CreateRefId` copies `countWas` bytes instead of entries | latent corruption | keep `nextObjectId`; `floor(pos/4096)`; never re-encode tables (§4.5.2) |
 | Load-order check only once in the world, warning only | the player loads before learning the setup is wrong | pre-flight before writing anything (§4.4) |
@@ -165,7 +165,7 @@ A new `EntryService` (`falloutmp-client/src/runtime/entryService.ts`) owns every
 **Pre-flight**, before connecting (all local and fast):
 - the runtime is supported and a template exists for it (§4.5.1);
 - the template's sha256 matches `templates.json`;
-- every plugin the template names is loaded (always true for a base-game template; checked anyway);
+- every plugin the template names is loaded (the required base set; the manifest check enforces the same files);
 - the save folder resolves and is writable, with free space ≥ 2 × the template size;
 - leftover `FalloutMP_*` files were removed;
 - the INI intro keys are set (warning only: they take effect at the next start);
@@ -185,7 +185,7 @@ A bad ticket → `entryFailed{ticket}` + `entryRetry` once → `failed`.
 **What it is:** a save made by the maintainer once per supported runtime, then normalised and validated offline. Every client loads the same file, so every client starts from the same world state.
 
 **Capture procedure** (F33-T06, documented in `docs/falloutmp/test-scripts/entry-template.md`):
-1. **Prepare a base-game install.** Fallout 4 1.11.240 with F4SE and FalloutMP in capture mode (`"entry": {"capture": true}`). The game loads the DLC plugins and installed Creations automatically [I], so `DLC*.esm`/`.ba2` and `cc*` files must be moved out of `Data`, or a separate copy of the game used. The validator below checks the result.
+1. **Prepare the required base set.** Fallout 4 1.11.240 with F4SE and FalloutMP in capture mode (`"entry": {"capture": true}`). The template must list exactly the files every player is required to have: `Fallout4.esm` and the nine free Creations (STATUS decision 2026-10-09). The game loads every installed DLC and Creation automatically [I], so the paid DLC (`DLC*.esm` and `.ba2`), `DLCUltraHighResolution.*` and any paid Creations must be moved out of `Data`, or a separate copy of the game used. The validator below checks the result.
 2. **Play to the vault exit.** New game, Normal difficulty (not Survival). Play the intro to the Vault 111 exit (about 20 minutes). Don't wear power armor and don't start combat.
 3. **Wait at the Vault 111 exterior for 3 minutes.** WorkshopParent needs 30–120 s to register workshops, and MQ102's stage 10→15 turns on the radio stations (ref §9).
 4. **Run the capture command.** It:
@@ -197,7 +197,7 @@ A bad ticket → `entryFailed{ticket}` + `entryRetry` once → `failed`.
 5. **Normalise offline.** `fmp_savetool normalize` replaces the screenshot with a FalloutMP image (no game imagery is shipped), sets the header name "FalloutMP", level 1 and play time 0, and rebuilds the file location table.
 6. **Validate offline.** `fmp_savetool validate` checks:
    - magic `FO4_SAVEGAME`, header version 15, `formVersion` 69, `gameVersion` = the runtime;
-   - plugins exactly `[Fallout4.esm]`, no light plugins;
+   - plugins exactly `[Fallout4.esm]`, and light plugins exactly the nine free Creations (any order; the engine maps them by name);
    - the file location table, the block counts and the change-form count are consistent;
    - global data table 1 has a 30-byte Player Location (type 1) in worldspace `0x3C`, and its Global Variables block (type 3) holds `0x38` and `0x39`;
    - the player ACHR (`40 00 14`) has `MOVE` (0x2), no `HAVOK_MOVE` (0x4), and initial data of type 4 or 6;
@@ -215,7 +215,7 @@ A save made back inside Vault 111 *after* a visit outside is a candidate indoor 
 **A shortcut to test: start from a published clean save.** Nexus mod 4746 "Clean New Saves" (2015, runtime 1.1.30) has male and female saves standing outside Vault 111 in the Commonwealth, with only `Fallout4.esm` (ref §1.1). That is exactly the template's shape, minus the runtime: header 11 / `formVersion` 61.
 - **Upgrade path:** load one on the base-game install and run the capture command; the game writes a 1.11.240 save (15 / 69). That replaces the 20-minute playthrough with about 5 minutes [I: newer runtimes load older saves, ref §1].
 - **Permission:** shipping anything derived from it needs the author's permission. Without it, these saves are still the writer's first real test files (Phase 0, kept out of git).
-- **The user's own 1.11.240 save outside the vault** (ref §1.1) has the right runtime and spot, but lists `DLCUltraHighResolution.esm` and the nine free Creations, which a normal install loads automatically. As a template it needs a re-save with those files moved out of `Data`. That drops 520 Creation Club forms; check the result with ReSaver for orphaned script instances. A replay of the intro with the files moved out first gives a cleaner save. Either way, it is the writer's best real test file.
+- **The user's own 1.11.240 save outside the vault** (ref §1.1, 2026-10-09) is the best candidate. It has the right runtime and spot, and lists `Fallout4.esm` and the nine free Creations plus `DLCUltraHighResolution.esm`, a texture pack the save uses no forms from. Re-saving it with that pack moved out of `Data` drops nothing, then the capture command runs as usual. It is also the writer's best real test file.
 - **The other upload:** Nexus 35235 ("right before exiting Vault 111", 1.9.4) lists all six DLC and is indoors, so it can't be a template (above).
 
 **A faster capture to test (how SkyMP's template was probably made):** SkyMP's `assets/template.ess` (still in upstream `2849e67`, 2026-10-05) holds a level-1 character with Skyrim's default name "Prisoner" (Пленник), which character creation would have replaced, standing in Solstheim. That fits a `coc` from the main menu followed by a save, with no intro played [I].
@@ -231,7 +231,7 @@ Try it in the Phase 1 probe session; the vault-exit capture stays the default un
 ```json
 { "id": "fo4-1.11.240-r1", "file": "fo4-1.11.240-r1.fos", "sha256": "…", "size": 0,
   "gameVersion": "1.11.240.0", "headerVersion": 15, "formVersion": 69,
-  "plugins": ["Fallout4.esm"], "lightPlugins": [], "sex": 0,
+  "plugins": ["Fallout4.esm"], "lightPlugins": ["ccBGSFO4044-HellfirePowerArmor.esl", "…the other eight free Creations"], "sex": 0,
   "spawn": { "worldOrCell": "3c:Fallout4.esm", "pos": [0, 0, 0], "angleZ": 0 },
   "createdAt": "…", "notes": "Vault 111 exterior, MQ stopped, Pip-Boy only" }
 ```
@@ -416,7 +416,7 @@ N/A: the world has no vanilla NPCs, and server NPCs (F13) are streamed after the
 | Runtime not supported by the plugin | F4SE doesn't load the plugin (version check): the install guide explains | update FalloutMP |
 | No template for this runtime | dialog: "FalloutMP has no entry save for game version x yet; starting a new game instead" | fallback F1 |
 | Template sha256 mismatch | "Reinstall FalloutMP (the entry save is damaged)" | F1 if allowed |
-| Template names a plugin that isn't loaded | "Your game is missing <file>" | refuse (cannot happen with a base-game template) |
+| Template names a plugin that isn't loaded | "Your game is missing <file>" | refuse (the manifest check normally catches it first) |
 | Bad ticket | — (retried once), then a dialog | `entryRetry`, then `failed` |
 | Writer error | "Couldn't prepare the world (code)"; log has the details | `entryFailed{write}` → F1 |
 | Save folder unwritable or disk full | "Can't write to <folder>: <error>" | Retry / Quit |
