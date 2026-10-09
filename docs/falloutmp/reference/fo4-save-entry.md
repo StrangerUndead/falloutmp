@@ -51,7 +51,7 @@ Nothing here has been run in game yet. Every claim carries a marker:
 | OG 1.10.163 | 15 | 68 | no sample [I] |
 | Next-Gen 1.10.984 | 15 | 68 | [M:LP README:13-14] |
 | Anniversary 1.11.169 / .191 / .221 | 15 | **69** | [M:MCP save_inspect.py:69-71]; [M:FW savepos.py:9]; [M:LP] |
-| Anniversary 1.11.240 (our tester) | 15 [I] | 69 [I] | not measured [U] [G] |
+| Anniversary 1.11.240 (our tester) | 15 | 69 | [M: ours, the user's own save, §1.1] |
 
 ### 1.1 Real saves measured by FalloutMP (2026-10-09)
 The user supplied two Nexus archives, read with a scratch parser (header, plugin block, FLT, table 1, change forms, player ACHR); each file parsed end to end with every offset consistent [M: ours].
@@ -61,6 +61,7 @@ The user supplied two Nexus archives, read with a scratch parser (header, plugin
 | Nexus 35235 "right before exiting Vault 111" `Save001.fos` | 1.9.4 | 15 / 67 | Fallout4.esm + 6 DLC | Vault 111 interior `0x16D8` | 12 blocks (0–11) | 63 B, sky mode 1 / 15 B | flags `B0000823`, `MOVE`, 27-byte prefix = Player Location |
 | Nexus 4746 "Clean New Saves", `Vault - Male/Female.fos` | 1.1.30 | 11 / 61 | Fallout4.esm only | Vault 111 interior | — | 63 B, sky mode 1 / 30 B | `MOVE`, no `HAVOK_MOVE` |
 | Nexus 4746, `Commonwealth - Male/Female.fos` | 1.1.30 | 11 / 61 | Fallout4.esm only | Commonwealth `0x3C` at (−88745, 90515, 8963), grid (−22, 22), 16 min in | — | 92 B, sky mode 3 / 30 B | `MOVE`, no `HAVOK_MOVE`; prefix = Player Location |
+| The user's own save outside Vault 111 (`Save4_…_Commonwealth`, 2026-10-09) | 1.11.240 | 15 / 69 | Fallout4.esm, DLCUltraHighResolution.esm + the 9 free Creations as light plugins | Commonwealth `0x3C` at (−88621, 90486, 8963), grid (−22, 22), 19 min in | 12 blocks | 92 B, sky mode 3 / 12 B | flags `B0000823`, `MOVE`; prefix = Player Location |
 
 Confirmed:
 - Player Location is 30 bytes;
@@ -69,7 +70,9 @@ Confirmed:
 - base-game-only saves have an empty FormID array;
 - an interior save keeps the last worldspace (`0xA7FF4`) or null.
 
-The Audio block size varies by runtime (15 B vs 30 B).
+The Audio block size varies by runtime (12, 15, 21 or 30 B).
+
+The 1.11.240 save's FormID array has 8,104 entries: 7,584 point into Fallout4.esm, none into DLCUltraHighResolution.esm (a texture pack whose plugin holds no forms the save uses), and 520 into eight of the nine free Creations. A save made on a normal install therefore carries Creation Club state, even without touching that content. Loading it without those files drops the 520 forms, behind the missing-content prompt.
 
 - **The container did not change from OG to Next-Gen to Anniversary.** Header, screenshot, `formVersion` + `gameVersion`, plugin block, file location table (FLT) and block framing are the same:
   - FW walks a 1.11.191 save and asserts that global data 1 ends exactly at FLT[3] and the change forms end exactly at FLT[5] [M:FW savepos.py:204,244];

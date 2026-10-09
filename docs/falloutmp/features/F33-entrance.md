@@ -215,6 +215,7 @@ A save made back inside Vault 111 *after* a visit outside is a candidate indoor 
 **A shortcut to test: start from a published clean save.** Nexus mod 4746 "Clean New Saves" (2015, runtime 1.1.30) has male and female saves standing outside Vault 111 in the Commonwealth, with only `Fallout4.esm` (ref §1.1). That is exactly the template's shape, minus the runtime: header 11 / `formVersion` 61.
 - **Upgrade path:** load one on the base-game install and run the capture command; the game writes a 1.11.240 save (15 / 69). That replaces the 20-minute playthrough with about 5 minutes [I: newer runtimes load older saves, ref §1].
 - **Permission:** shipping anything derived from it needs the author's permission. Without it, these saves are still the writer's first real test files (Phase 0, kept out of git).
+- **The user's own 1.11.240 save outside the vault** (ref §1.1) has the right runtime and spot, but lists `DLCUltraHighResolution.esm` and the nine free Creations, which a normal install loads automatically. As a template it needs a re-save with those files moved out of `Data`. That drops 520 Creation Club forms; check the result with ReSaver for orphaned script instances. A replay of the intro with the files moved out first gives a cleaner save. Either way, it is the writer's best real test file.
 - **The other upload:** Nexus 35235 ("right before exiting Vault 111", 1.9.4) lists all six DLC and is indoors, so it can't be a template (above).
 
 **A faster capture to test (how SkyMP's template was probably made):** SkyMP's `assets/template.ess` (still in upstream `2849e67`, 2026-10-05) holds a level-1 character with Skyrim's default name "Prisoner" (Пленник), which character creation would have replaced, standing in Solstheim. That fits a `coc` from the main menu followed by a save, with no intro played [I].
@@ -644,7 +645,7 @@ Memory: one transient template buffer (~5–8 MB). Network: ticket ≤ 600 B, `e
 The general list is ref §10. These are the ones this feature needs, grouped by session:
 
 1. **Probe session (F33-T04/T05, about 15 minutes):**
-   - the version line of any 1.11.240 save (expect 15 and 69);
+   - ~~the version line of a 1.11.240 save~~ done 2026-10-09: 15 / 69, from the user's own save (ref §1.1);
    - the ID-check lines;
    - JS runs at the main menu;
    - `confirmText` and a `MessageMenuManager` dialog show at the main menu;
