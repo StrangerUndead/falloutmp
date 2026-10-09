@@ -231,7 +231,7 @@ F4SE hooks the entries of the inner SaveGame, LoadGame and DeleteSaveGame with 5
 3. **The server binds at once.** `SetUserActor` sends `CreateActor isMe` and streams the actor to neighbours before the client has loaded anything (`PartOne.cpp:192-240`).
 4. **Branch.** `once('update')` firing first means a game is running (the reconnect path). Two `tick`s without an `update` mean the main menu (`remoteServer.ts:485-618`).
 5. **Main-menu path.** The client calls `loadGame(pos, rot, worldOrCell, npc, loadOrder, time)` with its own mod list, a GameHour from UTC and its appearance. On an exception it retries without the appearance ("Hotfix non-vanilla headparts bug", `loadGameService.ts:10-20`).
-6. **The writer** (`LoadGameApi.cpp:154-199` → `LoadGame.cpp:91-123`) works on the embedded `template.ess`, a 4.6 MB Skyrim LE save of the default prisoner at level 1 at Solstheim, 4 min 20 s played. It:
+6. **The writer** (`LoadGameApi.cpp:154-199` → `LoadGame.cpp:91-123`) works on the embedded `template.ess`, a 4.6 MB Skyrim LE save (header version 9). Its level-1 character still has the default name "Prisoner" (Пленник) and stands in Solstheim, so it was probably made with `coc` from the main menu, without character creation [I]. Upstream `2849e67` (2026-10-05) still ships it and this whole flow. It:
    - replaces the plugin list with the client's, without remapping (:144-158, :231-237);
    - sets GameHour `0x38` (weather is left alone);
    - replaces the player NPC_ change form (name, race, sex, skin, head parts, presets);

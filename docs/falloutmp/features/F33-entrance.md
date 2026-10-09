@@ -212,6 +212,13 @@ A bad ticket → `entryFailed{ticket}` + `entryRetry` once → `failed`.
 
 A save made back inside Vault 111 *after* a visit outside is a candidate indoor donor for F33-T18 [I].
 
+**A faster capture to test (how SkyMP's template was probably made):** SkyMP's `assets/template.ess` (still in upstream `2849e67`, 2026-10-05) holds a level-1 character with Skyrim's default name "Prisoner" (Пленник), which character creation would have replaced, standing in Solstheim. That fits a `coc` from the main menu followed by a save, with no intro played [I].
+- **The Fallout 4 equivalent:** `coc SanctuaryExt` at the main menu, then the capture command. It skips the 20-minute intro.
+- **The cost:** MQ101 stays in its new-game state, there is no Pip-Boy (the clean world adds one), and the radio stations are off.
+- **Unknown [G]:** whether the intro's scripts block running or other controls in that state, and whether WorkshopParent registers the workshops.
+
+Try it in the Phase 1 probe session; the vault-exit capture stays the default unless those checks pass.
+
 **Distribution** (Q-07, recommended default): `templates.json` is committed to git. The `.fos` is a release asset that the client packaging step downloads and checks against the committed sha256. It goes in the client zip as `Data/F4SE/Plugins/FalloutMP/entry/<id>.fos`. A save holds player state and references to game data by FormID, not game data; SkyMP commits its `template.ess`. Keeping the binary out of git follows the project's no-game-data rule anyway.
 
 `templates.json` entry:
@@ -639,7 +646,8 @@ The general list is ref §10. These are the ones this feature needs, grouped by 
    - loading a copy of a save by name from the main menu: result, black screen or not, duration, threads;
    - the order of `kPostLoadGame`, `TESLoadGameEvent` and the menus closing;
    - deleting the save after the load (Continue doesn't offer it);
-   - whether a "press any button" screen exists.
+   - whether a "press any button" screen exists;
+   - for the faster capture (§4.5.1): after `coc SanctuaryExt` from the main menu, whether the player can run, whether the Pip-Boy the clean world adds works, and whether MQ101's scripts stay quiet.
 2. **Template capture (F33-T06, about 30 minutes):** the procedure of §4.5.1.
 3. **Entrance session (F33-T09…T12):**
    - three targets, including a second exterior worldspace (sky and weather right?);
