@@ -30,7 +30,9 @@
 // Locks.cpp          | lockpick/hacking menus, openTerminal, setLocked, lock
 // events | | map          | Map.cpp            | setMapMarker,
 // fastTravelRequested            | | world        | World.cpp          |
-// setGameTime, setTimeScale, forceWeather      | | probe        | Probe.cpp |
+// setGameTime, setTimeScale, forceWeather      | | papyrusEvents |
+// PapyrusEvents.cpp | blocks the game's own script events (PLAT-036) | |
+// probe        | Probe.cpp |
 // writes FalloutMP-probe.json (diagnostics)    |
 namespace fmp {
 class Platform;
@@ -54,9 +56,14 @@ void InstallWorkshop(Platform& p);
 void InstallLocks(Platform& p);
 void InstallMap(Platform& p);
 void InstallWorld(Platform& p);
+void InstallPapyrusEvents(Platform& p);
 void InstallCleanWorld(Platform& p);
 void InstallProbe(Platform& p);
 void InstallEntry(Platform& p);
+
+// True once the game's own Papyrus events are blocked (PapyrusEvents.cpp):
+// clean world then stops only the quests that act without events.
+bool PapyrusEventsBlocked();
 
 // Clean world, now: one actor sweep, one quest sweep and the Pip-Boy check
 // (the entry template capture).

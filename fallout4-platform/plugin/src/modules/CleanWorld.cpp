@@ -4,27 +4,35 @@
 //
 //   - Actors: every actor that isn't the player, another player (puppet) or
 //     a FalloutMP object (game::IsNetworkRef: workshop turrets, ...) is
-//     disabled as soon as it loads. A sweep of the loaded actors (high and
-//     middle-high process, with 3D) runs four times a second, at most 25
-//     actors each; TESObjectLoadedEvent catches actors in between. Actors
-//     that aren't loaded are left until they load. Humans,
-//     ghouls, creatures and robots alike, unless FalloutMP.json has
+//     disabled once it loads, one actor per frame, as SkyMP's
+//     worldCleanerService does (one random nearby actor per update).
+//     Actors that just loaded (TESObjectLoadedEvent) go first, then the
+//     loaded actors (high and middle-high process, with 3D); actors that
+//     aren't loaded are left until they load. Dead bodies stay and can't be
+//     activated (SkyMP: blockActivation); an actor that is talking is left
+//     for later (SkyMP: deleting an actor in dialogue crashes the game).
+//     Humans, ghouls, creatures and robots alike, unless FalloutMP.json has
 //     "keep-creatures": true (then only actors with ActorTypeNPC go).
-//   - Quests: story, faction, companion, radiant, encounter and dialogue
-//     quests are stopped when they run (the new-game intro included), every
-//     5 seconds, at most 10 per sweep (the next sweep comes sooner while
-//     some are left). System quests (workshop, survival, perks, radio, ...)
-//     keep running.
+//   - Quests: with the game's Papyrus events blocked (PapyrusEvents.cpp,
+//     SkyMP's approach) quest scripts never react, so only the quests that
+//     act on their own are stopped: the main quest intro, companions and
+//     followers, random encounters, the Minutemen radiant quests and the
+//     Brotherhood's arrival. With blocking off ("papyrusEvents": false),
+//     every story, faction, companion, radiant, encounter and dialogue
+//     quest is stopped instead. Two per sweep, a sweep every 5 seconds or
+//     every half second while some are left. System quests (workshop,
+//     survival, perks, radio, ...) always keep running.
 //   - Pip-Boy: a player without one (a new game before the vault) gets it
 //     added and equipped. It is a local-only item: the client's inventory
 //     sync leaves it alone (inventoryService kLocalOnlyItems).
 //
 // Everything here runs on the main thread (Platform::Tick, hooks::TickNow):
 // a first version that disabled ~1,000 actors and stopped ~180 quests in
-// one go from an F4SE task thread crashed the game right after a load.
+// one go from an F4SE task thread crashed the game right after a load
+// (2026-10-10).
 //
-// Off with "features": { "cleanWorld": false }. Every stopped quest and the
-// number of disabled actors go to FalloutMP.log.
+// Off with "features": { "cleanWorld": false }. Every stopped quest, and
+// the number of disabled actors every 5 seconds, go to FalloutMP.log.
 #include <F4SE/F4SE.h>
 #include <RE/Fallout.h>
 
@@ -36,6 +44,7 @@
 #include "Puppets.h"
 
 #include <array>
+#include <deque>
 #include <format>
 #include <string>
 #include <string_view>
@@ -47,11 +56,12 @@ namespace fmp::modules {
 
 namespace {
 constexpr double kStartDelayMs = 3000.0;
-constexpr double kActorSweepMs = 250.0;
 constexpr double kQuestSweepMs = 5000.0;
 constexpr double kQuestBacklogSweepMs = 500.0; // while quests are left
-constexpr size_t kMaxActorsPerSweep = 25;
-constexpr size_t kMaxQuestsPerSweep = 10;
+constexpr size_t kMaxQuestsPerSweep = 2;
+constexpr double kRemovedLogMs = 5000.0;
+// Pending (just loaded) actors looked at per frame to find one to remove.
+constexpr size_t kMaxPendingChecks = 16;
 // Stop() goes through the script VM: a quest asked to stop can still read
 // as running for a moment, so it isn't asked again (or counted) this soon.
 constexpr double kStopRetryMs = 5000.0;
@@ -75,7 +85,22 @@ constexpr std::array<std::string_view, 4> kKeepParts = {
   "ReconScope",
   "Settlement",
 };
-// Editor id prefixes of story, encounter, companion and dialogue quests.
+// With Papyrus events blocked: the quests that act without events.
+constexpr std::array<std::string_view, 7> kActiveQuests = {
+  "MQ00",                  // main quest timing
+  "Followers",             // companion and follower AI
+  "DogmeatQuest",          //
+  "REParent",              // random encounters (story manager)
+  "MinutemenCentralQuest", // Minutemen radiant quests and attacks
+  "BoSEnable",             // the Brotherhood's arrival (Prydwen)
+  "BoS100Fight",           // the vertibird fight
+};
+constexpr std::array<std::string_view, 2> kActiveQuestPrefixes = {
+  "MQ1", // MQ101..: the intro and the first main quest stages
+  "COM", // companion quests (COMCodsworth, COMPreston, ...)
+};
+// Without blocking: editor id prefixes of story, encounter, companion and
+// dialogue quests.
 constexpr std::array<std::string_view, 19> kStopPrefixes = {
   "MQ",   "RE",   "DN",    "COM",       "Dialogue", "Followers", "RQ",
   "MS",   "FF",   "BoS",   "RR",        "Inst",     "Min",       "V81",
@@ -83,10 +108,13 @@ constexpr std::array<std::string_view, 19> kStopPrefixes = {
 };
 
 bool g_keepCreatures = false;
-double g_lastActorSweepMs = 0;
 double g_lastQuestSweepMs = 0;
 double g_lastPipboyCheckMs = 0;
-std::unordered_set<uint32_t> g_disabled;            // actors this session
+std::unordered_set<uint32_t> g_disabled; // actors this session
+std::unordered_set<uint32_t> g_bodies;   // activation blocked
+std::deque<uint32_t> g_pending;          // actors that loaded
+uint64_t g_removedSinceLog = 0;
+double g_lastRemovedLogMs = 0;
 std::unordered_set<uint32_t> g_stoppedLogged;       // quests already logged
 std::unordered_map<uint32_t, double> g_stopAskedMs; // quest -> last Stop()
 uint64_t g_disabledTotal = 0;
@@ -123,53 +151,70 @@ bool ShouldRemove(RE::Actor* actor)
   }
   if (g_keepCreatures) {
     auto race = actor->race;
-    return race && race->HasKeywordString("ActorTypeNPC");
+    if (!race || !race->HasKeywordString("ActorTypeNPC")) {
+      return false;
+    }
   }
-  return true;
+  if (actor->IsDead(true)) {
+    // Bodies stay, but can't be looted or activated (SkyMP keeps vanilla
+    // bodies the same way)
+    if (g_bodies.insert(id).second) {
+      papyrus::CallMethod(actor, "ObjectReference", "BlockActivation", nullptr,
+                          true, true);
+    }
+    return false;
+  }
+  // SkyMP: removing an actor in dialogue crashes the game; try again later
+  return !actor->IsTalking();
 }
 
-void RemoveActors(Platform& p, const std::vector<RE::Actor*>& actors)
+void Remove(RE::Actor* actor)
 {
-  size_t n = 0;
-  for (auto actor : actors) {
-    if (n >= kMaxActorsPerSweep) {
-      break; // the next sweep takes the rest
-    }
-    if (!ShouldRemove(actor)) {
-      continue;
-    }
-    g_disabled.insert(actor->GetFormID());
-    actor->Disable();
-    ++n;
-  }
-  if (n) {
-    g_disabledTotal += n;
-    p.Log("info",
-          std::format("Clean world: removed {} actors ({} so far)", n,
-                      g_disabledTotal));
-  }
+  g_disabled.insert(actor->GetFormID());
+  actor->Disable();
+  ++g_removedSinceLog;
+  ++g_disabledTotal;
 }
 
-void SweepActors(Platform& p)
+// One actor per frame: a just-loaded one first, else the first loaded
+// actor that should go.
+void RemoveOneActor()
 {
+  for (size_t i = 0; i < kMaxPendingChecks && !g_pending.empty(); ++i) {
+    const uint32_t id = g_pending.front();
+    g_pending.pop_front();
+    auto actor = game::ActorOf(id);
+    if (actor && actor->Get3D() && ShouldRemove(actor)) {
+      Remove(actor);
+      return;
+    }
+  }
   auto lists = RE::ProcessLists::GetSingleton();
   if (!lists) {
     return;
   }
-  // Collected first: Disable changes the process lists. Only loaded actors
-  // (high and middle-high process, with 3D): the others are caught when
-  // they load.
-  std::vector<RE::Actor*> actors;
   for (auto* handles :
        { &lists->highActorHandles, &lists->middleHighActorHandles }) {
     for (auto& handle : *handles) {
       auto ptr = handle.get();
-      if (auto actor = ptr.get(); actor && actor->Get3D()) {
-        actors.push_back(actor);
+      auto actor = ptr.get();
+      if (actor && actor->Get3D() && ShouldRemove(actor)) {
+        Remove(actor);
+        return;
       }
     }
   }
-  RemoveActors(p, actors);
+}
+
+void LogRemoved(Platform& p, double now)
+{
+  if (g_removedSinceLog && now - g_lastRemovedLogMs >= kRemovedLogMs) {
+    p.Log("info",
+          std::format("Clean world: removed {} actors ({} so far)",
+                      g_removedSinceLog, g_disabledTotal));
+    g_removedSinceLog = 0;
+    g_lastRemovedLogMs = now;
+  }
 }
 
 bool ShouldStop(RE::TESQuest* quest)
@@ -183,6 +228,14 @@ bool ShouldStop(RE::TESQuest* quest)
     if (id.find(part) != std::string_view::npos) {
       return false;
     }
+  }
+  if (PapyrusEventsBlocked()) {
+    for (auto active : kActiveQuests) {
+      if (id == active) {
+        return true;
+      }
+    }
+    return StartsWithAny(id, kActiveQuestPrefixes);
   }
   // Quest types 1..14: main quest, factions, misc, side, DLC
   return quest->data.questType != 0 || StartsWithAny(id, kStopPrefixes);
@@ -253,12 +306,11 @@ public:
     if (e.loaded) {
       const uint32_t id = e.formID;
       auto& p = Platform::Get();
-      p.QueueTask([&p, id] {
-        if (!Active(p)) {
-          return; // the sweep catches it once the game is loaded
-        }
-        if (auto actor = game::ActorOf(id)) {
-          RemoveActors(p, { actor });
+      // Queued for the frame loop (main thread), which removes one actor
+      // per frame
+      p.QueueTask([id] {
+        if (game::ActorOf(id)) { // the event covers every reference
+          g_pending.push_back(id);
         }
       });
     }
@@ -272,7 +324,7 @@ void CleanWorldSweepNow(Platform& p)
   if (!game::OnMainThread()) {
     return;
   }
-  SweepActors(p);
+  RemoveOneActor();
   SweepQuests(p);
   EnsurePipboy(p);
 }
@@ -300,13 +352,12 @@ void InstallCleanWorld(Platform& p)
       // Another save (or cell) loaded: its actors come back as saved
       wasLoading = false;
       g_disabled.clear();
-      g_lastActorSweepMs = 0;
+      g_bodies.clear();
+      g_pending.clear();
     }
     const double now = p.NowMs();
-    if (now - g_lastActorSweepMs >= kActorSweepMs) {
-      g_lastActorSweepMs = now;
-      SweepActors(p);
-    }
+    RemoveOneActor();
+    LogRemoved(p, now);
     if (now - g_lastQuestSweepMs >= kQuestSweepMs) {
       g_lastQuestSweepMs = now;
       if (SweepQuests(p)) {

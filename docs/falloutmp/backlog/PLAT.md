@@ -67,7 +67,7 @@ Context: [reference/commonlib-port-map.md](../reference/commonlib-port-map.md) (
   - `Game.getPlayer` fast path
   - M — Depends: PLAT-031 — Verify: G-self
 - [ ] **PLAT-035** Codegen: in-game `FunctionsDump` (FO4 VM + FO4 PEX reader from PVM-001/002) → `tools/ts_converter` → `falloutPlatform.ts`; `Definitions.txt` FO4 (events, custom API, enums: FormType, biped slots 30–61, menus, AV EDIDs, MotionType with keyframed = 2) — M — Depends: PLAT-033, PVM-002 — Verify: W-ci (typecheck) + G-self (dump)
-- [ ] **PLAT-036** `blockPapyrusEvents` / `hooks.sendPapyrusEvent` via a hook on FO4 VM event dispatch, with an FO4 allow-list (ADR-011) — M — Depends: PLAT-030 — Verify: G-self
+- [~] **PLAT-036** `blockPapyrusEvents` / `hooks.sendPapyrusEvent` via a hook on FO4 VM event dispatch, with an FO4 allow-list (ADR-011) — M — Depends: PLAT-030 — Verify: G-self. *Blocking built (2026-10-10, `plugin/src/modules/PapyrusEvents.cpp`): `IVirtualMachine::SendEvent` (vfunc 0x2B) replaced in the live VM's vtable; blocked events go on under a name no script handles (SkyMP sends an empty name); OnTimer/OnTimerGameTime let through; the per-script allow-list is opt-in (`papyrus-events.allow-scripts`) until the VM's attached-script layout is verified on 1.11.240. Left: confirm in game that game events pass through this vtable (the log's blocked/let-through counts), verify the layout, the `hooks.sendPapyrusEvent` JS hook, and the ADR-011 generated allow-list.*
 
 ## D. Events & game lifecycle
 - [ ] **PLAT-040** Event sinks: port `EventHandler` to the FO4 `TES*Event` set available in libxse, plus local definitions for the ~30 missing sources (candidate IDs in commonlib map §4.2; verify each in game); drop Skyrim-only story events — L — Depends: PLAT-002 — Verify: G-self

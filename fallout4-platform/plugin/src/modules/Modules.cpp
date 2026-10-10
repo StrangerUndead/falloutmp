@@ -30,6 +30,7 @@ constexpr Entry kModules[] = {
   { "locks", InstallLocks },
   { "map", InstallMap },
   { "world", InstallWorld },
+  { "papyrusEvents", InstallPapyrusEvents }, // before cleanWorld
   { "cleanWorld", InstallCleanWorld },
   { "probe", InstallProbe },
   { "entry", InstallEntry },
