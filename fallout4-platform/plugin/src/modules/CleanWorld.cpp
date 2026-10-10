@@ -236,6 +236,13 @@ public:
 };
 }
 
+void CleanWorldSweepNow(Platform& p)
+{
+  SweepActors(p);
+  SweepQuests(p);
+  EnsurePipboy(p);
+}
+
 void InstallCleanWorld(Platform& p)
 {
   if (p.Config().probe) {

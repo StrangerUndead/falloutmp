@@ -184,7 +184,7 @@ A bad ticket → `entryFailed{ticket}` + `entryRetry` once → `failed`.
 #### 4.5.1 The template
 **What it is:** a save made by the maintainer once per supported runtime, then normalised and validated offline. Every client loads the same file, so every client starts from the same world state.
 
-**Capture procedure** (F33-T06, documented in `docs/falloutmp/test-scripts/entry-template.md`):
+**Capture procedure** (F33-T06, documented in `docs/falloutmp/test-scripts/entry-test.md`):
 1. **Prepare the required base set.** Fallout 4 1.11.240 with F4SE and FalloutMP in capture mode (`"entry": {"capture": true}`). The template must list exactly the files every player is required to have: `Fallout4.esm` and the nine free Creations (STATUS decision 2026-10-09). The game loads every installed DLC and Creation automatically [I], so the paid DLC (`DLC*.esm` and `.ba2`), `DLCUltraHighResolution.*` and any paid Creations must be moved out of `Data`, or a separate copy of the game used. The validator below checks the result.
 2. **Play to the vault exit.** New game, Normal difficulty (not Survival). Play the intro to the Vault 111 exit (about 20 minutes). Don't wear power armor and don't start combat.
 3. **Wait at the Vault 111 exterior for 3 minutes.** WorkshopParent needs 30–120 s to register workshops, and MQ102's stage 10→15 turns on the radio stations (ref §9).
@@ -578,11 +578,11 @@ Memory: one transient template buffer (~5–8 MB). Network: ticket ≤ 600 B, `e
   - Accept: `inspect` on any real 1.11.x save prints header, plugins, FLT, block sizes and a change-form histogram; `validate` implements the template rules of §4.5.1.
 
 **Phase 1 — engine checks (one session in the user's game)**
-- [ ] **F33-T04** Entry module skeleton: exact-ID checks with offsets and first bytes logged, leftover cleanup, INI forcing, main-menu readiness and `mainMenuReady`, frame tick at the main menu — S — Depends: PLAT-020a — Verify: G-self — Files: fallout4-platform/plugin/src/modules/Entry.cpp, Hooks.cpp
+- [~] **F33-T04** Entry module skeleton: exact-ID checks with offsets and first bytes logged, leftover cleanup, INI forcing, main-menu readiness and `mainMenuReady`, frame tick at the main menu — S — Depends: PLAT-020a — Verify: G-self — Files: fallout4-platform/plugin/src/modules/Entry.cpp, Hooks.cpp — built 2026-10-10 in `modules/Entry.cpp` (ID log, save folder, leftover cleanup, menu timings); waiting for the in-game run
   - Accept: FalloutMP.log lists every ID as found with its offset; the JS tick runs at the main menu; the readiness time is logged.
-- [ ] **F33-T05** Load a named save from the main menu: route A, route B fallback, `loadInFlight`, lifecycle events, timings and thread ids (replaces PLAT-050) — M — Depends: F33-T04 — Verify: G-self — Files: modules/Entry.cpp, Main.cpp
+- [~] **F33-T05** Load a named save from the main menu: route A, route B fallback, `loadInFlight`, lifecycle events, timings and thread ids (replaces PLAT-050) — M — Depends: F33-T04 — Verify: G-self — Files: modules/Entry.cpp, Main.cpp — built 2026-10-10 (route A as StartOnSaveF4, route B fallback, patched copy via `fos`, post-load reports); waiting for the in-game run, docs/falloutmp/test-scripts/entry-test.md
   - Accept: the probe loads a copy of one of the user's saves by name from the main menu with no black screen; the log shows the route, return value, duration and the threads of `kPreLoadGame`/`kPostLoadGame`.
-- [ ] **F33-T06** Capture mode, the capture procedure, and template r1 for 1.11.240 — M — Depends: F33-T03, F33-T04 — Verify: G-manual — Files: modules/Entry.cpp, docs/falloutmp/test-scripts/entry-template.md, fallout4-platform/plugin/entry/templates.json
+- [~] **F33-T06** Capture mode, the capture procedure, and template r1 for 1.11.240 — M — Depends: F33-T03, F33-T04 — Verify: G-manual — Files: modules/Entry.cpp, docs/falloutmp/test-scripts/entry-test.md, fallout4-platform/plugin/entry/templates.json — capture command built 2026-10-10 (`"entry": {"capture": true}`); the template itself waits for the user's run
   - Accept: `fmp_savetool validate` passes on r1; ReSaver opens it; its sha256 is committed and the file is a release asset.
 
 **Phase 2 — the entrance (MVP)**

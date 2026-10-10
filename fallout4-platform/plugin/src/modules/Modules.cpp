@@ -32,6 +32,7 @@ constexpr Entry kModules[] = {
   { "world", InstallWorld },
   { "cleanWorld", InstallCleanWorld },
   { "probe", InstallProbe },
+  { "entry", InstallEntry },
 };
 }
 

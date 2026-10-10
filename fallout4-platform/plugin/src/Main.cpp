@@ -36,12 +36,19 @@ void OnMessage(F4SE::MessagingInterface::Message* a_msg)
       break;
     case F4SE::MessagingInterface::kPreLoadGame:
       p.SetInGame(false);
+      fmp::modules::EntryOnPreLoadGame(static_cast<const char*>(a_msg->data));
       break;
     case F4SE::MessagingInterface::kPostLoadGame:
     case F4SE::MessagingInterface::kNewGame:
       if (a_msg->type == F4SE::MessagingInterface::kNewGame ||
           static_cast<bool>(a_msg->data)) {
         p.SetInGame(true);
+      }
+      if (a_msg->type == F4SE::MessagingInterface::kPostLoadGame) {
+        fmp::modules::EntryOnPostLoadGame(static_cast<bool>(a_msg->data));
+      }
+      if (fmp::modules::EntrySuppressesSession()) {
+        break; // an entry test or capture: no multiplayer session
       }
       if (p.Started() && !g_ready) {
         g_ready = true;

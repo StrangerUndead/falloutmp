@@ -56,6 +56,19 @@ void InstallMap(Platform& p);
 void InstallWorld(Platform& p);
 void InstallCleanWorld(Platform& p);
 void InstallProbe(Platform& p);
+void InstallEntry(Platform& p);
+
+// Clean world, now: one actor sweep, one quest sweep and the Pip-Boy check
+// (the entry template capture).
+void CleanWorldSweepNow(Platform& p);
+
+// Entry (the entrance test build): Main.cpp forwards the load messages.
+// Both may run on the game's loader thread.
+void EntryOnPreLoadGame(const char* saveName);
+void EntryOnPostLoadGame(bool ok);
+// True while an "entry" test or capture is configured: no multiplayer
+// session then.
+bool EntrySuppressesSession();
 
 // Installs every enabled module (Main.cpp, at kGameDataReady).
 void InstallAll(Platform& p);

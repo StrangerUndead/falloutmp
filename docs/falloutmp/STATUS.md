@@ -41,7 +41,7 @@ Guides: [guides/server-admin.md](guides/server-admin.md), [guides/gamemode-api.m
 ## Next actions (for the next session)
 0. Client in game: the user runs the probe (`"probe": true`) and a two-player session, and sends `FalloutMP-probe.json`, `FalloutMP.log`, the Papyrus log and any Buffout 4 crash log. Work through the in-game checks below with them; switch failing modules off in `features` meanwhile.
 1. ESPM-003 (light plugins), so the server can load the nine free Creations (decision 2026-10-09); Linux only, no game needed.
-2. The entrance (F33): Phase 0 is done (the save editor, F33-T01…T03). Next is Phase 1 with the user: one probe session (F33-T04/T05, the checks in F33 §9 item 1) and the template capture (F33-T06). Build the main-menu flow (Phase 2) only after Phase 1 shows the engine loads a patched save.
+2. The entrance (F33): Phase 0 is done (the save editor, F33-T01…T03). The Phase 1 test build is ready (`modules/Entry.cpp`, steps in test-scripts/entry-test.md). Next is Phase 1 with the user: one probe session (F33-T04/T05, the checks in F33 §9 item 1) and the template capture (F33-T06). Build the main-menu flow (Phase 2) only after Phase 1 shows the engine loads a patched save.
 3. M2: PEX FO4 reader (PVM-001…006), so server Papyrus can run Fallout 4 scripts.
 4. F13 remainder: `NpcAiState` (111), legendary rolls (LTPT/LTPC), hostility from factions.
 5. Windows work for the user or CI: PLAT-001+ (the F4SE plugin implementing `falloutPlatform.ts`), then the G-self checks in the verification table below.
