@@ -4,17 +4,24 @@
 //
 //   - Actors: every actor that isn't the player, another player (puppet) or
 //     a FalloutMP object (game::IsNetworkRef: workshop turrets, ...) is
-//     disabled as soon as it loads. A sweep of the process lists runs every
-//     second; TESObjectLoadedEvent catches actors in between. Humans,
+//     disabled as soon as it loads. A sweep of the loaded actors (high and
+//     middle-high process, with 3D) runs four times a second, at most 25
+//     actors each; TESObjectLoadedEvent catches actors in between. Actors
+//     that aren't loaded are left until they load. Humans,
 //     ghouls, creatures and robots alike, unless FalloutMP.json has
 //     "keep-creatures": true (then only actors with ActorTypeNPC go).
 //   - Quests: story, faction, companion, radiant, encounter and dialogue
 //     quests are stopped when they run (the new-game intro included), every
-//     5 seconds. System quests (workshop, survival, perks, radio, ...) keep
-//     running.
+//     5 seconds, at most 10 per sweep (the next sweep comes sooner while
+//     some are left). System quests (workshop, survival, perks, radio, ...)
+//     keep running.
 //   - Pip-Boy: a player without one (a new game before the vault) gets it
 //     added and equipped. It is a local-only item: the client's inventory
 //     sync leaves it alone (inventoryService kLocalOnlyItems).
+//
+// Everything here runs on the main thread (Platform::Tick, hooks::TickNow):
+// a first version that disabled ~1,000 actors and stopped ~180 quests in
+// one go from an F4SE task thread crashed the game right after a load.
 //
 // Off with "features": { "cleanWorld": false }. Every stopped quest and the
 // number of disabled actors go to FalloutMP.log.
@@ -32,6 +39,7 @@
 #include <format>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -39,8 +47,14 @@ namespace fmp::modules {
 
 namespace {
 constexpr double kStartDelayMs = 3000.0;
-constexpr double kActorSweepMs = 1000.0;
+constexpr double kActorSweepMs = 250.0;
 constexpr double kQuestSweepMs = 5000.0;
+constexpr double kQuestBacklogSweepMs = 500.0; // while quests are left
+constexpr size_t kMaxActorsPerSweep = 25;
+constexpr size_t kMaxQuestsPerSweep = 10;
+// Stop() goes through the script VM: a quest asked to stop can still read
+// as running for a moment, so it isn't asked again (or counted) this soon.
+constexpr double kStopRetryMs = 5000.0;
 constexpr double kPipboyCheckMs = 5000.0;
 constexpr uint32_t kPipboy = 0x00021B3B; // ARMO "Pipboy"
 // [verify] TESObjectREFR form flag "disabled" (0x800, as in other
@@ -72,8 +86,9 @@ bool g_keepCreatures = false;
 double g_lastActorSweepMs = 0;
 double g_lastQuestSweepMs = 0;
 double g_lastPipboyCheckMs = 0;
-std::unordered_set<uint32_t> g_disabled;      // actors this session
-std::unordered_set<uint32_t> g_stoppedLogged; // quests already logged
+std::unordered_set<uint32_t> g_disabled;            // actors this session
+std::unordered_set<uint32_t> g_stoppedLogged;       // quests already logged
+std::unordered_map<uint32_t, double> g_stopAskedMs; // quest -> last Stop()
 uint64_t g_disabledTotal = 0;
 
 // Only in a loaded game: never during start-up, at the main menu or while
@@ -81,9 +96,9 @@ uint64_t g_disabledTotal = 0;
 // first seconds after a load.
 bool Active(Platform& p)
 {
-  return p.InGame() && p.NowMs() - p.InGameSinceMs() >= kStartDelayMs &&
-    !game::Loading() && !game::MenuOpen("MainMenu") &&
-    RE::PlayerCharacter::GetSingleton();
+  return game::OnMainThread() && p.InGame() &&
+    p.NowMs() - p.InGameSinceMs() >= kStartDelayMs && !game::Loading() &&
+    !game::MenuOpen("MainMenu") && RE::PlayerCharacter::GetSingleton();
 }
 
 bool StartsWithAny(std::string_view s, auto const& prefixes)
@@ -117,6 +132,9 @@ void RemoveActors(Platform& p, const std::vector<RE::Actor*>& actors)
 {
   size_t n = 0;
   for (auto actor : actors) {
+    if (n >= kMaxActorsPerSweep) {
+      break; // the next sweep takes the rest
+    }
     if (!ShouldRemove(actor)) {
       continue;
     }
@@ -138,14 +156,15 @@ void SweepActors(Platform& p)
   if (!lists) {
     return;
   }
-  // Collected first: Disable changes the process lists.
+  // Collected first: Disable changes the process lists. Only loaded actors
+  // (high and middle-high process, with 3D): the others are caught when
+  // they load.
   std::vector<RE::Actor*> actors;
   for (auto* handles :
-       { &lists->highActorHandles, &lists->middleHighActorHandles,
-         &lists->middleLowActorHandles, &lists->lowActorHandles }) {
+       { &lists->highActorHandles, &lists->middleHighActorHandles }) {
     for (auto& handle : *handles) {
       auto ptr = handle.get();
-      if (auto actor = ptr.get()) {
+      if (auto actor = ptr.get(); actor && actor->Get3D()) {
         actors.push_back(actor);
       }
     }
@@ -169,16 +188,27 @@ bool ShouldStop(RE::TESQuest* quest)
   return quest->data.questType != 0 || StartsWithAny(id, kStopPrefixes);
 }
 
-void SweepQuests(Platform& p)
+// True when running quests that should stop are left for the next sweep.
+bool SweepQuests(Platform& p)
 {
   auto dataHandler = RE::TESDataHandler::GetSingleton();
   if (!dataHandler) {
-    return;
+    return false;
   }
+  const double now = p.NowMs();
+  size_t n = 0;
   for (auto quest : dataHandler->GetFormArray<RE::TESQuest>()) {
     if (!quest || !(quest->data.flags & kQuestRunning) || !ShouldStop(quest)) {
       continue;
     }
+    auto asked = g_stopAskedMs.find(quest->GetFormID());
+    if (asked != g_stopAskedMs.end() && now - asked->second < kStopRetryMs) {
+      continue;
+    }
+    if (n++ >= kMaxQuestsPerSweep) {
+      return true;
+    }
+    g_stopAskedMs[quest->GetFormID()] = now;
     // Stop()
     papyrus::CallMethod(quest, "Quest", "Stop", nullptr);
     if (g_stoppedLogged.insert(quest->GetFormID()).second) {
@@ -187,6 +217,7 @@ void SweepQuests(Platform& p)
                         quest->formEditorID.c_str(), quest->GetFormID()));
     }
   }
+  return false;
 }
 
 void EnsurePipboy(Platform& p)
@@ -238,6 +269,9 @@ public:
 
 void CleanWorldSweepNow(Platform& p)
 {
+  if (!game::OnMainThread()) {
+    return;
+  }
   SweepActors(p);
   SweepQuests(p);
   EnsurePipboy(p);
@@ -275,7 +309,9 @@ void InstallCleanWorld(Platform& p)
     }
     if (now - g_lastQuestSweepMs >= kQuestSweepMs) {
       g_lastQuestSweepMs = now;
-      SweepQuests(p);
+      if (SweepQuests(p)) {
+        g_lastQuestSweepMs = now - kQuestSweepMs + kQuestBacklogSweepMs;
+      }
     }
     if (now - g_lastPipboyCheckMs >= kPipboyCheckMs) {
       g_lastPipboyCheckMs = now;

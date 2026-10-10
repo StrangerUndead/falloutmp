@@ -118,6 +118,7 @@ struct State
   std::string generatedName; // without .fos
   double mainMenuOpenedMs = -1;
   double loadCalledMs = 0;
+  std::atomic<bool> loadPending{ false };
   std::atomic<bool> loadInFlight{ false };
   std::atomic<bool> postLoadSeen{ false };
   std::atomic<bool> postLoadOk{ false };
@@ -368,31 +369,35 @@ void StartTest(Platform& p)
               mgr->saveGameList.back()->fileName);
   }
 
-  // As StartOnSaveF4 does: in a task on the main thread
-  F4SE::GetTaskInterface()->AddTask([&p] {
-    auto mgr = RE::BGSSaveLoadManager::GetSingleton();
-    g.loadInFlight = true;
-    g.loadCalledMs = p.NowMs();
-    if (!g.test.routeB) {
-      DoBeforeNewOrLoad();
-      static REL::Relocation<bool*> shouldUpdate{
-        RE::ID::Main::QGameSystemsShouldUpdate
-      };
-      *shouldUpdate = true;
-      REX::INFO("entry: route A, LoadGame('{}') on thread {}", g.generatedName,
-                ThreadId());
-      const bool ok = LoadGame(mgr, g.generatedName.c_str());
-      REX::INFO("entry: LoadGame returned {} after {:.0f} ms", ok,
-                p.NowMs() - g.loadCalledMs);
-      if (ok) {
-        return;
-      }
-      REX::WARN("entry: route A failed; trying route B");
+  // As StartOnSaveF4 does: on the main thread (Tick runs the load)
+  g.loadPending = true;
+}
+
+// Main thread only: F4SE tasks also run on worker threads.
+void RunLoad(Platform& p)
+{
+  auto mgr = RE::BGSSaveLoadManager::GetSingleton();
+  g.loadInFlight = true;
+  g.loadCalledMs = p.NowMs();
+  if (!g.test.routeB) {
+    DoBeforeNewOrLoad();
+    static REL::Relocation<bool*> shouldUpdate{
+      RE::ID::Main::QGameSystemsShouldUpdate
+    };
+    *shouldUpdate = true;
+    REX::INFO("entry: route A, LoadGame('{}') on thread {}", g.generatedName,
+              ThreadId());
+    const bool ok = LoadGame(mgr, g.generatedName.c_str());
+    REX::INFO("entry: LoadGame returned {} after {:.0f} ms", ok,
+              p.NowMs() - g.loadCalledMs);
+    if (ok) {
+      return;
     }
-    const std::string cmd = "load " + g.generatedName;
-    REX::INFO("entry: route B, console '{}'", cmd);
-    RE::Console::ExecuteCommand(cmd.c_str());
-  });
+    REX::WARN("entry: route A failed; trying route B");
+  }
+  const std::string cmd = "load " + g.generatedName;
+  REX::INFO("entry: route B, console '{}'", cmd);
+  RE::Console::ExecuteCommand(cmd.c_str());
 }
 
 void ReportAfterLoad(Platform& p, int n)
@@ -487,12 +492,21 @@ void CaptureTick(Platform& p)
 
 void Tick(Platform& p)
 {
+  // The permanent task runs on whichever thread pumps the message queue;
+  // the load, the reports and the capture touch the game: main thread only
+  if (!game::OnMainThread()) {
+    return;
+  }
   if (!g.mainThread) {
     g.mainThread = ThreadId();
-    REX::INFO("entry: frame task running on thread {} (main menu open: {}, "
-              "player: {})",
+    REX::INFO("entry: first frame task on the main thread {} (main menu "
+              "open: {}, player: {})",
               g.mainThread, game::MenuOpen("MainMenu"),
               RE::PlayerCharacter::GetSingleton() != nullptr);
+  }
+  if (g.loadPending.exchange(false)) {
+    RunLoad(p);
+    return;
   }
   if (g.test.enabled && !g.testStarted && g.test.onMainMenu &&
       g.mainMenuOpenedMs >= 0 &&
@@ -622,9 +636,13 @@ void InstallEntry(Platform& p)
   if (auto ui = RE::UI::GetSingleton()) {
     ui->RegisterSink<RE::MenuOpenCloseEvent>(&menuSink);
   }
+  // The permanent task covers the main menu (Platform's tick needs a
+  // loaded game); the frame callback covers the game, where the task often
+  // runs on a worker thread. Tick only acts on the main thread.
   if (auto tasks = F4SE::GetTaskInterface()) {
     tasks->AddTaskPermanent([&p] { Tick(p); });
   }
+  p.OnFrame([&p](float) { Tick(p); });
   if (g.test.enabled && !g.test.onMainMenu) {
     // At kGameDataReady, as StartOnSaveF4 does
     StartTest(p);

@@ -1,5 +1,8 @@
 #include "GameUtil.h"
 
+#include <REX/W32/KERNEL32.h>
+
+#include <atomic>
 #include <cmath>
 #include <mutex>
 #include <numbers>
@@ -128,6 +131,30 @@ bool MenuOpen(const char* menuName)
 {
   auto ui = RE::UI::GetSingleton();
   return ui && ui->GetMenuOpen(RE::BSFixedString(menuName));
+}
+
+namespace {
+std::atomic<uint32_t> g_mainThread{ 0 };
+}
+
+void SetMainThread()
+{
+  g_mainThread = CurrentThreadId();
+}
+
+bool OnMainThread()
+{
+  return g_mainThread.load() != 0 && CurrentThreadId() == g_mainThread.load();
+}
+
+uint32_t MainThreadId()
+{
+  return g_mainThread.load();
+}
+
+uint32_t CurrentThreadId()
+{
+  return REX::W32::GetCurrentThreadId();
 }
 
 bool Loading()

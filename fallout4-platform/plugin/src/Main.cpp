@@ -10,6 +10,7 @@
 #include <F4SE/F4SE.h>
 #include <RE/Fallout.h>
 
+#include "GameUtil.h"
 #include "Hooks.h"
 #include "Platform.h"
 #include "modules/Modules.h"
@@ -91,8 +92,10 @@ F4SE_PLUGIN_LOAD(const F4SE::LoadInterface* a_f4se)
   F4SE::Init(
     a_f4se,
     { .logName = "FalloutMP", .trampoline = true, .trampolineSize = 1024 });
-  REX::INFO("FalloutMP {}.{}.{} loading", FMP_VERSION_MAJOR, FMP_VERSION_MINOR,
-            FMP_VERSION_PATCH);
+  // F4SE loads plugins on the game's main thread
+  fmp::game::SetMainThread();
+  REX::INFO("FalloutMP {}.{}.{} loading (main thread {})", FMP_VERSION_MAJOR,
+            FMP_VERSION_MINOR, FMP_VERSION_PATCH, fmp::game::MainThreadId());
   fmp::Platform::Get().SetVersions(a_f4se->RuntimeVersion().string(),
                                    F4SE::GetF4SEVersion().string());
   REX::INFO("Fallout 4 {}, F4SE {}", fmp::Platform::Get().RuntimeVersion(),

@@ -48,6 +48,15 @@ void MarkNetworkRef(uint32_t formId);
 void UnmarkNetworkRef(uint32_t formId);
 bool IsNetworkRef(uint32_t formId);
 
+// The game's main thread. F4SE loads plugins on it, so F4SE_PLUGIN_LOAD
+// records it. F4SE's tasks run on whichever thread pumps the game's
+// message queue (often a worker thread once in game), so code that changes
+// the world checks OnMainThread() first.
+void SetMainThread();
+bool OnMainThread();
+uint32_t MainThreadId();
+uint32_t CurrentThreadId();
+
 bool MenuOpen(const char* menuName);
 // A loading screen is up (no movement, no spawning).
 bool Loading();
